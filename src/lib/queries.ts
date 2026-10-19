@@ -220,43 +220,92 @@ export async function getDashboard(user: CurrentUser, today: ISODate) {
   return { day, habits, goals, score, priorities, dueHabits, activeGoals, avgProgress, bestStreak, calendar, completedThisMonth };
 }
 
+export type DayStat = {
+  date: ISODate;
+  score: number | null; // null = không có dữ liệu
+  focusMinutes: number;
+  sessions: number;
+  tasksDone: number;
+  prioritiesDone: number;
+  prioritiesTotal: number;
+  habitsDone: number;
+  habitsDue: number;
+};
+
+/** Thống kê từng ngày trong khoảng [from, to] (các ngày sau hôm nay bị bỏ qua). */
+export async function getDailyStats(user: CurrentUser, from: ISODate, to: ISODate, today: ISODate, habits: HabitView[]): Promise<DayStat[]> {
+  const range = { gte: toDbDate(from), lte: toDbDate(to) };
+  const [tasks, focus] = await Promise.all([
+    db.task.findMany({
+      where: { userId: user.id, date: range, OR: [{ priority: { not: null } }, { status: "DONE" }] },
+      select: { date: true, status: true, priority: true },
+    }),
+    db.focusSession.groupBy({ by: ["date"], where: { userId: user.id, date: range }, _sum: { actualMinutes: true }, _count: true }),
+  ]);
+  const focusMap = new Map(focus.map((f) => [fromDbDate(f.date), { min: f._sum.actualMinutes ?? 0, n: f._count }]));
+  const tasksByDay = new Map<ISODate, typeof tasks>();
+  for (const t of tasks) {
+    const k = fromDbDate(t.date!);
+    tasksByDay.set(k, [...(tasksByDay.get(k) ?? []), t]);
+  }
+
+  const out: DayStat[] = [];
+  for (const iso of rangeISO(from, to)) {
+    if (iso > today) break;
+    const dayTasks = tasksByDay.get(iso) ?? [];
+    const pr = dayTasks.filter((t) => t.priority);
+    const due = habits.filter((h) => iso >= h.createdAt && isScheduled(h, iso));
+    const done = due.filter((h) => (h.logs[iso] ?? 0) >= h.targetPerDay);
+    const f = focusMap.get(iso) ?? { min: 0, n: 0 };
+    const hasData = pr.length || done.length || f.min;
+    out.push({
+      date: iso,
+      score: hasData
+        ? disciplineScore({
+            prioritiesDone: pr.filter((t) => t.status === "DONE").length,
+            prioritiesTotal: pr.length,
+            habitsDone: done.length,
+            habitsDue: due.length,
+            focusMinutes: f.min,
+            focusGoal: user.dailyFocusGoal,
+          })
+        : null,
+      focusMinutes: f.min,
+      sessions: f.n,
+      tasksDone: dayTasks.filter((t) => t.status === "DONE").length,
+      prioritiesDone: pr.filter((t) => t.status === "DONE").length,
+      prioritiesTotal: pr.length,
+      habitsDone: done.length,
+      habitsDue: due.length,
+    });
+  }
+  return out;
+}
+
+/** Tổng hợp một khoảng ngày cho báo cáo tuần/tháng. */
+export function summarize(days: DayStat[]) {
+  const scored = days.filter((d) => d.score != null);
+  const sum = <K extends keyof DayStat>(k: K) => days.reduce((s, d) => s + (d[k] as number), 0);
+  const due = sum("habitsDue");
+  const pt = sum("prioritiesTotal");
+  return {
+    avgScore: scored.length ? Math.round(scored.reduce((s, d) => s + d.score!, 0) / scored.length) : 0,
+    focusMinutes: sum("focusMinutes"),
+    sessions: sum("sessions"),
+    tasksDone: sum("tasksDone"),
+    habitRate: due ? sum("habitsDone") / due : 0,
+    prioritiesRate: pt ? sum("prioritiesDone") / pt : 0,
+    best: scored.reduce<DayStat | null>((b, d) => (!b || d.score! > b.score! ? d : b), null),
+  };
+}
+export type Summary = ReturnType<typeof summarize>;
+
 /** Điểm kỷ luật cho từng ngày trong tháng (đến hôm nay). */
 export async function getMonthCalendar(user: CurrentUser, year: number, month: number, today: ISODate, habits: HabitView[]) {
   const { from, to } = monthBounds(year, month);
-  const [tasks, focus] = await Promise.all([
-    db.task.findMany({
-      where: { userId: user.id, priority: { not: null }, date: { gte: toDbDate(from), lte: toDbDate(to) } },
-      select: { date: true, status: true },
-    }),
-    db.focusSession.groupBy({
-      by: ["date"],
-      where: { userId: user.id, date: { gte: toDbDate(from), lte: toDbDate(to) } },
-      _sum: { actualMinutes: true },
-    }),
-  ]);
-  const focusMap = new Map(focus.map((f) => [fromDbDate(f.date), f._sum.actualMinutes ?? 0]));
-
+  const stats = await getDailyStats(user, from, to, today, habits);
   const days: Record<ISODate, number | null> = {};
-  for (const iso of rangeISO(from, to)) {
-    if (iso > today) {
-      days[iso] = null;
-      continue;
-    }
-    const dayTasks = tasks.filter((t) => t.date && fromDbDate(t.date) === iso);
-    const due = habits.filter((h) => iso >= h.createdAt && isScheduled(h, iso));
-    const done = due.filter((h) => (h.logs[iso] ?? 0) >= h.targetPerDay);
-    const fm = focusMap.get(iso) ?? 0;
-    const hasData = dayTasks.length || done.length || fm;
-    days[iso] = hasData
-      ? disciplineScore({
-          prioritiesDone: dayTasks.filter((t) => t.status === "DONE").length,
-          prioritiesTotal: dayTasks.length,
-          habitsDone: done.length,
-          habitsDue: due.length,
-          focusMinutes: fm,
-          focusGoal: user.dailyFocusGoal,
-        })
-      : null;
-  }
+  for (const iso of rangeISO(from, to)) days[iso] = null;
+  for (const s of stats) days[s.date] = s.score;
   return { year, month, days };
 }

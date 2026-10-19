@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <DesktopNav />
         <div className="flex items-center gap-2 rounded-full md:bg-surface md:p-1.5 md:shadow-card">
           <ThemeToggle />
-          <UserMenu name={name} image={user.image} plan={effectivePlan(user)} />
+          <UserMenu name={name} image={user.image} plan={effectivePlan(user)} isAdmin={user.role === "ADMIN"} />
         </div>
       </header>
       <main id="main">{children}</main>

@@ -142,6 +142,40 @@ async function main() {
     }
   }
 
+  // Nhật ký & đánh giá tuần
+  const causes = ["distraction", "too_big", "fatigue", "unclear", "perfectionism", "distraction", "fear"];
+  for (let d = 14; d >= 1; d--) {
+    const c1 = causes[Math.floor(rand() * causes.length)]!;
+    const c2 = rand() < 0.4 ? "distraction" : null;
+    await db.journalEntry.create({
+      data: {
+        userId: uid,
+        date: dbDate(addDays(today, -d)),
+        mood: 2 + Math.floor(rand() * 4),
+        wins: "Hoàn thành phiên tập trung buổi sáng đúng giờ.",
+        lessons: "Lướt điện thoại quá lâu sau bữa trưa.",
+        tomorrow: d % 3 === 0 ? "Để điện thoại ở phòng khác trong phiên 9h." : null,
+        procrastination: rand() < 0.75 ? [...new Set([c1, ...(c2 ? [c2] : [])])] : [],
+      },
+    });
+  }
+  const lastWeek = (() => {
+    const dow = (dbDate(today).getUTCDay() + 6) % 7;
+    return addDays(today, -dow - 7);
+  })();
+  await db.weeklyReview.create({
+    data: {
+      userId: uid,
+      weekStart: dbDate(lastWeek),
+      rating: 7,
+      highlights: "Giữ chuỗi đọc sách 7/7 ngày, chạy được 11km.",
+      obstacles: "Buổi chiều hay mất tập trung.",
+      rootCause: "Ngủ muộn → buổi chiều thiếu năng lượng.",
+      experiment: "Đi ngủ trước 23h trong 7 ngày.",
+      nextFocus: ["1. Wireframe thanh toán", "2. Chạy 3 buổi", "3. Đọc 2 cuốn"].join("\n"),
+    },
+  });
+
   console.log(`✔ Seed xong cho ${email} (${today})`);
 }
 

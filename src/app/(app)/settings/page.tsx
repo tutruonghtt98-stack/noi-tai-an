@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { getI18n } from "@/lib/i18n";
 import { effectivePlan } from "@/lib/plan";
@@ -47,11 +48,9 @@ export default async function SettingsPage() {
                   </p>
                 )}
               </div>
-              {plan === "FREE" && (
-                <span className="badge bg-surface" title={t.common.comingSoon}>
-                  {t.common.upgrade} · {t.common.comingSoon}
-                </span>
-              )}
+              <Link href={plan === "FREE" ? "/pricing" : "/billing"} className="btn btn-primary btn-sm">
+                {plan === "FREE" ? t.common.upgrade : t.billing.manage}
+              </Link>
             </div>
           </section>
 

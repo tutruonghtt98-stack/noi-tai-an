@@ -75,6 +75,8 @@ model User {
   breakMinutes   Int       @default(5)
   dailyFocusGoal Int       @default(120) // phút
   onboardedAt    DateTime?
+  bannedAt       DateTime? // Admin khoá tài khoản
+  teamSeats      Int? // số chỗ khi mua gói Team
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -88,6 +90,9 @@ model User {
   habitLogs     HabitLog[]
   focusSessions FocusSession[]
   dailyPlans    DailyPlan[]
+  journals      JournalEntry[]
+  weeklyReviews WeeklyReview[]
+  orders        Order[]
 }
 
 model Account {
@@ -287,4 +292,85 @@ model HabitLog {
 
   @@unique([habitId, date])
   @@index([userId, date])
+}
+
+// ---------- F. Reflection ----------
+
+model JournalEntry {
+  id                  String   @id @default(cuid())
+  userId              String
+  date                DateTime @db.Date
+  mood                Int? // 1–5
+  wins                String?
+  lessons             String?
+  gratitude           String?
+  tomorrow            String? // một cải thiện cho ngày mai
+  // Nguyên nhân trì hoãn (mã: unclear, too_big, distraction, fatigue, fear, perfectionism, low_energy, other)
+  procrastination     String[] @default([])
+  procrastinationNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model WeeklyReview {
+  id         String   @id @default(cuid())
+  userId     String
+  weekStart  DateTime @db.Date
+  rating     Int? // 1–10
+  highlights String?
+  obstacles  String?
+  rootCause  String?
+  experiment String? // thử nghiệm cải thiện tuần tới
+  nextFocus  String? // 3 trọng tâm tuần tới
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+}
+
+// ---------- G. Payment ----------
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+model Order {
+  id          String       @id @default(cuid())
+  code        String       @unique // mã nội dung chuyển khoản, VD: NTA8F3K2Q
+  orderCode   Int          @unique // mã số cho PayOS
+  userId      String
+  plan        Plan
+  cycle       BillingCycle
+  seats       Int          @default(1)
+  amount      Int // VND
+  provider    String // payos | sepay | mock
+  status      OrderStatus  @default(PENDING)
+  checkoutUrl String?
+  providerRef String? // mã giao dịch phía cổng thanh toán
+  paidAt      DateTime?
+  expiresAt   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([userId])
 }

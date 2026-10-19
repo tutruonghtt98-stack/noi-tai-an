@@ -1,13 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { LogOut, Settings, Sun, Moon } from "lucide-react";
+import { LogOut, Settings, Sun, Moon, CreditCard, ShieldCheck } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { signOutAction } from "@/actions/auth";
 import { setTheme } from "@/actions/settings";
 import { Avatar } from "@/components/ui/avatar";
 
-export function UserMenu({ name, image, plan }: { name: string; image: string | null; plan: string }) {
+export function UserMenu({ name, image, plan, isAdmin }: { name: string; image: string | null; plan: string; isAdmin?: boolean }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -53,6 +53,24 @@ export function UserMenu({ name, image, plan }: { name: string; image: string | 
           >
             <Settings className="size-5" aria-hidden /> {t.nav.settings}
           </Link>
+          <Link
+            role="menuitem"
+            href="/billing"
+            onClick={() => setOpen(false)}
+            className="flex min-h-11 items-center gap-3 rounded-2xl px-3 text-ink-2 hover:bg-surface-2 hover:text-ink"
+          >
+            <CreditCard className="size-5" aria-hidden /> {t.billing.manage}
+          </Link>
+          {isAdmin && (
+            <Link
+              role="menuitem"
+              href="/admin"
+              onClick={() => setOpen(false)}
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 text-ink-2 hover:bg-surface-2 hover:text-ink"
+            >
+              <ShieldCheck className="size-5" aria-hidden /> {t.nav.admin}
+            </Link>
+          )}
           <form action={signOutAction}>
             <button
               role="menuitem"

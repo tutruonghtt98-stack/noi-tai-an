@@ -32,6 +32,9 @@
 
   --danger: #b42318;
   --success: #15703f;
+  /* Biểu đồ — đã kiểm tra tương phản & CVD (dataviz validator) */
+  --chart-1: #b7791f;
+  --chart-2: #13885a;
   --shadow: 0 1px 2px rgb(29 28 26 / 0.04), 0 8px 24px -12px rgb(29 28 26 / 0.12);
   --shadow-lg: 0 24px 60px -20px rgb(29 28 26 / 0.3);
 
@@ -61,6 +64,8 @@
     --rose-ink: #f2b9a3;
     --danger: #f97066;
     --success: #6ce9a6;
+    --chart-1: #c08a1f;
+    --chart-2: #22996a;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
   }
 }
@@ -85,6 +90,8 @@
   --rose-ink: #f2b9a3;
   --danger: #f97066;
   --success: #6ce9a6;
+  --chart-1: #c08a1f;
+  --chart-2: #22996a;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
 }
 
@@ -143,6 +150,8 @@
   --color-rose-ink: var(--rose-ink);
   --color-danger: var(--danger);
   --color-success: var(--success);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
   --radius-card: 1.75rem;
   --shadow-card: var(--shadow);
   --shadow-pop: var(--shadow-lg);

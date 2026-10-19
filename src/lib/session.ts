@@ -10,6 +10,14 @@ export const requireUser = cache(async () => {
   if (!session?.user?.id) redirect("/login");
   const user = await db.user.findUnique({ where: { id: session.user.id } });
   if (!user) redirect("/login");
+  if (user.bannedAt) redirect("/login?banned=1");
+  return user;
+});
+
+/** Chỉ ADMIN. Người dùng thường bị chuyển về Dashboard. */
+export const requireAdmin = cache(async () => {
+  const user = await requireUser();
+  if (user.role !== "ADMIN") redirect("/dashboard");
   return user;
 });
 

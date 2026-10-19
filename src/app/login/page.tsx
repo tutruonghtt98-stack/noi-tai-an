@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Check } from "lucide-react";
 import { getOptionalUser } from "@/lib/session";
@@ -21,8 +22,9 @@ function GoogleIcon() {
   );
 }
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ banned?: string }> }) {
   if (await getOptionalUser()) redirect("/dashboard");
+  const { banned } = await searchParams;
   const { t, locale } = await getI18n();
 
   return (
@@ -80,6 +82,11 @@ export default async function LoginPage() {
           <h2 className="text-3xl font-semibold">{t.auth.title}</h2>
           <p className="mt-3 text-ink-2">{t.auth.subtitle}</p>
 
+          {banned && (
+            <p role="alert" className="mt-6 rounded-2xl bg-rose-soft p-4 text-sm text-rose-ink">
+              {locale === "en" ? "This account has been suspended. Contact support for help." : "Tài khoản này đã bị tạm khoá. Vui lòng liên hệ hỗ trợ."}
+            </p>
+          )}
           <div className="mt-10 space-y-3">
             {googleEnabled && (
               <form action={signInGoogle}>
@@ -100,6 +107,21 @@ export default async function LoginPage() {
             )}
           </div>
           <p className="mt-8 text-xs leading-relaxed text-muted">{t.auth.terms}</p>
+          <nav className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted" aria-label="Legal">
+            {(
+              [
+                ["/pricing", t.legal.pricing],
+                ["/terms", t.legal.terms],
+                ["/privacy", t.legal.privacy],
+                ["/refund", t.legal.refund],
+                ["/contact", t.legal.contact],
+              ] as const
+            ).map(([href, label]) => (
+              <Link key={href} href={href} className="underline-offset-4 hover:text-ink hover:underline">
+                {label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </section>
     </div>

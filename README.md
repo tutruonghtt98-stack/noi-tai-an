@@ -11,7 +11,7 @@ Nền tảng kỷ luật cá nhân cho nhiều người dùng: mục tiêu năm 
 | Giai đoạn | Nội dung | Trạng thái |
 |---|---|---|
 | **1** | Nền tảng, đăng nhập Google, **A** Dashboard, **B** Goal System, **C** Habit Tracker, **D** Daily Execution, **I** Cài đặt giao diện | ✅ Hoàn thành |
-| 2 | **E** Progress Analytics, **F** Reflection, **G** Payment (PayOS/SePay), Admin, trang pháp lý | ⏳ |
+| **2** | **E** Progress Analytics, **F** Reflection, **G** Payment (PayOS/SePay), Admin, trang pháp lý | ✅ Hoàn thành |
 | 3 | **H1–H5** Cộng đồng: bảng tin, thử thách, bảng xếp hạng, nhóm đồng hành, hồ sơ hành trình (ảnh lưu Cloudflare R2) | ⏳ |
 
 ### Giai đoạn 1 gồm những gì
@@ -22,6 +22,34 @@ Nền tảng kỷ luật cá nhân cho nhiều người dùng: mục tiêu năm 
 - **Thực thi**: ý định trong ngày và mức năng lượng, Top 3 (tối đa 3), nhiệm vụ có giờ và ước tính, dời sang mai, kéo việc tồn đọng vào hôm nay, đồng hồ Pomodoro (giữ trạng thái khi chuyển trang hoặc tab, tự ghi phiên).
 - **Cài đặt**: sáng/tối/hệ thống, 4 màu nhấn, mật độ thoáng/gọn, ngôn ngữ, múi giờ, ngày đầu tuần, độ dài phiên, xuất dữ liệu JSON.
 - **Gói cước**: Free giới hạn 3 mục tiêu đang chạy và 5 thói quen (`src/lib/plan.ts`); Pro/Team không giới hạn.
+
+### Giai đoạn 2 gồm những gì
+
+- **Phân tích** (`/analytics`): báo cáo tuần/tháng, các khoảng 7/30/90 ngày (gói Free chỉ xem được 7 ngày); điểm kỷ luật theo ngày, thời gian tập trung, heatmap lịch sử thói quen, tỷ lệ duy trì theo từng thói quen, tiến độ mục tiêu, bảng so sánh với kỳ trước. Biểu đồ có tooltip, xem được dạng bảng, màu đã qua kiểm tra tương phản và mù màu.
+- **Suy ngẫm** (`/reflection`): nhật ký cuối ngày (tâm trạng, điều làm tốt, bài học, biết ơn, cải thiện cho ngày mai, gắn thẻ 8 nguyên nhân trì hoãn kèm gợi ý xử lý), đánh giá tuần (điểm tuần, điểm sáng, trở ngại, nguyên nhân gốc, thử nghiệm cho tuần tới, 3 trọng tâm) kèm số liệu tự động, và mục "Thấu hiểu trì hoãn" tổng hợp khuôn mẫu 30 ngày cùng kế hoạch cải thiện.
+- **Thanh toán**: `/pricing` (Free/Pro/Team, theo tháng hoặc năm, Team tính theo số chỗ), `/billing` (gói hiện tại, lịch sử giao dịch), trang QR VietQR tự kiểm tra trạng thái. Hỗ trợ **SePay** (webhook xác thực bằng API Key) hoặc **PayOS** (link thanh toán + webhook có chữ ký HMAC, tra lại trạng thái khi người dùng quay về). Kích hoạt idempotent: webhook lặp không cộng hạn hai lần; gia hạn được nối tiếp vào hạn cũ. Bảng giá nằm trong `src/lib/billing.ts`.
+- **Quản trị** (`/admin`, chỉ ADMIN): KPI (người dùng, hoạt động 7 ngày, thuê bao, MRR, doanh thu 30 ngày), biểu đồ doanh thu; quản lý người dùng (tìm kiếm, cấp gói thủ công, cấp/gỡ quyền ADMIN, khoá tài khoản); giao dịch (lọc, đối soát thủ công khi khách chuyển sai nội dung, huỷ đơn). Mục Kiểm duyệt và Thử thách chính thức sẽ hoạt động từ Giai đoạn 3.
+- **Pháp lý** (công khai): `/terms`, `/privacy` (theo NĐ 13/2023), `/refund`, `/contact`; footer hiển thị tên đơn vị, MST và địa chỉ (cấu hình qua `.env`). Đây là các trang PayOS/SePay thường yêu cầu khi duyệt merchant. **Hãy nhờ người có chuyên môn pháp lý rà soát nội dung trước khi công bố.**
+
+---
+
+## Thanh toán
+
+Trên máy local, nếu không đặt `PAYMENT_PROVIDER`, hệ thống chạy **chế độ giả lập**: trang QR có nút "Giả lập thanh toán thành công". Production **bắt buộc** cấu hình một cổng thanh toán.
+
+**SePay (khuyên dùng cho cá nhân / hộ kinh doanh)**
+
+1. Đăng ký tại my.sepay.vn và liên kết tài khoản ngân hàng nhận tiền.
+2. Vào *Webhooks* → thêm URL `https://ten-mien.vn/api/payments/sepay`, kiểu chứng thực **API Key**, rồi chép key vào `SEPAY_API_KEY`.
+3. Điền vào `.env`: `PAYMENT_PROVIDER=sepay`, `SEPAY_BANK`, `SEPAY_ACCOUNT_NO`, `SEPAY_ACCOUNT_NAME`.
+
+**PayOS**
+
+1. Tạo kênh thanh toán tại my.payos.vn, lấy Client ID, API Key và Checksum Key.
+2. Đặt webhook `https://ten-mien.vn/api/payments/payos` (PayOS sẽ gửi một request thử, hệ thống trả 200).
+3. Điền vào `.env`: `PAYMENT_PROVIDER=payos`, `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, `PAYOS_CHECKSUM_KEY`.
+
+Mã nội dung chuyển khoản có dạng `NTA` + 6 ký tự. Nếu khách chuyển sai nội dung, vào **Admin → Giao dịch → Đánh dấu đã thu** để đối soát thủ công.
 
 ---
 
