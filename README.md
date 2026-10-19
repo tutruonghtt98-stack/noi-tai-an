@@ -114,6 +114,8 @@ Trong GitHub repo → *Settings → Secrets and variables → Actions*, thêm:
 | `VPS_SSH_KEY` | private key được phép SSH vào user `deploy` |
 | `VPS_PORT` | (tuỳ chọn) cổng SSH, mặc định 22 |
 
+Sau đó vào tab *Variables* (cùng trang), tạo biến `DEPLOY_ENABLED` = `true`. Khi chưa đặt biến này, workflow chỉ typecheck và build, không deploy.
+
 Workflow `.github/workflows/deploy.yml` sẽ typecheck và build, rồi SSH vào VPS chạy `deploy/deploy.sh`: pull code → `npm ci` → `prisma migrate deploy` → build → `pm2 startOrReload` → kiểm tra `/api/health`.
 
 ### Vận hành
