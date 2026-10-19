@@ -6,6 +6,7 @@ import { fmt } from "@/lib/i18n/format";
 import { useToast } from "@/components/ui/toast";
 import { logFocusSession } from "@/actions/tasks";
 import { cn } from "@/lib/cn";
+import { claimOnce } from "@/lib/notify";
 
 type Mode = "focus" | "break";
 type State = {
@@ -32,23 +33,6 @@ function load(): State | null {
 function save(s: State) {
   try {
     localStorage.setItem(KEY, JSON.stringify(s));
-  } catch {}
-}
-
-function chime() {
-  try {
-    const ctx = new AudioContext();
-    [0, 0.18].forEach((delay, i) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.frequency.value = i ? 880 : 660;
-      g.gain.setValueAtTime(0.0001, ctx.currentTime + delay);
-      g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + delay + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.5);
-      o.connect(g).connect(ctx.destination);
-      o.start(ctx.currentTime + delay);
-      o.stop(ctx.currentTime + delay + 0.55);
-    });
   } catch {}
 }
 
@@ -83,18 +67,22 @@ export function FocusTimer({
   };
   const [s, setS] = useState<State>(initial);
   const [now, setNow] = useState(() => Date.now());
-  const hydrated = useRef(false);
   const finishing = useRef(false);
+
+  // Chỉ GHI khi người dùng/đồng hồ thực sự đổi trạng thái — không ghi đè lúc mount
+  // (trước đây hiệu ứng lưu chạy trước khi kịp đọc trạng thái cũ, làm mất phiên đang chạy).
+  const update = useCallback((fn: (p: State) => State) => {
+    setS((p) => {
+      const next = fn(p);
+      save(next);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const stored = load();
     if (stored) setS(stored);
-    hydrated.current = true;
   }, []);
-
-  useEffect(() => {
-    if (hydrated.current) save(s);
-  }, [s]);
 
   // Đồng bộ giữa các tab / giữa widget Dashboard và trang Thực thi
   useEffect(() => {
@@ -139,15 +127,17 @@ export function FocusTimer({
   useEffect(() => {
     if (!s.running || remaining > 0 || finishing.current) return;
     finishing.current = true;
-    chime();
+    // Âm thanh + thông báo do AlertsCenter phụ trách (hoạt động trên mọi trang)
     const done = s;
-    void record(done, true, done.plannedMin * 60_000).finally(() => {
+    // Nhiều tab cùng mở đồng hồ → chỉ một tab ghi phiên
+    const recorder = claimOnce(`record:${done.endsAt}`) ? record(done, true, done.plannedMin * 60_000) : Promise.resolve();
+    void recorder.finally(() => {
       finishing.current = false;
     });
     const nextMode: Mode = done.mode === "focus" ? "break" : "focus";
     const nextMin = nextMode === "focus" ? focusMinutes : breakMinutes;
-    setS({ ...done, mode: nextMode, plannedMin: nextMin, running: false, endsAt: null, remainingMs: nextMin * 60_000, startedAt: null });
-  }, [remaining, s, record, focusMinutes, breakMinutes]);
+    update(() => ({ ...done, mode: nextMode, plannedMin: nextMin, running: false, endsAt: null, remainingMs: nextMin * 60_000, startedAt: null }));
+  }, [remaining, s, record, focusMinutes, breakMinutes, update]);
 
   // Tiêu đề tab hiển thị đếm ngược
   useEffect(() => {
@@ -162,12 +152,12 @@ export function FocusTimer({
   const start = () => {
     const n = Date.now();
     setNow(n);
-    setS((p) => ({ ...p, running: true, endsAt: n + p.remainingMs, startedAt: p.startedAt ?? new Date(n).toISOString() }));
+    update((p) => ({ ...p, running: true, endsAt: n + p.remainingMs, startedAt: p.startedAt ?? new Date(n).toISOString() }));
   };
-  const pause = () => setS((p) => ({ ...p, running: false, endsAt: null, remainingMs: Math.max(0, (p.endsAt ?? 0) - Date.now()) }));
+  const pause = () => update((p) => ({ ...p, running: false, endsAt: null, remainingMs: Math.max(0, (p.endsAt ?? 0) - Date.now()) }));
   const reset = (mode: Mode = s.mode, min?: number) => {
     const m = min ?? (mode === "focus" ? (mode === s.mode ? s.plannedMin : focusMinutes) : breakMinutes);
-    setS((p) => ({ ...p, mode, plannedMin: m, running: false, endsAt: null, remainingMs: m * 60_000, startedAt: null }));
+    update((p) => ({ ...p, mode, plannedMin: m, running: false, endsAt: null, remainingMs: m * 60_000, startedAt: null }));
   };
   const finishEarly = async () => {
     const elapsed = total - Math.max(0, remaining);
@@ -248,7 +238,7 @@ export function FocusTimer({
             className="input"
             value={s.taskId ?? ""}
             disabled={s.running}
-            onChange={(e) => setS((p) => ({ ...p, taskId: e.target.value || null }))}
+            onChange={(e) => update((p) => ({ ...p, taskId: e.target.value || null }))}
           >
             <option value="">{t.focus.pickTask}…</option>
             {tasks.map((x) => (

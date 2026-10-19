@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   description:
     "Nền tảng kỷ luật cá nhân: mục tiêu năm–quý–tháng, theo dõi thói quen, Top 3 ưu tiên mỗi ngày và phiên tập trung sâu.",
   applicationName: "Nội Tại Ẩn",
+  icons: { icon: "/icon.svg" },
 };
 
 export const viewport: Viewport = {

@@ -223,7 +223,13 @@ function TaskEditor({
           estimateMin: estimate ? Number(estimate) : null,
           goalId: goalId || null,
         }),
-      { onSuccess: onDone, success: t.common.saved },
+      {
+        onSuccess: () => {
+          window.dispatchEvent(new Event("nta:schedule-changed"));
+          onDone();
+        },
+        success: t.common.saved,
+      },
     );
 
   return (

@@ -12,6 +12,7 @@ import { HabitQuickList } from "@/components/habits";
 import { DayTimeline, DisciplineCalendar, StatCard } from "@/components/dashboard";
 import { ProgressRing, ProgressBar } from "@/components/ui/progress-ring";
 import { Empty } from "@/components/ui/empty";
+import { EnableAlertsButton } from "@/components/alert-settings";
 import { colorVar } from "@/lib/colors";
 import { cn } from "@/lib/cn";
 
@@ -152,9 +153,12 @@ export default async function DashboardPage() {
           <h2 id="planner" className="card-title text-[1.375rem]">
             {t.dashboard.planner}
           </h2>
-          <Link href="/today" className="btn btn-soft btn-sm">
-            {t.dashboard.planDay}
-          </Link>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <EnableAlertsButton />
+            <Link href="/today" className="btn btn-soft btn-sm">
+              {t.dashboard.planDay}
+            </Link>
+          </div>
         </div>
         <DayTimeline tasks={d.day.tasks} nowHour={nowHour} emptyText={t.dashboard.plannerEmpty} />
       </section>

@@ -6,6 +6,7 @@ import { effectivePlan } from "@/lib/plan";
 import { PageHeader } from "@/components/page-header";
 import { AppearanceForm, ProfileForm } from "./forms";
 import { JourneyForm } from "./journey-form";
+import { AlertSettings } from "@/components/alert-settings";
 
 export const metadata: Metadata = { title: "Cài đặt" };
 
@@ -69,6 +70,14 @@ export default async function SettingsPage() {
                 dailyFocusGoal: user.dailyFocusGoal,
               }}
             />
+          </section>
+
+          <section className="card scroll-mt-6" id="alerts" aria-labelledby="alerts-h">
+            <h2 id="alerts-h" className="card-title">
+              {t.alerts.title}
+            </h2>
+            <p className="mt-1 text-sm text-ink-2">{t.alerts.desc}</p>
+            <AlertSettings />
           </section>
 
           <section className="card scroll-mt-6" id="journey" aria-labelledby="journey-h">

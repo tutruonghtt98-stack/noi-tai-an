@@ -4,6 +4,7 @@ import { effectivePlan } from "@/lib/plan";
 import { Logo } from "@/components/logo";
 import { DesktopNav, MobileNav } from "@/components/nav";
 import { ThemeToggle, UserMenu } from "@/components/user-menu";
+import { AlertsCenter } from "@/components/alerts-center";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -23,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </header>
       <main id="main">{children}</main>
       <MobileNav />
+      <AlertsCenter />
     </div>
   );
 }
