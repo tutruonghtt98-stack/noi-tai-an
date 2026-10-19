@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Cài đặt lần đầu trên VPS Hostinger (Ubuntu 22.04/24.04). Chạy với quyền root:
+#   DOMAIN=ten-mien.vn EMAIL=ban@email.com REPO=git@github.com:user/noi-tai-an.git bash setup-vps.sh
+set -euo pipefail
+: "${DOMAIN:?Thiếu DOMAIN}" "${EMAIL:?Thiếu EMAIL}" "${REPO:?Thiếu REPO}"
+APP_USER=deploy
+APP_DIR=/var/www/noi-tai-an
+DB_PASS="$(openssl rand -hex 16)"
+
+echo "▶ Gói hệ thống"
+apt-get update -y
+apt-get install -y curl git nginx postgresql postgresql-contrib ufw certbot python3-certbot-nginx
+
+echo "▶ Node.js 22 LTS + PM2"
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt-get install -y nodejs
+npm install -g pm2
+
+echo "▶ Người dùng deploy"
+id -u "$APP_USER" >/dev/null 2>&1 || adduser --disabled-password --gecos "" "$APP_USER"
+mkdir -p "$APP_DIR" && chown "$APP_USER:$APP_USER" "$APP_DIR"
+
+echo "▶ PostgreSQL"
+sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='noitaian'" | grep -q 1 \
+  || sudo -u postgres psql -c "CREATE USER noitaian WITH PASSWORD '$DB_PASS';"
+sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='noitaian'" | grep -q 1 \
+  || sudo -u postgres psql -c "CREATE DATABASE noitaian OWNER noitaian;"
+
+echo "▶ Firewall"
+ufw allow OpenSSH && ufw allow 'Nginx Full' && ufw --force enable
+
+echo "▶ Nginx"
+sed "s/__DOMAIN__/$DOMAIN/g" "$(dirname "$0")/nginx.conf" > /etc/nginx/sites-available/noi-tai-an
+ln -sf /etc/nginx/sites-available/noi-tai-an /etc/nginx/sites-enabled/noi-tai-an
+rm -f /etc/nginx/sites-enabled/default
+nginx -t && systemctl reload nginx
+
+echo "▶ SSL Let's Encrypt"
+certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL" --redirect
+
+echo "▶ PM2 khởi động cùng hệ thống"
+env PATH="$PATH" pm2 startup systemd -u "$APP_USER" --hp "/home/$APP_USER"
+
+cat <<MSG
+
+✔ Xong phần hệ thống. Bước tiếp theo (đăng nhập bằng user $APP_USER):
+  sudo -iu $APP_USER
+  git clone $REPO $APP_DIR && cd $APP_DIR
+  cp .env.example .env && nano .env
+     DATABASE_URL="postgresql://noitaian:$DB_PASS@127.0.0.1:5432/noitaian?schema=public"
+     AUTH_URL="https://$DOMAIN"
+  bash deploy/deploy.sh
+
+(Mật khẩu DB ở trên chỉ hiển thị một lần — hãy lưu lại.)
+MSG
