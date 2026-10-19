@@ -58,3 +58,36 @@ export async function adminCancelOrder(orderId: string) {
     revalidatePath("/admin", "layout");
   });
 }
+
+// ---------- Kiểm duyệt cộng đồng ----------
+
+/** action: hide = ẩn nội dung & đóng báo cáo; dismiss = bỏ qua; restore = hiện lại. */
+export async function adminResolveReport(reportId: string, action: "hide" | "dismiss") {
+  return run(async () => {
+    const admin = await requireAdmin();
+    const r = await db.report.findUnique({ where: { id: reportId } });
+    if (!r) throw new UserError("NOT_FOUND");
+    if (action === "hide") {
+      if (r.postId) await db.post.updateMany({ where: { id: r.postId }, data: { hiddenAt: new Date() } });
+      if (r.commentId) await db.comment.updateMany({ where: { id: r.commentId }, data: { hiddenAt: new Date() } });
+      // Đóng mọi báo cáo khác về cùng nội dung
+      await db.report.updateMany({
+        where: { status: "OPEN", OR: [r.postId ? { postId: r.postId } : {}, r.commentId ? { commentId: r.commentId } : {}].filter((x) => Object.keys(x).length) },
+        data: { status: "RESOLVED", resolvedBy: admin.id, resolvedAt: new Date() },
+      });
+    } else {
+      await db.report.update({ where: { id: reportId }, data: { status: "DISMISSED", resolvedBy: admin.id, resolvedAt: new Date() } });
+    }
+    revalidatePath("/admin", "layout");
+    revalidatePath("/community", "layout");
+  });
+}
+
+export async function adminRestorePost(postId: string) {
+  return run(async () => {
+    await requireAdmin();
+    await db.post.update({ where: { id: postId }, data: { hiddenAt: null } });
+    revalidatePath("/admin", "layout");
+    revalidatePath("/community", "layout");
+  });
+}

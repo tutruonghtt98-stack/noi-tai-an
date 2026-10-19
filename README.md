@@ -12,7 +12,7 @@ Nền tảng kỷ luật cá nhân cho nhiều người dùng: mục tiêu năm 
 |---|---|---|
 | **1** | Nền tảng, đăng nhập Google, **A** Dashboard, **B** Goal System, **C** Habit Tracker, **D** Daily Execution, **I** Cài đặt giao diện | ✅ Hoàn thành |
 | **2** | **E** Progress Analytics, **F** Reflection, **G** Payment (PayOS/SePay), Admin, trang pháp lý | ✅ Hoàn thành |
-| 3 | **H1–H5** Cộng đồng: bảng tin, thử thách, bảng xếp hạng, nhóm đồng hành, hồ sơ hành trình (ảnh lưu Cloudflare R2) | ⏳ |
+| **3** | **H1–H5** Cộng đồng: bảng tin, thử thách, bảng xếp hạng, nhóm đồng hành, hồ sơ hành trình (ảnh lưu Cloudflare R2) | ✅ Hoàn thành |
 
 ### Giai đoạn 1 gồm những gì
 
@@ -30,6 +30,40 @@ Nền tảng kỷ luật cá nhân cho nhiều người dùng: mục tiêu năm 
 - **Thanh toán**: `/pricing` (Free/Pro/Team, theo tháng hoặc năm, Team tính theo số chỗ), `/billing` (gói hiện tại, lịch sử giao dịch), trang QR VietQR tự kiểm tra trạng thái. Hỗ trợ **SePay** (webhook xác thực bằng API Key) hoặc **PayOS** (link thanh toán + webhook có chữ ký HMAC, tra lại trạng thái khi người dùng quay về). Kích hoạt idempotent: webhook lặp không cộng hạn hai lần; gia hạn được nối tiếp vào hạn cũ. Bảng giá nằm trong `src/lib/billing.ts`.
 - **Quản trị** (`/admin`, chỉ ADMIN): KPI (người dùng, hoạt động 7 ngày, thuê bao, MRR, doanh thu 30 ngày), biểu đồ doanh thu; quản lý người dùng (tìm kiếm, cấp gói thủ công, cấp/gỡ quyền ADMIN, khoá tài khoản); giao dịch (lọc, đối soát thủ công khi khách chuyển sai nội dung, huỷ đơn). Mục Kiểm duyệt và Thử thách chính thức sẽ hoạt động từ Giai đoạn 3.
 - **Pháp lý** (công khai): `/terms`, `/privacy` (theo NĐ 13/2023), `/refund`, `/contact`; footer hiển thị tên đơn vị, MST và địa chỉ (cấu hình qua `.env`). Đây là các trang PayOS/SePay thường yêu cầu khi duyệt merchant. **Hãy nhờ người có chuyên môn pháp lý rà soát nội dung trước khi công bố.**
+
+### Giai đoạn 3 gồm những gì
+
+- **H1 Bảng tin** (`/community`): đăng bài theo 6 chủ đề, đính kèm ảnh minh chứng (tuỳ chọn), động viên, bình luận, báo cáo vi phạm, lọc theo chủ đề, phân trang. Ảnh được nén ngay trên trình duyệt (WebP, cạnh dài tối đa 1600px, xoá EXIF/GPS) rồi tải **thẳng lên R2** qua URL ký sẵn; server xác minh file trước khi gắn vào bài.
+- **H2 Thử thách** (`/community/challenges`): thử thách 7, 21 hoặc 30 ngày; tham gia, check-in mỗi ngày kèm ghi chú (có thể chia sẻ lên bảng tin), lưới tiến độ cá nhân, tiến độ chung, xếp hạng trong thử thách. Hoàn thành khi check-in đủ 80% số ngày. Tạo thử thách cần gói Pro; thử thách chính thức do Admin tạo và trao huy hiệu riêng.
+- **H3 Bảng xếp hạng tích cực** (`/community/leaderboard`): xếp theo tuần hoặc theo thử thách. Điểm = 50% tỷ lệ hoàn thành + 30% số ngày check-in + 20% chuỗi ngày, **không tính lượt thích**. Người dùng có thể ẩn mình khỏi bảng xếp hạng.
+- **H4 Nhóm đồng hành** (`/community/groups`): nhóm 3–10 người, mời bằng link (trưởng nhóm tạo được link mới), cam kết tuần, bảng tin riêng của nhóm, tổng kết tuần (số liệu tổng hợp của từng thành viên, không lộ nhật ký). Mỗi người tham gia tối đa 5 nhóm.
+- **H5 Hồ sơ hành trình** (`/u/<tên>`): chỉ số, mục tiêu đang theo đuổi, 12 loại huy hiệu (tự trao sau các sự kiện), thử thách đã hoàn thành, dòng thời gian cột mốc, bài viết. Bật/tắt công khai riêng cho từng phần trong **Cài đặt → Hồ sơ hành trình**; mặc định hồ sơ ở chế độ riêng tư.
+- **Admin**: Kiểm duyệt (ẩn nội dung, bỏ qua, khoá tác giả, khôi phục bài đã ẩn) và Thử thách chính thức (tạo, lưu trữ).
+- **An toàn**: giới hạn tần suất đăng bài, bình luận, động viên, upload; người xem chỉ thấy bài trong nhóm khi là thành viên; tài khoản bị khoá bị ẩn khỏi bảng tin.
+
+> Bảng xếp hạng tuần đang tính trực tiếp từ dữ liệu 40 ngày gần nhất. Khi vượt khoảng vài nghìn người dùng hoạt động, nên chuyển sang cache (bảng tổng hợp chạy định kỳ).
+
+---
+
+## Ảnh cộng đồng: Cloudflare R2
+
+Trên máy local, nếu chưa cấu hình R2, ảnh được lưu vào thư mục `.uploads/` (đã có trong `.gitignore`). Production **bắt buộc** cấu hình R2.
+
+1. Cloudflare Dashboard → **R2** → tạo bucket (VD `noitaian-media`).
+2. **Settings → Public access**: gắn Custom Domain (khuyên dùng, VD `media.ten-mien.vn`) hoặc bật `r2.dev`. Điền URL này vào `R2_PUBLIC_URL`.
+3. **Manage R2 API Tokens** → tạo token có quyền *Object Read & Write* cho bucket → điền `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; `R2_ACCOUNT_ID` lấy ở trang tổng quan R2.
+4. **Settings → CORS policy** của bucket (bắt buộc để trình duyệt tải ảnh thẳng lên):
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://ten-mien-cua-ban.vn"],
+    "AllowedMethods": ["PUT", "GET"],
+    "AllowedHeaders": ["Content-Type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
 
 ---
 

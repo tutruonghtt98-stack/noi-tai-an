@@ -1,5 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { syncBadges } from "@/lib/badges";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -108,6 +110,7 @@ export async function toggleHabit(habitId: string, date: ISODate) {
       await db.habitLog.create({ data: { habitId, userId: user.id, date: toDbDate(date), count: 1 } });
     }
     touch();
+    after(() => syncBadges(user.id));
     return { count: next > habit.targetPerDay ? 0 : next };
   });
 }

@@ -1,5 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { syncBadges } from "@/lib/badges";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -201,6 +203,7 @@ export async function logFocusSession(input: z.input<typeof focusSchema>) {
         date: toDbDate(todayISO(user.timezone)),
       },
     });
+    after(() => syncBadges(user.id));
     revalidatePath("/today");
     revalidatePath("/dashboard");
   });

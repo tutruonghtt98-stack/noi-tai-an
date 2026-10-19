@@ -1,5 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { syncBadges } from "@/lib/badges";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -42,6 +44,7 @@ export async function saveJournal(date: string, input: JournalInput) {
       update: data,
       create: { ...data, userId: user.id, date: d },
     });
+    after(() => syncBadges(user.id));
     revalidatePath("/reflection");
   });
 }

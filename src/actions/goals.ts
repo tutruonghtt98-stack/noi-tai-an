@@ -1,5 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { syncBadges } from "@/lib/badges";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -62,6 +64,7 @@ export async function createGoal(input: GoalInput) {
     if (active >= limit) throw new PlanLimitError("activeGoals");
     await assertParent(user.id, data.parentId);
     const goal = await db.goal.create({ data: { ...data, userId: user.id } });
+    after(() => syncBadges(user.id));
     revalidatePath("/goals");
     revalidatePath("/dashboard");
     return { id: goal.id };
@@ -92,6 +95,7 @@ export async function setGoalStatus(id: string, status: "ACTIVE" | "COMPLETED" |
       where: { id, userId: user.id },
       data: { status: s, completedAt: s === "COMPLETED" ? new Date() : null },
     });
+    after(() => syncBadges(user.id));
     if (!res.count) throw new UserError("NOT_FOUND");
     revalidatePath("/goals", "layout");
     revalidatePath("/dashboard");

@@ -5,6 +5,7 @@ import { getI18n } from "@/lib/i18n";
 import { effectivePlan } from "@/lib/plan";
 import { PageHeader } from "@/components/page-header";
 import { AppearanceForm, ProfileForm } from "./forms";
+import { JourneyForm } from "./journey-form";
 
 export const metadata: Metadata = { title: "Cài đặt" };
 
@@ -66,6 +67,25 @@ export default async function SettingsPage() {
                 focusMinutes: user.focusMinutes,
                 breakMinutes: user.breakMinutes,
                 dailyFocusGoal: user.dailyFocusGoal,
+              }}
+            />
+          </section>
+
+          <section className="card scroll-mt-6" id="journey" aria-labelledby="journey-h">
+            <h2 id="journey-h" className="card-title">
+              {t.community.profile.title}
+            </h2>
+            <JourneyForm
+              suggested={(user.email ?? "ban").split("@")[0]!.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20).padEnd(3, "0")}
+              initial={{
+                username: user.username ?? "",
+                bio: user.bio ?? "",
+                profilePublic: user.profilePublic,
+                showGoals: user.showGoals,
+                showStats: user.showStats,
+                showBadges: user.showBadges,
+                showChallenges: user.showChallenges,
+                leaderboardOptIn: user.leaderboardOptIn,
               }}
             />
           </section>
