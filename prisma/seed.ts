@@ -248,7 +248,8 @@ async function main() {
     data: { creatorId: friends[1]!.id, title: "7 ngày dậy trước 6h", description: "Check-in ảnh bình minh hoặc đồng hồ.", category: "OTHER", durationDays: 7, startDate: dbDate(addDays(today, 2)) },
   });
 
-  // Nhóm đồng hành
+  // Nhóm đồng hành (xoá nhóm demo của lần seed trước — nhóm không bị xoá theo người dùng)
+  await db.group.deleteMany({ where: { inviteCode: { startsWith: "demo" } } });
   const weekStartIso = addDays(today, -((dbDate(today).getUTCDay() + 6) % 7));
   const group = await db.group.create({
     data: {
@@ -267,6 +268,27 @@ async function main() {
     },
   });
   await db.post.create({ data: { userId: friends[0]!.id, groupId: group.id, category: "OTHER", content: "Hôm nay mình thiền được 12 phút, tâm trí nhẹ hơn hẳn. Mọi người thế nào rồi?" } });
+
+  // Nhóm công khai có vị trí (để thử Gợi ý / Tìm nhóm gần tôi)
+  await db.group.update({ where: { id: group.id }, data: { isPublic: true, category: "READING", city: "Quận 1, TP.HCM", lat: 10.78, lng: 106.7 } });
+  const publicGroups = [
+    { owner: friends[1]!, name: "Chạy bộ Thảo Cầm Viên 5h30", description: "Chạy 5km mỗi sáng quanh Thảo Cầm Viên, check-in trước 7h.", category: "WORKOUT", city: "Quận 1, TP.HCM", lat: 10.79, lng: 106.71, max: 8 },
+    { owner: friends[2]!, name: "IELTS 7.0 trong 6 tháng", description: "Học 2 giờ mỗi ngày, cùng ôn Listening & Speaking cuối tuần.", category: "STUDY", city: "Bình Thạnh, TP.HCM", lat: 10.81, lng: 106.71, max: 10 },
+    { owner: friends[3]!, name: "Deep Work Thủ Đức", description: "4 phiên Pomodoro mỗi sáng, không mạng xã hội trước 11h.", category: "FOCUS", city: "Thủ Đức, TP.HCM", lat: 10.85, lng: 106.77, max: 6 },
+    { owner: friends[0]!, name: "CLB Đọc sách Hồ Gươm", description: "Mỗi tháng 2 cuốn, gặp mặt chủ nhật cuối tháng.", category: "READING", city: "Hoàn Kiếm, Hà Nội", lat: 21.03, lng: 105.85, max: 10 },
+  ];
+  for (const [i, g] of publicGroups.entries()) {
+    const pg = await db.group.create({
+      data: {
+        name: g.name, description: g.description, category: g.category as "READING", city: g.city, lat: g.lat, lng: g.lng, maxMembers: g.max,
+        isPublic: true, ownerId: g.owner.id, inviteCode: "demo-pub-" + i,
+        members: { create: [{ userId: g.owner.id, role: "OWNER" }] },
+      },
+    });
+    await db.post.create({ data: { userId: g.owner.id, groupId: pg.id, category: g.category as "READING", content: "Chào mọi người, tuần này cùng giữ nhịp nhé!", createdAt: new Date(Date.now() - i * 86_400_000) } });
+  }
+  // Một yêu cầu tham gia đang chờ trưởng nhóm (demo) duyệt
+  await db.groupJoinRequest.create({ data: { groupId: group.id, userId: friends[3]!.id, message: "Mình muốn tập dậy sớm và đọc 20 trang mỗi ngày, cho mình tham gia với!" } });
 
   // Một báo cáo mẫu cho trang kiểm duyệt
   await db.report.create({ data: { reporterId: friends[2]!.id, postId: created[3]!.id, reason: "Spam / quảng cáo" } });

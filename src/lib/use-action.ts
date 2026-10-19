@@ -24,6 +24,7 @@ export function useAction() {
       if (code === "ALREADY_MEMBER") return t.community.group.already;
       if (code === "GROUP_LIMIT") return t.community.group.limit;
       if (code === "PRO_ONLY") return t.community.challenge.proOnly;
+      if (code === "PRO_ONLY_GROUP") return t.discover.proRequired;
       if (code === "NOT_STARTED") return t.community.challenge.notStarted;
       if (code === "ENDED") return t.community.challenge.over;
       return t.common.error;

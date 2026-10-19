@@ -95,6 +95,7 @@ export default async function SettingsPage() {
                 showBadges: user.showBadges,
                 showChallenges: user.showChallenges,
                 leaderboardOptIn: user.leaderboardOptIn,
+                autoShareAchievements: user.autoShareAchievements,
               }}
             />
           </section>

@@ -10,6 +10,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { addDays, isValidISO, toDbDate, todayISO } from "@/lib/dates";
 import { challengeWindow, completionTarget } from "@/lib/challenges";
 import { award, syncBadges } from "@/lib/badges";
+import { checkAchievements } from "@/lib/achievements";
 
 const schema = z.object({
   title: z.string().trim().min(3).max(120),
@@ -106,7 +107,10 @@ export async function checkinChallenge(id: string, input: { note?: string; share
         if (c.official) await award(user.id, `CH_${c.id}`, c.badgeName ?? c.title);
       }
     }
-    after(() => syncBadges(user.id));
+    after(async () => {
+      await syncBadges(user.id);
+      await checkAchievements(user.id);
+    });
     revalidatePath(`/community/challenges/${id}`);
     revalidatePath("/community", "layout");
     return { completed };

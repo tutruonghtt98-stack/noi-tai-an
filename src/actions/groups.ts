@@ -8,6 +8,8 @@ import { run, UserError } from "@/lib/action";
 import { rateLimit } from "@/lib/rate-limit";
 import { startOfWeek, toDbDate, todayISO } from "@/lib/dates";
 import { syncBadges } from "@/lib/badges";
+import { limitsFor } from "@/lib/plan";
+import { searchGroups } from "@/lib/group-discovery";
 
 const MAX_GROUPS_PER_USER = 5;
 
@@ -107,5 +109,96 @@ export async function setCommitment(groupId: string, text: string) {
     const res = await db.groupMember.updateMany({ where: { groupId, userId: user.id }, data: { commitment, commitmentWeek: toDbDate(week) } });
     if (!res.count) throw new UserError("FORBIDDEN");
     revalidatePath(`/community/groups/${groupId}`);
+  });
+}
+
+// ---------- Nhóm công khai: thiết lập, xin tham gia, duyệt ----------
+
+const settingsSchema = z.object({
+  isPublic: z.boolean(),
+  category: z.enum(["READING", "WORKOUT", "STUDY", "FOCUS", "GOAL", "OTHER"]).nullable(),
+  city: z.string().trim().max(80).optional().transform((v) => v || null),
+  description: z.string().trim().max(500).optional().transform((v) => v || null),
+  lat: z.number().min(-90).max(90).nullable(),
+  lng: z.number().min(-180).max(180).nullable(),
+});
+
+export async function updateGroupSettings(groupId: string, input: z.input<typeof settingsSchema>) {
+  return run(async () => {
+    const user = await requireUser();
+    await assertOwner(user.id, groupId);
+    const d = settingsSchema.parse(input);
+    // Làm tròn ~1 km để không lộ địa chỉ chính xác
+    const round = (n: number | null) => (n == null ? null : Math.round(n * 100) / 100);
+    await db.group.update({ where: { id: groupId }, data: { ...d, lat: round(d.lat), lng: round(d.lng) } });
+    revalidatePath("/community", "layout");
+  });
+}
+
+export async function requestJoin(groupId: string, message: string) {
+  return run(async () => {
+    const user = await requireUser();
+    if (!limitsFor(user).joinPublicGroups) throw new UserError("PRO_ONLY_GROUP");
+    rateLimit(`joinreq:${user.id}`, 10, 86_400_000);
+    const msg = z.string().trim().max(300).parse(message) || null;
+    const g = await db.group.findUnique({ where: { id: groupId }, include: { _count: { select: { members: true } } } });
+    if (!g || !g.isPublic) throw new UserError("NOT_FOUND");
+    if (g._count.members >= g.maxMembers) throw new UserError("GROUP_FULL");
+    if (await db.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: user.id } } })) throw new UserError("ALREADY_MEMBER");
+    await assertGroupQuota(user.id);
+    const pending = await db.groupJoinRequest.findFirst({ where: { groupId, userId: user.id, status: "PENDING" } });
+    if (pending) await db.groupJoinRequest.update({ where: { id: pending.id }, data: { message: msg } });
+    else await db.groupJoinRequest.create({ data: { groupId, userId: user.id, message: msg } });
+    revalidatePath("/community/groups");
+  });
+}
+
+export async function cancelJoinRequest(groupId: string) {
+  return run(async () => {
+    const user = await requireUser();
+    await db.groupJoinRequest.deleteMany({ where: { groupId, userId: user.id, status: "PENDING" } });
+    revalidatePath("/community/groups");
+  });
+}
+
+export async function reviewJoinRequest(requestId: string, approve: boolean) {
+  return run(async () => {
+    const user = await requireUser();
+    const r = await db.groupJoinRequest.findUnique({ where: { id: requestId }, include: { group: { include: { _count: { select: { members: true } } } } } });
+    if (!r || r.status !== "PENDING") throw new UserError("NOT_FOUND");
+    await assertOwner(user.id, r.groupId);
+    if (approve) {
+      if (r.group._count.members >= r.group.maxMembers) throw new UserError("GROUP_FULL");
+      if ((await db.groupMember.count({ where: { userId: r.userId } })) >= MAX_GROUPS_PER_USER) throw new UserError("GROUP_LIMIT");
+      await db.$transaction([
+        db.groupMember.upsert({
+          where: { groupId_userId: { groupId: r.groupId, userId: r.userId } },
+          update: {},
+          create: { groupId: r.groupId, userId: r.userId },
+        }),
+        db.groupJoinRequest.update({ where: { id: r.id }, data: { status: "APPROVED", reviewedBy: user.id, reviewedAt: new Date() } }),
+      ]);
+    } else {
+      await db.groupJoinRequest.update({ where: { id: r.id }, data: { status: "REJECTED", reviewedBy: user.id, reviewedAt: new Date() } });
+    }
+    revalidatePath(`/community/groups/${r.groupId}`);
+    revalidatePath("/community/groups");
+  });
+}
+
+/** Tìm nhóm công khai. Toạ độ chỉ dùng để tính khoảng cách, không ghi vào DB. */
+export async function findGroups(input: { q?: string; lat?: number | null; lng?: number | null; radiusKm?: number }) {
+  return run(async () => {
+    const user = await requireUser();
+    rateLimit(`findgroups:${user.id}`, 60, 3600_000);
+    const d = z
+      .object({
+        q: z.string().max(80).optional(),
+        lat: z.number().min(-90).max(90).nullable().optional(),
+        lng: z.number().min(-180).max(180).nullable().optional(),
+        radiusKm: z.number().min(1).max(200).default(10),
+      })
+      .parse(input);
+    return searchGroups(user.id, d);
   });
 }

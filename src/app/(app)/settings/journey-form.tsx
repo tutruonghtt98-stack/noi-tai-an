@@ -67,6 +67,7 @@ export function JourneyForm({ initial, suggested }: { initial: JourneyInput & { 
         <Toggle label={p.showChallenges} checked={f.showChallenges} onChange={(v) => set("showChallenges", v)} />
       </div>
       <Toggle label={p.leaderboard} checked={f.leaderboardOptIn} onChange={(v) => set("leaderboardOptIn", v)} />
+      <Toggle label={t.achievements.autoShare} desc={t.achievements.autoShareDesc} checked={f.autoShareAchievements} onChange={(v) => set("autoShareAchievements", v)} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         {initial.username ? (
           <Link href={`/u/${initial.username}`} className="inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">

@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { useState } from "react";
-import { HandHeart, MessageCircle, MoreHorizontal, Flag, Trash2, Trophy, Send } from "lucide-react";
+import { HandHeart, MessageCircle, MoreHorizontal, Flag, Trash2, Trophy, Send, Flame } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
 import { useAction } from "@/lib/use-action";
@@ -65,7 +65,7 @@ export function PostCard({ post, isAdmin, onRemoved }: { post: PostView; isAdmin
               className="badge"
               style={color ? { background: `var(--${color}-soft)`, color: `var(--${color}-ink)` } : undefined}
             >
-              {post.kind === "SUMMARY" ? t.community.group.summary : t.community.categories[post.category as "OTHER"]}
+              {post.kind === "SUMMARY" ? t.community.group.summary : post.kind === "ACHIEVEMENT" ? t.achievements.label : t.community.categories[post.category as "OTHER"]}
             </span>
             {post.challenge && (
               <Link href={`/community/challenges/${post.challenge.id}`} className="inline-flex items-center gap-1 hover:text-ink">
@@ -103,7 +103,16 @@ export function PostCard({ post, isAdmin, onRemoved }: { post: PostView; isAdmin
         </div>
       </header>
 
-      <p className="mt-4 whitespace-pre-wrap break-words leading-relaxed">{post.content}</p>
+      {post.kind === "ACHIEVEMENT" ? (
+        <div className="mt-4 flex items-center gap-4 rounded-2xl bg-[linear-gradient(120deg,var(--ochre-soft),var(--rose-soft))] p-4">
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-ochre text-[#1d1c1a] shadow-card">
+            <Flame className="size-6" aria-hidden />
+          </span>
+          <p className="font-semibold leading-snug">{post.content}</p>
+        </div>
+      ) : (
+        <p className="mt-4 whitespace-pre-wrap break-words leading-relaxed">{post.content}</p>
+      )}
       {post.imageUrl && (
         <img src={post.imageUrl} alt="" loading="lazy" decoding="async" className="mt-4 max-h-[520px] w-full rounded-2xl bg-surface-2 object-cover" />
       )}

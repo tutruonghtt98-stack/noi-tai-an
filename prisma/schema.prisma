@@ -79,14 +79,15 @@ model User {
   teamSeats      Int? // số chỗ khi mua gói Team
 
   // H5. Hồ sơ hành trình & quyền riêng tư
-  username         String? @unique
-  bio              String?
-  profilePublic    Boolean @default(false)
-  showGoals        Boolean @default(true)
-  showStats        Boolean @default(true)
-  showBadges       Boolean @default(true)
-  showChallenges   Boolean @default(true)
-  leaderboardOptIn Boolean @default(true)
+  username              String? @unique
+  bio                   String?
+  profilePublic         Boolean @default(false)
+  showGoals             Boolean @default(true)
+  showStats             Boolean @default(true)
+  showBadges            Boolean @default(true)
+  showChallenges        Boolean @default(true)
+  leaderboardOptIn      Boolean @default(true)
+  autoShareAchievements Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -113,6 +114,7 @@ model User {
   challengeCheckins ChallengeCheckin[]
   groupMembers      GroupMember[]
   badges            UserBadge[]
+  joinRequests      GroupJoinRequest[]
 }
 
 model Account {
@@ -410,6 +412,7 @@ enum PostKind {
   POST
   CHECKIN // check-in thử thách
   SUMMARY // tổng kết tuần trong nhóm
+  ACHIEVEMENT // thành tích tự động (chuỗi cá nhân / nhóm)
 }
 
 model Post {
@@ -552,11 +555,55 @@ model Group {
   inviteCode  String  @unique
   maxMembers  Int     @default(10)
 
+  // Nhóm công khai: hiện trong tìm kiếm/gợi ý, thành viên Pro được xin tham gia
+  isPublic Boolean       @default(false)
+  category PostCategory?
+  city     String?
+  // Toạ độ làm tròn ~1km (2 chữ số thập phân) để bảo vệ quyền riêng tư
+  lat      Float?
+  lng      Float?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members GroupMember[]
-  posts   Post[]
+  members      GroupMember[]
+  posts        Post[]
+  joinRequests GroupJoinRequest[]
+
+  @@index([isPublic])
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model GroupJoinRequest {
+  id         String            @id @default(cuid())
+  groupId    String
+  userId     String
+  message    String?
+  status     JoinRequestStatus @default(PENDING)
+  reviewedBy String?
+  createdAt  DateTime          @default(now())
+  reviewedAt DateTime?
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, status])
+  @@index([userId, status])
+}
+
+/**
+ * Chống đăng trùng thành tích tự động. key VD: streak:<habitId>:<mốc>:<ngày bắt đầu chuỗi>
+ */
+model Achievement {
+  key       String   @id
+  userId    String?
+  groupId   String?
+  createdAt DateTime @default(now())
 }
 
 model GroupMember {

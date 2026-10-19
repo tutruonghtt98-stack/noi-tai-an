@@ -22,6 +22,7 @@ const schema = z.object({
   showBadges: z.boolean(),
   showChallenges: z.boolean(),
   leaderboardOptIn: z.boolean(),
+  autoShareAchievements: z.boolean(),
 });
 export type JourneyInput = z.input<typeof schema>;
 

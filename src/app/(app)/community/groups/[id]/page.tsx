@@ -13,6 +13,7 @@ import { ProgressBar } from "@/components/ui/progress-ring";
 import { Composer } from "@/components/community/composer";
 import { FeedList } from "@/components/community/feed-list";
 import { CommitmentForm, InviteBox, LeaveGroupButton, RemoveMemberButton } from "@/components/community/group-ui";
+import { GroupSettingsForm, JoinRequests } from "@/components/community/group-admin";
 
 export const metadata: Metadata = { title: "Nhóm đồng hành" };
 
@@ -29,9 +30,12 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
 
   const today = todayISO(user.timezone);
   const week = startOfWeek(today, user.weekStartsOn);
-  const [stats, feed] = await Promise.all([
+  const [stats, feed, requests] = await Promise.all([
     weeklyLeaderboard(week, today, user.id, group.members.map((m) => m.userId)),
     getFeed(user.id, { groupId: id }),
+    me.role === "OWNER"
+      ? db.groupJoinRequest.findMany({ where: { groupId: id, status: "PENDING" }, include: { user: { select: { name: true, image: true } } }, orderBy: { createdAt: "asc" } })
+      : Promise.resolve([]),
   ]);
   const statOf = (uid: string) => stats.find((s) => s.userId === uid);
   const isOwner = me.role === "OWNER";
@@ -78,6 +82,26 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
         </div>
 
         <aside className="grid content-start gap-[var(--gap)]">
+          {isOwner && (
+            <section className="card" aria-labelledby="jr">
+              <h2 id="jr" className="card-title mb-4">
+                {t.groupSettings.requests}
+                {requests.length > 0 && <span className="badge ml-2 bg-rose-soft align-middle text-rose-ink">{requests.length}</span>}
+              </h2>
+              <JoinRequests requests={requests.map((r) => ({ id: r.id, message: r.message, createdAt: r.createdAt.toISOString(), user: { name: r.user.name ?? "—", image: r.user.image } }))} />
+            </section>
+          )}
+          {isOwner && (
+            <section className="card" aria-labelledby="gs">
+              <h2 id="gs" className="card-title mb-4">
+                {t.groupSettings.title}
+              </h2>
+              <GroupSettingsForm
+                groupId={id}
+                initial={{ isPublic: group.isPublic, category: group.category, city: group.city ?? "", description: group.description ?? "", lat: group.lat, lng: group.lng }}
+              />
+            </section>
+          )}
           <section className="card" aria-labelledby="summary">
             <h2 id="summary" className="card-title">
               {t.community.group.summary}
