@@ -37,7 +37,7 @@ export function NewGroupButton() {
           </label>
           <label className="field">
             <span className="label">{t.community.group.size}</span>
-            <input type="number" min={3} max={10} className="input w-28" value={f.maxMembers} onChange={(e) => setF({ ...f, maxMembers: Math.min(10, Math.max(3, Number(e.target.value) || 3)) })} />
+            <input type="number" min={3} max={25} className="input w-28" value={f.maxMembers} onChange={(e) => setF({ ...f, maxMembers: Math.min(25, Math.max(3, Number(e.target.value) || 3)) })} />
           </label>
           <p className="text-sm text-muted">{t.community.group.privacy}</p>
           <button className="btn btn-primary" disabled={pending || f.name.trim().length < 2}>

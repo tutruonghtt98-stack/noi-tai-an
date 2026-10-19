@@ -36,6 +36,8 @@ const createSchema = z.object({
   projectId: z.string().nullable().optional(),
   startTime: time,
   estimateMin: z.coerce.number().int().min(1).max(720).nullable().optional(),
+  notes: z.string().trim().max(2000).nullable().optional().transform((v) => v || null),
+  priority: z.boolean().optional(),
 });
 
 export async function createTask(input: z.input<typeof createSchema>) {
@@ -66,11 +68,21 @@ export async function createTask(input: z.input<typeof createSchema>) {
         projectId: d.projectId ?? null,
         startTime: d.startTime ?? null,
         estimateMin: d.estimateMin ?? null,
+        notes: d.notes ?? null,
         sortOrder: (last?.sortOrder ?? 0) + 1,
       },
     });
+    // Đặt vào Top 3 nếu còn chỗ (tối đa 3/ngày)
+    let priorityFull = false;
+    if (d.priority && d.date) {
+      const taken = await db.task.findMany({ where: { userId: user.id, date: toDbDate(d.date), priority: { not: null } }, select: { priority: true } });
+      const used = new Set(taken.map((x) => x.priority));
+      const rank = [1, 2, 3].find((r) => !used.has(r));
+      if (rank) await db.task.update({ where: { id: task.id }, data: { priority: rank } });
+      else priorityFull = true;
+    }
     touch(goalId);
-    return { id: task.id };
+    return { id: task.id, priorityFull };
   });
 }
 

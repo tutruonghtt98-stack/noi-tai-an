@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { AppearanceForm, ProfileForm } from "./forms";
 import { JourneyForm } from "./journey-form";
 import { AlertSettings } from "@/components/alert-settings";
+import { AvatarUploader } from "@/components/community/avatar-uploader";
 
 export const metadata: Metadata = { title: "Cài đặt" };
 
@@ -60,6 +61,9 @@ export default async function SettingsPage() {
             <h2 id="profile" className="card-title">
               {t.settings.profile} · {t.settings.work}
             </h2>
+            <div className="mt-4">
+              <AvatarUploader name={user.name ?? "?"} image={user.image} size={72} showRemove />
+            </div>
             <ProfileForm
               initial={{
                 name: user.name ?? "",

@@ -22,7 +22,8 @@ const goalSchema = z
     title: z.string().trim().min(1).max(160),
     why: optText(600),
     description: optText(2000),
-    horizon: z.enum(["YEAR", "QUARTER", "MONTH"]),
+    horizon: z.enum(["YEAR", "QUARTER", "MONTH", "WEEK"]),
+    weekStart: z.string().optional().nullable().transform((v) => (v && isValidISO(v) ? v : null)),
     year: z.coerce.number().int().min(2000).max(2100),
     quarter: z.coerce.number().int().min(1).max(4).optional().nullable(),
     month: z.coerce.number().int().min(1).max(12).optional().nullable(),
@@ -40,11 +41,20 @@ const goalSchema = z
       .transform((v) => (v && isValidISO(v) ? toDbDate(v) : null)),
     color: z.enum(["ochre", "jade", "mist", "rose"]).default("ochre"),
   })
-  .transform((g) => ({
-    ...g,
-    quarter: g.horizon === "QUARTER" ? (g.quarter ?? 1) : g.horizon === "MONTH" && g.month ? Math.ceil(g.month / 3) : null,
-    month: g.horizon === "MONTH" ? (g.month ?? 1) : null,
-  }));
+  .transform((g) => {
+    // Cột mốc tuần: năm/quý/tháng suy ra từ ngày đầu tuần
+    if (g.horizon === "WEEK") {
+      const ws = g.weekStart ?? new Date().toISOString().slice(0, 10);
+      const m = Number(ws.slice(5, 7));
+      return { ...g, year: Number(ws.slice(0, 4)), month: m, quarter: Math.ceil(m / 3), weekStart: toDbDate(ws) };
+    }
+    return {
+      ...g,
+      weekStart: null,
+      quarter: g.horizon === "QUARTER" ? (g.quarter ?? 1) : g.horizon === "MONTH" && g.month ? Math.ceil(g.month / 3) : null,
+      month: g.horizon === "MONTH" ? (g.month ?? 1) : null,
+    };
+  });
 
 export type GoalInput = z.input<typeof goalSchema>;
 

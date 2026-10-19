@@ -36,10 +36,22 @@ Nền tảng kỷ luật cá nhân cho nhiều người dùng: mục tiêu năm 
 - **H1 Bảng tin** (`/community`): đăng bài theo 6 chủ đề, đính kèm ảnh minh chứng (tuỳ chọn), động viên, bình luận, báo cáo vi phạm, lọc theo chủ đề, phân trang. Ảnh được nén ngay trên trình duyệt (WebP, cạnh dài tối đa 1600px, xoá EXIF/GPS) rồi tải **thẳng lên R2** qua URL ký sẵn; server xác minh file trước khi gắn vào bài.
 - **H2 Thử thách** (`/community/challenges`): thử thách 7, 21 hoặc 30 ngày; tham gia, check-in mỗi ngày kèm ghi chú (có thể chia sẻ lên bảng tin), lưới tiến độ cá nhân, tiến độ chung, xếp hạng trong thử thách. Hoàn thành khi check-in đủ 80% số ngày. Tạo thử thách cần gói Pro; thử thách chính thức do Admin tạo và trao huy hiệu riêng.
 - **H3 Bảng xếp hạng tích cực** (`/community/leaderboard`): xếp theo tuần hoặc theo thử thách. Điểm = 50% tỷ lệ hoàn thành + 30% số ngày check-in + 20% chuỗi ngày, **không tính lượt thích**. Người dùng có thể ẩn mình khỏi bảng xếp hạng.
-- **H4 Nhóm đồng hành** (`/community/groups`): nhóm 3–10 người, mời bằng link (trưởng nhóm tạo được link mới), cam kết tuần, bảng tin riêng của nhóm, tổng kết tuần (số liệu tổng hợp của từng thành viên, không lộ nhật ký). Mỗi người tham gia tối đa 5 nhóm.
+- **H4 Nhóm đồng hành** (`/community/groups`): nhóm 3–25 người, mời bằng link (trưởng nhóm tạo được link mới), cam kết tuần, bảng tin riêng của nhóm, tổng kết tuần (số liệu tổng hợp của từng thành viên, không lộ nhật ký). Mỗi người tham gia tối đa 5 nhóm.
 - **H5 Hồ sơ hành trình** (`/u/<tên>`): chỉ số, mục tiêu đang theo đuổi, 12 loại huy hiệu (tự trao sau các sự kiện), thử thách đã hoàn thành, dòng thời gian cột mốc, bài viết. Bật/tắt công khai riêng cho từng phần trong **Cài đặt → Hồ sơ hành trình**; mặc định hồ sơ ở chế độ riêng tư.
 - **Admin**: Kiểm duyệt (ẩn nội dung, bỏ qua, khoá tác giả, khôi phục bài đã ẩn) và Thử thách chính thức (tạo, lưu trữ).
 - **An toàn**: giới hạn tần suất đăng bài, bình luận, động viên, upload; người xem chỉ thấy bài trong nhóm khi là thành viên; tài khoản bị khoá bị ẩn khỏi bảng tin.
+
+### Bổ sung sau Giai đoạn 3
+
+- **Theo dõi hồ sơ**: nút Theo dõi trên hồ sơ công khai, số người theo dõi/đang theo dõi, tab "Đang theo dõi" trên bảng tin.
+- **Ảnh đại diện**: tải lên trong Cài đặt hoặc trên hồ sơ của mình (cắt vuông, nén WebP 512×512, lưu R2).
+- **Nhóm đồng hành**: tối đa 25 thành viên. Nhóm công khai được hiện trong Gợi ý và Tìm nhóm gần tôi; thành viên Pro gửi yêu cầu tham gia, trưởng nhóm duyệt.
+- **Thử thách**: khi tạo thử thách có thể mời những người đang theo dõi hoặc theo dõi bạn; người được mời chấp nhận/từ chối trong tab Thử thách. Thành viên mời thêm được bằng nút "Mời thêm".
+- **Thành tích tự động**: chuỗi cá nhân (7/21/30/66/100/365 ngày) và chuỗi nhóm (3/7/14/30/60/100 ngày) tự đăng lên bảng tin; có thể tắt trong Cài đặt.
+- **Dashboard**: câu nói động lực đổi mỗi 10 giây; lịch trình Ngày có vạch "Bây giờ" cố định ở giữa, công việc trôi theo giờ thực; thêm chế độ lịch Tuần.
+- **Thực thi**: nút "+" mở pop-up điền đầy đủ (ngày, giờ, ước tính, mục tiêu, ghi chú, Top 3); gõ tên + Enter vẫn thêm nhanh.
+- **Mục tiêu**: thêm cấp **Tuần** (cột mốc tuần, con của mục tiêu tháng).
+- **Nhắc nhở**: thông báo hệ thống + âm thanh khi đến giờ lịch trình và khi hết giờ tập trung.
 
 > Bảng xếp hạng tuần đang tính trực tiếp từ dữ liệu 40 ngày gần nhất. Khi vượt khoảng vài nghìn người dùng hoạt động, nên chuyển sang cache (bảng tổng hợp chạy định kỳ).
 

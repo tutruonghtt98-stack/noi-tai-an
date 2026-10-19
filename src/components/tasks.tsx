@@ -8,6 +8,8 @@ import { cn } from "@/lib/cn";
 import { addDays, type ISODate } from "@/lib/dates";
 import type { TaskView, GoalOption } from "@/lib/queries";
 import { inkVar, softVar } from "@/lib/colors";
+import { Modal } from "@/components/ui/modal";
+import { useToast } from "@/components/ui/toast";
 
 type Patch = { id: string } & Partial<TaskView> & { _delete?: boolean };
 
@@ -52,7 +54,7 @@ export function TaskBoard({ date, tasks, goals }: { date: ISODate; tasks: TaskVi
         <h2 id="tasks" className="card-title">
           {t.today.tasks}
         </h2>
-        <AddTask date={date} />
+        <AddTask date={date} goals={goals} />
         {others.length === 0 && done.length === 0 && priorities.length === 0 ? (
           <p className="mt-6 text-center text-sm text-muted">{t.today.noTasks}</p>
         ) : (
@@ -79,11 +81,24 @@ export function TaskBoard({ date, tasks, goals }: { date: ISODate; tasks: TaskVi
   );
 }
 
-function AddTask({ date, goalId, projectId, placeholder }: { date: ISODate | null; goalId?: string; projectId?: string; placeholder?: string }) {
+function AddTask({
+  date,
+  goalId,
+  projectId,
+  placeholder,
+  goals,
+}: {
+  date: ISODate | null;
+  goalId?: string;
+  projectId?: string;
+  placeholder?: string;
+  goals?: GoalOption[]; // có goals → nút + mở pop-up điền đầy đủ thông tin
+}) {
   const { t } = useI18n();
   const { exec, pending } = useAction();
   const ref = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
+  const [modal, setModal] = useState(false);
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const title = value.trim();
@@ -96,23 +111,147 @@ function AddTask({ date, goalId, projectId, placeholder }: { date: ISODate | nul
     });
   };
   return (
-    <form onSubmit={submit} className="mt-4 flex gap-2">
-      <label className="sr-only" htmlFor={`add-${projectId ?? goalId ?? date}`}>
-        {placeholder ?? t.today.addTask}
-      </label>
-      <input
-        id={`add-${projectId ?? goalId ?? date}`}
-        ref={ref}
-        className="input"
-        placeholder={placeholder ?? t.today.addTask}
-        value={value}
-        maxLength={200}
-        onChange={(e) => setValue(e.target.value)}
-      />
-      <button className="icon-btn bg-ink text-bg hover:bg-ink hover:text-bg" disabled={pending || !value.trim()} aria-label={t.common.add}>
-        <Plus className="size-5" aria-hidden />
-      </button>
-    </form>
+    <>
+      <form onSubmit={submit} className="mt-4 flex gap-2">
+        <label className="sr-only" htmlFor={`add-${projectId ?? goalId ?? date}`}>
+          {placeholder ?? t.today.addTask}
+        </label>
+        <input
+          id={`add-${projectId ?? goalId ?? date}`}
+          ref={ref}
+          className="input"
+          placeholder={placeholder ?? t.today.addTask}
+          value={value}
+          maxLength={200}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        {goals ? (
+          <button type="button" className="icon-btn bg-ink text-bg hover:bg-ink hover:text-bg" onClick={() => setModal(true)} aria-label={t.taskModal.title} title={t.taskModal.title}>
+            <Plus className="size-5" aria-hidden />
+          </button>
+        ) : (
+          <button className="icon-btn bg-ink text-bg hover:bg-ink hover:text-bg" disabled={pending || !value.trim()} aria-label={t.common.add}>
+            <Plus className="size-5" aria-hidden />
+          </button>
+        )}
+      </form>
+      {goals && (
+        <TaskModal
+          key={modal ? "open" : "closed"}
+          open={modal}
+          onClose={() => setModal(false)}
+          date={date ?? new Date().toISOString().slice(0, 10)}
+          initialTitle={value}
+          goals={goals}
+          onCreated={() => {
+            setValue("");
+            setModal(false);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+/** Pop-up thêm nhiệm vụ với đầy đủ thông tin trong ngày. */
+function TaskModal({
+  open,
+  onClose,
+  date,
+  initialTitle,
+  goals,
+  onCreated,
+}: {
+  open: boolean;
+  onClose: () => void;
+  date: ISODate;
+  initialTitle: string;
+  goals: GoalOption[];
+  onCreated: () => void;
+}) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const { exec, pending } = useAction();
+  const [f, setF] = useState({ title: initialTitle, date, startTime: "", estimateMin: "", goalId: "", notes: "", priority: false });
+  const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
+  return (
+    <Modal open={open} onClose={onClose} title={t.taskModal.title}>
+      <form
+        className="grid gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!f.title.trim()) return;
+          exec(
+            () =>
+              createTask({
+                title: f.title,
+                date: f.date,
+                startTime: f.startTime || null,
+                estimateMin: f.estimateMin ? Number(f.estimateMin) : null,
+                goalId: f.goalId || null,
+                notes: f.notes || null,
+                priority: f.priority,
+              }),
+            {
+              success: t.taskModal.added,
+              onSuccess: (r) => {
+                if (r.priorityFull) toast("error", t.today.priorityFull);
+                if (f.startTime) window.dispatchEvent(new Event("nta:schedule-changed"));
+                onCreated();
+              },
+            },
+          );
+        }}
+      >
+        <label className="field">
+          <span className="label">{t.taskModal.name}</span>
+          <input className="input" required maxLength={200} autoFocus value={f.title} placeholder={t.taskModal.namePh} onChange={(e) => set("title", e.target.value)} />
+        </label>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <label className="field">
+            <span className="label">{t.taskModal.date}</span>
+            <input type="date" className="input" required value={f.date} onChange={(e) => set("date", e.target.value)} />
+          </label>
+          <label className="field">
+            <span className="label">{t.today.startTime}</span>
+            <input type="time" className="input" value={f.startTime} onChange={(e) => set("startTime", e.target.value)} />
+          </label>
+          <label className="field">
+            <span className="label">{t.today.estimate}</span>
+            <input type="number" inputMode="numeric" min={1} max={720} className="input" value={f.estimateMin} onChange={(e) => set("estimateMin", e.target.value)} />
+          </label>
+        </div>
+        <label className="field">
+          <span className="label">{t.today.linkGoal}</span>
+          <select className="input" value={f.goalId} onChange={(e) => set("goalId", e.target.value)}>
+            <option value="">{t.common.none}</option>
+            {goals.map((g) => (
+              <option key={g.id} value={g.id}>
+                {t.goals.horizon[g.horizon]} · {g.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span className="label">
+            {t.taskModal.notes} <span className="font-normal text-muted">({t.common.optional})</span>
+          </span>
+          <textarea className="input" maxLength={2000} value={f.notes} placeholder={t.taskModal.notesPh} onChange={(e) => set("notes", e.target.value)} />
+        </label>
+        <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-surface-2 p-3 text-sm font-medium">
+          <input type="checkbox" className="size-4 accent-[var(--ink)]" checked={f.priority} onChange={(e) => set("priority", e.target.checked)} />
+          <Star className={cn("size-4", f.priority && "fill-ochre stroke-ochre-ink")} aria-hidden /> {t.taskModal.makeTop3}
+        </label>
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            {t.common.cancel}
+          </button>
+          <button className="btn btn-primary" disabled={pending || !f.title.trim()}>
+            {t.common.add}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 export { AddTask };

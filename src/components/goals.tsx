@@ -15,7 +15,20 @@ import { periodLabel } from "@/lib/goal-format";
 import { cn } from "@/lib/cn";
 import { useRouter } from "next/navigation";
 
-type Horizon = "YEAR" | "QUARTER" | "MONTH";
+type Horizon = "YEAR" | "QUARTER" | "MONTH" | "WEEK";
+
+/** Các ngày đầu tuần (thứ Hai) từ 4 tuần trước đến 12 tuần tới. */
+function weekStarts() {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) - 28);
+  return Array.from({ length: 17 }, (_, i) => {
+    const x = new Date(d);
+    x.setUTCDate(d.getUTCDate() + i * 7);
+    return x.toISOString().slice(0, 10);
+  });
+}
+const thisWeekStart = () => weekStarts()[4]!;
 
 export function GoalCard({ goal }: { goal: GoalView }) {
   const { t } = useI18n();
@@ -134,9 +147,10 @@ export function GoalForm({
     unit: (initial?.unit as string) ?? "",
     dueDate: (initial?.dueDate as string) ?? "",
     color: (initial?.color as string) ?? "ochre",
+    weekStart: (initial?.weekStart as string) ?? thisWeekStart(),
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
-  const rank: Record<Horizon, number> = { YEAR: 0, QUARTER: 1, MONTH: 2 };
+  const rank: Record<Horizon, number> = { YEAR: 0, QUARTER: 1, MONTH: 2, WEEK: 3 };
   const parents = options.filter((o) => o.id !== selfId && rank[o.horizon] < rank[f.horizon]);
   const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1, now.getFullYear() + 2];
 
@@ -167,7 +181,7 @@ export function GoalForm({
         <fieldset className="field">
           <legend className="label mb-1.5">{t.goals.fields.horizon}</legend>
           <div className="segmented w-fit">
-            {(["YEAR", "QUARTER", "MONTH"] as const).map((h) => (
+            {(["YEAR", "QUARTER", "MONTH", "WEEK"] as const).map((h) => (
               <button key={h} type="button" aria-pressed={f.horizon === h} onClick={() => set("horizon", h)}>
                 {t.goals.horizon[h]}
               </button>
@@ -176,6 +190,24 @@ export function GoalForm({
         </fieldset>
 
         <div className="grid grid-cols-2 gap-4">
+          {f.horizon === "WEEK" ? (
+            <label className="field col-span-2">
+              <span className="label">{t.goals.fields.week}</span>
+              <select className="input" value={f.weekStart} onChange={(e) => set("weekStart", e.target.value)}>
+                {weekStarts().map((w) => {
+                  const end = new Date(`${w}T00:00:00Z`);
+                  end.setUTCDate(end.getUTCDate() + 6);
+                  const dm = (d: string) => `${Number(d.slice(8, 10))}/${Number(d.slice(5, 7))}`;
+                  return (
+                    <option key={w} value={w}>
+                      {dm(w)} – {dm(end.toISOString().slice(0, 10))}/{w.slice(0, 4)}
+                      {w === thisWeekStart() ? ` · ${t.common.today}` : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          ) : (
           <label className="field">
             <span className="label">{t.goals.fields.year}</span>
             <select className="input" value={f.year} onChange={(e) => set("year", Number(e.target.value))}>
@@ -184,6 +216,7 @@ export function GoalForm({
               ))}
             </select>
           </label>
+          )}
           {f.horizon === "QUARTER" && (
             <label className="field">
               <span className="label">{t.goals.fields.quarter}</span>
@@ -317,6 +350,7 @@ export function GoalControls({
           year: goal.year,
           quarter: goal.quarter,
           month: goal.month,
+          weekStart: goal.weekStart ?? undefined,
           parentId: goal.parent?.id ?? "",
           targetValue: goal.targetValue,
           unit: goal.unit ?? "",

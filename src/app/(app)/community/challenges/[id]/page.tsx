@@ -8,12 +8,13 @@ import { fmt } from "@/lib/i18n/format";
 import { db } from "@/lib/db";
 import { addDays, daysBetween, formatDate, fromDbDate, todayISO } from "@/lib/dates";
 import { challengeWindow, completionTarget } from "@/lib/challenges";
-import { getFeed } from "@/lib/community";
 import { ProgressBar, ProgressRing } from "@/components/ui/progress-ring";
 import { Avatar } from "@/components/ui/avatar";
 import { CheckinPanel, JoinButton } from "@/components/community/challenge-ui";
 import { FeedList } from "@/components/community/feed-list";
 import { cn } from "@/lib/cn";
+import { getConnections, getFeed } from "@/lib/community";
+import { InviteMoreButton } from "@/components/community/people-picker";
 
 export const metadata: Metadata = { title: "Thử thách" };
 
@@ -35,7 +36,13 @@ export default async function ChallengeDetail({ params }: { params: Promise<{ id
     db.challengeCheckin.groupBy({ by: ["userId"], where: { challengeId: id }, _count: true, orderBy: { _count: { userId: "desc" } }, take: 10 }),
     getFeed(user.id, { challengeId: id }),
   ]);
-  const people = await db.user.findMany({
+  const [connections, memberRows] = await Promise.all([
+    getConnections(user.id),
+    db.challengeMember.findMany({ where: { challengeId: id }, select: { userId: true } }),
+  ]);
+  const memberIds = memberRows.map((m) => m.userId);
+  const people = connections;
+  const rankPeople = await db.user.findMany({
     where: { id: { in: ranking.map((r) => r.userId) } },
     select: { id: true, name: true, image: true, leaderboardOptIn: true, username: true, profilePublic: true },
   });
@@ -72,7 +79,10 @@ export default async function ChallengeDetail({ params }: { params: Promise<{ id
             </p>
             {c.description && <p className="mt-3 whitespace-pre-wrap text-ink-2">{c.description}</p>}
           </div>
-          <JoinButton id={c.id} joined={!!member} canLeave={!!member && !member.completedAt && c.creatorId !== user.id} ended={w.state === "ended"} />
+          <div className="flex flex-wrap items-center gap-2">
+            {member && w.state !== "ended" && <InviteMoreButton challengeId={c.id} people={people} memberIds={memberIds} />}
+            <JoinButton id={c.id} joined={!!member} canLeave={!!member && !member.completedAt && c.creatorId !== user.id} ended={w.state === "ended"} />
+          </div>
         </div>
       </section>
 
@@ -153,7 +163,7 @@ export default async function ChallengeDetail({ params }: { params: Promise<{ id
             </h2>
             <ol className="space-y-3">
               {ranking.map((r, i) => {
-                const p = people.find((x) => x.id === r.userId);
+                const p = rankPeople.find((x) => x.id === r.userId);
                 const visible = p?.leaderboardOptIn || r.userId === user.id;
                 const name = visible ? (r.userId === user.id ? `${p?.name ?? ""} (${t.community.board.you})` : p?.name ?? "—") : t.community.board.anon;
                 return (

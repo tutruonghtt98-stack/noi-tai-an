@@ -8,16 +8,17 @@ import { useToast } from "@/components/ui/toast";
 import { checkinChallenge, createChallenge, joinChallenge, leaveChallenge } from "@/actions/challenges";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
+import { PeoplePicker, type Person } from "./people-picker";
 
 const CATS = ["READING", "WORKOUT", "STUDY", "FOCUS", "GOAL", "OTHER"] as const;
 
-export function NewChallengeButton({ canCreate, isAdmin, today, tomorrow, nextMonday }: { canCreate: boolean; isAdmin: boolean; today: string; tomorrow: string; nextMonday: string }) {
+export function NewChallengeButton({ canCreate, isAdmin, today, tomorrow, nextMonday, people = [] }: { canCreate: boolean; isAdmin: boolean; today: string; tomorrow: string; nextMonday: string; people?: Person[] }) {
   const { t } = useI18n();
   const toast = useToast();
   const router = useRouter();
   const { exec, pending } = useAction();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ title: "", description: "", category: "READING" as (typeof CATS)[number], durationDays: 21 as 7 | 21 | 30, startDate: tomorrow, official: false, badgeName: "" });
+  const [f, setF] = useState({ title: "", description: "", category: "READING" as (typeof CATS)[number], durationDays: 21 as 7 | 21 | 30, startDate: tomorrow, official: false, badgeName: "", inviteeIds: [] as string[] });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
 
   return (
@@ -91,6 +92,11 @@ export function NewChallengeButton({ canCreate, isAdmin, today, tomorrow, nextMo
               )}
             </div>
           )}
+          <fieldset className="field">
+            <legend className="label mb-1">{t.challengeInvite.invite}</legend>
+            <p className="mb-2 text-xs text-muted">{t.challengeInvite.inviteHint}</p>
+            <PeoplePicker people={people} value={f.inviteeIds} onChange={(ids) => set("inviteeIds", ids)} />
+          </fieldset>
           <p className="text-sm text-muted">{t.community.challenge.completeRule}</p>
           <div className="flex justify-end gap-2">
             <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>

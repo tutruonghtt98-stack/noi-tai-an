@@ -13,6 +13,8 @@ import { syncBadges, BADGES } from "@/lib/badges";
 import { Avatar } from "@/components/ui/avatar";
 import { ProgressBar } from "@/components/ui/progress-ring";
 import { FeedList } from "@/components/community/feed-list";
+import { FollowButton } from "@/components/community/follow-button";
+import { AvatarUploader } from "@/components/community/avatar-uploader";
 import { colorVar } from "@/lib/colors";
 import { cn } from "@/lib/cn";
 
@@ -58,6 +60,11 @@ export default async function ProfilePage({ params }: Params) {
   const today = todayISO(profile.timezone);
   const asUser = profile as CurrentUser;
 
+  const [followers, followingCount, iFollow] = await Promise.all([
+    db.follow.count({ where: { followingId: profile.id } }),
+    db.follow.count({ where: { followerId: profile.id } }),
+    viewer && !isOwner ? db.follow.findUnique({ where: { followerId_followingId: { followerId: viewer.id, followingId: profile.id } } }) : null,
+  ]);
   const [badges, goals, habits, focus, challenges, feed] = await Promise.all([
     see(profile.showBadges) ? db.userBadge.findMany({ where: { userId: profile.id }, orderBy: { awardedAt: "desc" } }) : [],
     see(profile.showGoals) || see(profile.showStats) ? getGoals(asUser) : [],
@@ -90,14 +97,23 @@ export default async function ProfilePage({ params }: Params) {
     <div className="mx-auto grid max-w-5xl grid-cols-1 gap-[var(--gap)]">
       <section className="card hero-glow">
         <div className="flex flex-wrap items-center gap-5">
-          <Avatar name={profile.name ?? "?"} image={profile.image} size={88} />
+          {isOwner ? <AvatarUploader name={profile.name ?? "?"} image={profile.image} /> : <Avatar name={profile.name ?? "?"} image={profile.image} size={88} />}
           <div className="min-w-0 flex-1">
             <h1 className="text-3xl font-semibold">{profile.name}</h1>
             <p className="text-muted">
               @{profile.username} · {fmt(p.memberSince, { d: dateFmt.format(profile.createdAt) })}
             </p>
             {profile.bio && <p className="mt-2 max-w-xl text-ink-2">{profile.bio}</p>}
+            <p className="mt-2 flex gap-4 text-sm">
+              <span>
+                <strong className="tabular">{followers}</strong> <span className="text-muted">{t.follow.followers}</span>
+              </span>
+              <span>
+                <strong className="tabular">{followingCount}</strong> <span className="text-muted">{t.follow.followingLabel}</span>
+              </span>
+            </p>
           </div>
+          {viewer && !isOwner && <FollowButton userId={profile.id} initial={!!iFollow} />}
           {isOwner && (
             <div className="flex flex-col items-end gap-2">
               {!profile.profilePublic && (

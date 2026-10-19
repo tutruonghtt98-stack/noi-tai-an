@@ -1,5 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { deleteObject, ownsKey, publicUrlFor, verifyUploaded } from "@/lib/storage";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -40,5 +42,23 @@ export async function updateJourney(input: JourneyInput) {
     revalidatePath(`/u/${d.username}`);
     if (user.username && user.username !== d.username) revalidatePath(`/u/${user.username}`);
     revalidatePath("/community", "layout");
+  });
+}
+
+/** Đặt ảnh đại diện từ ảnh đã tải lên (key) — hoặc null để quay về ảnh mặc định. */
+export async function setAvatar(key: string | null) {
+  return run(async () => {
+    const user = await requireUser();
+    let image: string | null = null;
+    if (key) {
+      if (!ownsKey(user.id, key, "avatars") || !(await verifyUploaded(key))) throw new UserError("BAD_IMAGE");
+      image = publicUrlFor(key);
+    }
+    const old = user.image;
+    await db.user.update({ where: { id: user.id }, data: { image } });
+    // Xoá ảnh cũ do mình tải lên (không đụng ảnh Google)
+    const prefix = publicUrlFor(`avatars/${user.id}/`);
+    if (old && old.startsWith(prefix)) after(() => deleteObject(old.slice(publicUrlFor("").length)));
+    revalidatePath("/", "layout");
   });
 }

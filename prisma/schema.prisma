@@ -32,6 +32,7 @@ enum GoalHorizon {
   YEAR
   QUARTER
   MONTH
+  WEEK
 }
 
 enum GoalStatus {
@@ -105,16 +106,20 @@ model User {
   weeklyReviews WeeklyReview[]
   orders        Order[]
 
-  posts             Post[]
-  cheers            Cheer[]
-  comments          Comment[]
-  reports           Report[]
-  challenges        Challenge[]        @relation("ChallengeCreator")
-  challengeMembers  ChallengeMember[]
-  challengeCheckins ChallengeCheckin[]
-  groupMembers      GroupMember[]
-  badges            UserBadge[]
-  joinRequests      GroupJoinRequest[]
+  posts                    Post[]
+  cheers                   Cheer[]
+  comments                 Comment[]
+  reports                  Report[]
+  challenges               Challenge[]        @relation("ChallengeCreator")
+  challengeMembers         ChallengeMember[]
+  challengeCheckins        ChallengeCheckin[]
+  groupMembers             GroupMember[]
+  badges                   UserBadge[]
+  joinRequests             GroupJoinRequest[]
+  following                Follow[]           @relation("Follower")
+  followers                Follow[]           @relation("Following")
+  challengeInvitesSent     ChallengeInvite[]  @relation("Inviter")
+  challengeInvitesReceived ChallengeInvite[]  @relation("Invitee")
 }
 
 model Account {
@@ -168,6 +173,7 @@ model Goal {
   year        Int
   quarter     Int? // 1–4
   month       Int? // 1–12
+  weekStart   DateTime?   @db.Date // cột mốc tuần: ngày đầu tuần
   status      GoalStatus  @default(ACTIVE)
   color       String      @default("ochre")
 
@@ -508,6 +514,7 @@ model Challenge {
 
   creator  User               @relation("ChallengeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   members  ChallengeMember[]
+  invites  ChallengeInvite[]
   checkins ChallengeCheckin[]
   posts    Post[]
 
@@ -630,4 +637,40 @@ model UserBadge {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, code])
+}
+
+// ---------- Theo dõi hồ sơ ----------
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model ChallengeInvite {
+  id          String       @id @default(cuid())
+  challengeId String
+  inviterId   String
+  inviteeId   String
+  status      InviteStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  inviter   User      @relation("Inviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee   User      @relation("Invitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, inviteeId])
+  @@index([inviteeId, status])
 }

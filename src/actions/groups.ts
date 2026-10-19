@@ -25,7 +25,7 @@ async function assertGroupQuota(userId: string) {
 const schema = z.object({
   name: z.string().trim().min(2).max(80),
   description: z.string().trim().max(500).optional().transform((v) => v || null),
-  maxMembers: z.number().int().min(3).max(10),
+  maxMembers: z.number().int().min(3).max(25),
 });
 
 export async function createGroup(input: z.input<typeof schema>) {

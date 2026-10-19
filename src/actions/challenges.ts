@@ -20,6 +20,7 @@ const schema = z.object({
   startDate: z.string().refine(isValidISO),
   official: z.boolean().default(false),
   badgeName: z.string().trim().max(60).optional().transform((v) => v || null),
+  inviteeIds: z.array(z.string()).max(50).default([]),
 });
 
 export async function createChallenge(input: z.input<typeof schema>) {
@@ -44,6 +45,11 @@ export async function createChallenge(input: z.input<typeof schema>) {
         members: { create: { userId: user.id } },
       },
     });
+    if (d.inviteeIds.length) {
+      const allowed = await connectionIds(user.id);
+      const valid = d.inviteeIds.filter((id) => allowed.has(id));
+      if (valid.length) await db.challengeInvite.createMany({ data: valid.map((inviteeId) => ({ challengeId: c.id, inviterId: user.id, inviteeId })), skipDuplicates: true });
+    }
     revalidatePath("/community/challenges");
     revalidatePath("/admin/challenges");
     return { id: c.id };
@@ -126,5 +132,68 @@ export async function archiveChallenge(id: string) {
     await db.challenge.update({ where: { id }, data: { archivedAt: new Date() } });
     revalidatePath("/community/challenges");
     revalidatePath("/admin/challenges");
+  });
+}
+
+// ---------- Mời người theo dõi cùng tham gia ----------
+
+/** Người có liên hệ theo dõi với user (theo dõi mình hoặc mình theo dõi). */
+async function connectionIds(userId: string) {
+  const rows = await db.follow.findMany({
+    where: { OR: [{ followerId: userId }, { followingId: userId }] },
+    select: { followerId: true, followingId: true },
+  });
+  return new Set(rows.map((r) => (r.followerId === userId ? r.followingId : r.followerId)));
+}
+
+export async function inviteToChallenge(challengeId: string, inviteeIds: string[]) {
+  return run(async () => {
+    const user = await requireUser();
+    rateLimit(`chinvite:${user.id}`, 100, 86_400_000);
+    const ids = z.array(z.string()).max(50).parse(inviteeIds);
+    const c = await db.challenge.findFirst({ where: { id: challengeId, archivedAt: null } });
+    if (!c) throw new UserError("NOT_FOUND");
+    if (challengeWindow(c, todayISO(user.timezone)).state === "ended") throw new UserError("ENDED");
+    const member = await db.challengeMember.findUnique({ where: { challengeId_userId: { challengeId, userId: user.id } } });
+    if (!member) throw new UserError("FORBIDDEN");
+    const allowed = await connectionIds(user.id);
+    const valid = ids.filter((id) => allowed.has(id) && id !== user.id);
+    const already = new Set(
+      (await db.challengeMember.findMany({ where: { challengeId, userId: { in: valid } }, select: { userId: true } })).map((m) => m.userId),
+    );
+    let sent = 0;
+    for (const inviteeId of valid.filter((id) => !already.has(id))) {
+      await db.challengeInvite.upsert({
+        where: { challengeId_inviteeId: { challengeId, inviteeId } },
+        update: { status: "PENDING", inviterId: user.id },
+        create: { challengeId, inviterId: user.id, inviteeId },
+      });
+      sent++;
+    }
+    revalidatePath(`/community/challenges/${challengeId}`);
+    return { sent };
+  });
+}
+
+export async function respondInvite(inviteId: string, accept: boolean) {
+  return run(async () => {
+    const user = await requireUser();
+    const inv = await db.challengeInvite.findUnique({ where: { id: inviteId }, include: { challenge: true } });
+    if (!inv || inv.inviteeId !== user.id || inv.status !== "PENDING") throw new UserError("NOT_FOUND");
+    if (accept) {
+      if (challengeWindow(inv.challenge, todayISO(user.timezone)).state === "ended") throw new UserError("ENDED");
+      await db.$transaction([
+        db.challengeMember.upsert({
+          where: { challengeId_userId: { challengeId: inv.challengeId, userId: user.id } },
+          update: {},
+          create: { challengeId: inv.challengeId, userId: user.id },
+        }),
+        db.challengeInvite.update({ where: { id: inviteId }, data: { status: "ACCEPTED" } }),
+      ]);
+    } else {
+      await db.challengeInvite.update({ where: { id: inviteId }, data: { status: "DECLINED" } });
+    }
+    revalidatePath("/community", "layout");
+    return { challengeId: inv.challengeId };
   });
 }

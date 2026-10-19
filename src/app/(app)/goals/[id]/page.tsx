@@ -24,7 +24,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
   if (!data) notFound();
   const { goal, view, children } = data;
   const today = todayISO(user.timezone);
-  const childHorizon = goal.horizon === "YEAR" ? "QUARTER" : goal.horizon === "QUARTER" ? "MONTH" : null;
+  const childHorizon = goal.horizon === "YEAR" ? "QUARTER" : goal.horizon === "QUARTER" ? "MONTH" : goal.horizon === "MONTH" ? "WEEK" : null;
 
   return (
     <>
@@ -113,7 +113,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
                   options={options}
                   variant="soft"
                   label={t.common.add}
-                  defaults={{ horizon: childHorizon, year: goal.year, quarter: goal.quarter, parentId: goal.id, color: goal.color as "ochre" }}
+                  defaults={{ horizon: childHorizon, year: goal.year, quarter: goal.quarter, month: goal.month, parentId: goal.id, color: goal.color as "ochre" }}
                 />
               </div>
               {children.length === 0 ? (

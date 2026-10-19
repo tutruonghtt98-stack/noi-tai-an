@@ -11,13 +11,13 @@ import { canViewGroup, getFeed, CATEGORIES } from "@/lib/community";
 import { syncBadges } from "@/lib/badges";
 
 /** Xin quyền tải ảnh: trả về URL ký sẵn (R2) hoặc endpoint local khi phát triển. */
-export async function requestUpload(input: { contentType: string; size: number }) {
+export async function requestUpload(input: { contentType: string; size: number; purpose?: "posts" | "avatars" }) {
   return run(async () => {
     const user = await requireUser();
     rateLimit(`upload:${user.id}`, 30, 3600_000);
     const contentType = z.enum(ALLOWED_TYPES).parse(input.contentType);
     const size = z.number().int().min(1).max(MAX_UPLOAD_BYTES).parse(input.size);
-    const key = newKey(user.id, contentType);
+    const key = newKey(user.id, contentType, input.purpose === "avatars" ? "avatars" : "posts");
     if (storageMode() === "local") return { key, url: `/api/uploads/${key}`, mode: "local" as const };
     return { key, url: await presignPut(key, contentType, size), mode: "r2" as const };
   });
@@ -44,7 +44,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
     }
     let imageUrl: string | null = null;
     if (d.imageKey) {
-      if (!ownsKey(user.id, d.imageKey) || !(await verifyUploaded(d.imageKey))) throw new UserError("BAD_IMAGE");
+      if (!ownsKey(user.id, d.imageKey, "posts") || !(await verifyUploaded(d.imageKey))) throw new UserError("BAD_IMAGE");
       imageUrl = publicUrlFor(d.imageKey);
     }
     await db.post.create({
@@ -147,11 +147,11 @@ export async function reportContent(input: { postId?: string; commentId?: string
 }
 
 /** Phân trang bảng tin (nút "Xem thêm"). */
-export async function loadFeed(input: { cursor: string; category?: string | null; groupId?: string | null; challengeId?: string | null; authorId?: string | null }) {
+export async function loadFeed(input: { cursor: string; category?: string | null; groupId?: string | null; challengeId?: string | null; authorId?: string | null; following?: boolean }) {
   return run(async () => {
     const user = await requireUser();
     if (input.groupId && !(await canViewGroup(user.id, input.groupId))) throw new UserError("FORBIDDEN");
     const category = input.category && (CATEGORIES as string[]).includes(input.category) ? (input.category as "OTHER") : null;
-    return getFeed(user.id, { cursor: input.cursor, category, groupId: input.groupId ?? null, challengeId: input.challengeId ?? null, authorId: input.authorId ?? null });
+    return getFeed(user.id, { cursor: input.cursor, category, groupId: input.groupId ?? null, challengeId: input.challengeId ?? null, authorId: input.authorId ?? null, followingOf: input.following ? user.id : null });
   });
 }

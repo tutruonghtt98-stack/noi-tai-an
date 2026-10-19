@@ -42,14 +42,18 @@ function s3() {
   return client;
 }
 
-export function newKey(userId: string, contentType: string) {
+export type UploadPurpose = "posts" | "avatars";
+
+export function newKey(userId: string, contentType: string, purpose: UploadPurpose = "posts") {
   const rand = crypto.randomUUID().replace(/-/g, "");
   const month = new Date().toISOString().slice(0, 7);
-  return `posts/${userId}/${month}/${rand}.${EXT[contentType] ?? "bin"}`;
+  return `${purpose}/${userId}/${month}/${rand}.${EXT[contentType] ?? "bin"}`;
 }
 
-export const ownsKey = (userId: string, key: string) =>
-  key.startsWith(`posts/${userId}/`) && /^[a-z0-9/\-.]+$/i.test(key) && !key.includes("..");
+export const ownsKey = (userId: string, key: string, purpose?: UploadPurpose) =>
+  (purpose ? [purpose] : ["posts", "avatars"]).some((p) => key.startsWith(`${p}/${userId}/`)) &&
+  /^[a-z0-9/\-.]+$/i.test(key) &&
+  !key.includes("..");
 
 export function publicUrlFor(key: string) {
   return storageMode() === "r2" ? `${cfg().publicUrl}/${key}` : `/api/uploads/${key}`;

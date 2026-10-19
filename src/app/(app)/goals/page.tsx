@@ -12,8 +12,8 @@ import { todayISO } from "@/lib/dates";
 
 export const metadata: Metadata = { title: "Mục tiêu" };
 
-type H = "YEAR" | "QUARTER" | "MONTH";
-const HORIZONS: H[] = ["YEAR", "QUARTER", "MONTH"];
+type H = "YEAR" | "QUARTER" | "MONTH" | "WEEK";
+const HORIZONS: H[] = ["YEAR", "QUARTER", "MONTH", "WEEK"];
 
 export default async function GoalsPage({ searchParams }: { searchParams: Promise<{ h?: string; y?: string }> }) {
   const user = await requireUser();
@@ -28,7 +28,7 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
   // Nhóm theo kỳ: Năm → từng Quý → từng Tháng
   const groups = new Map<string, GoalView[]>();
   for (const g of goals) {
-    const key = `${g.horizon}:${g.quarter ?? 0}:${g.month ?? 0}`;
+    const key = `${g.horizon}:${g.quarter ?? 0}:${g.month ?? 0}:${g.weekStart ?? ""}`;
     groups.set(key, [...(groups.get(key) ?? []), g]);
   }
   const href = (h?: H, y = year) => `/goals?${new URLSearchParams({ ...(h ? { h } : {}), y: String(y) })}`;

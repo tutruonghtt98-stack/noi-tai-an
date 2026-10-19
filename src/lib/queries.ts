@@ -89,10 +89,10 @@ export async function getOverdue(user: CurrentUser, today: ISODate) {
 
 // ---------- Goals ----------
 
-export async function getGoals(user: CurrentUser, where: { year?: number; horizon?: "YEAR" | "QUARTER" | "MONTH" } = {}) {
+export async function getGoals(user: CurrentUser, where: { year?: number; horizon?: "YEAR" | "QUARTER" | "MONTH" | "WEEK" } = {}) {
   const goals = await db.goal.findMany({
     where: { userId: user.id, status: { not: "ARCHIVED" }, ...where },
-    orderBy: [{ status: "asc" }, { horizon: "asc" }, { quarter: "asc" }, { month: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ status: "asc" }, { horizon: "asc" }, { quarter: "asc" }, { month: "asc" }, { weekStart: "asc" }, { createdAt: "asc" }],
     include: {
       _count: { select: { tasks: true, children: true, projects: true } },
       parent: { select: { id: true, title: true } },
@@ -140,6 +140,7 @@ export async function getGoals(user: CurrentUser, where: { year?: number; horizo
       year: g.year,
       quarter: g.quarter,
       month: g.month,
+      weekStart: g.weekStart ? fromDbDate(g.weekStart) : null,
       status: g.status,
       color: g.color,
       targetValue: g.targetValue,
@@ -159,7 +160,7 @@ export async function getGoalOptions(user: CurrentUser) {
   return db.goal.findMany({
     where: { userId: user.id, status: { in: ["ACTIVE", "PAUSED"] } },
     orderBy: [{ horizon: "asc" }, { createdAt: "asc" }],
-    select: { id: true, title: true, horizon: true, year: true, quarter: true, month: true },
+    select: { id: true, title: true, horizon: true, year: true, quarter: true, month: true, weekStart: true },
   });
 }
 export type GoalOption = Awaited<ReturnType<typeof getGoalOptions>>[number];

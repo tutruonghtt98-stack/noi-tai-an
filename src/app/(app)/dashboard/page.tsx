@@ -4,15 +4,18 @@ import { ArrowUpRight, Star, Target } from "lucide-react";
 import { requireUser } from "@/lib/session";
 import { getI18n } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/format";
-import { hourInZone, todayISO } from "@/lib/dates";
+import { addDays, dayOfWeek, fromDbDate, hourInZone, startOfWeek, toDbDate, todayISO } from "@/lib/dates";
 import { getDashboard } from "@/lib/queries";
 import { scoreBand } from "@/lib/stats";
 import { FocusTimer } from "@/components/focus-timer";
 import { HabitQuickList } from "@/components/habits";
-import { DayTimeline, DisciplineCalendar, StatCard } from "@/components/dashboard";
+import { DisciplineCalendar, StatCard } from "@/components/dashboard";
+import { Planner } from "@/components/planner";
+import { db } from "@/lib/db";
 import { ProgressRing, ProgressBar } from "@/components/ui/progress-ring";
 import { Empty } from "@/components/ui/empty";
 import { EnableAlertsButton } from "@/components/alert-settings";
+import { QuoteRotator } from "@/components/quote-rotator";
 import { colorVar } from "@/lib/colors";
 import { cn } from "@/lib/cn";
 
@@ -35,16 +38,21 @@ export default async function DashboardPage() {
   const user = await requireUser();
   const { t, locale } = await getI18n();
   const today = todayISO(user.timezone);
-  const d = await getDashboard(user, today);
+  const weekStart = startOfWeek(today, user.weekStartsOn);
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const [d, weekTasks] = await Promise.all([
+    getDashboard(user, today),
+    db.task.findMany({
+      where: { userId: user.id, date: { gte: toDbDate(weekStart), lte: toDbDate(weekDays[6]!) } },
+      select: { id: true, title: true, date: true, startTime: true, estimateMin: true, status: true, goal: { select: { color: true } } },
+      orderBy: { startTime: "asc" },
+    }),
+  ]);
 
   const hour = hourInZone(user.timezone);
   const greet = hour < 11 ? t.greet.morning : hour < 18 ? t.greet.afternoon : t.greet.evening;
   const firstName = (user.name ?? "").trim().split(/\s+/).at(-1) || "";
   const band = scoreBand(d.score);
-  const now = new Date();
-  const nowHour =
-    Number(new Intl.DateTimeFormat("en-GB", { timeZone: user.timezone, hour: "2-digit", hour12: false }).format(now)) +
-    Number(new Intl.DateTimeFormat("en-GB", { timeZone: user.timezone, minute: "2-digit" }).format(now)) / 60;
   const habitsLeft = d.dueHabits.filter((h) => !h.stats.doneToday).length;
   const prioritiesLeft = d.priorities.filter((p) => !p.done).length;
 
@@ -64,7 +72,7 @@ export default async function DashboardPage() {
             <span className="tabular text-lg font-semibold">{d.score}</span>
           </ProgressRing>
         </div>
-        <p className="mt-3 text-ink-2">{t.greet.sub}</p>
+        <QuoteRotator />
         <p className="mt-1 text-sm font-medium">
           {t.dashboard.disciplineToday}:{" "}
           <span className={cn(band === "high" ? "text-success" : band === "mid" ? "text-ochre-ink" : "text-muted")}>
@@ -160,7 +168,21 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </div>
-        <DayTimeline tasks={d.day.tasks} nowHour={nowHour} emptyText={t.dashboard.plannerEmpty} />
+        <Planner
+          today={today}
+          timezone={user.timezone}
+          weekDays={weekDays}
+          weekdayLabels={weekDays.map((x) => t.habits.weekdays[dayOfWeek(x)]!)}
+          tasks={weekTasks.map((x) => ({
+            id: x.id,
+            title: x.title,
+            date: fromDbDate(x.date!),
+            startTime: x.startTime,
+            estimateMin: x.estimateMin,
+            done: x.status === "DONE",
+            color: x.goal?.color ?? null,
+          }))}
+        />
       </section>
 
       {/* Top 3 */}

@@ -11,6 +11,8 @@ import { limitsFor } from "@/lib/plan";
 import { Empty } from "@/components/ui/empty";
 import { JoinButton, NewChallengeButton } from "@/components/community/challenge-ui";
 import { cn } from "@/lib/cn";
+import { getConnections } from "@/lib/community";
+import { InviteCard } from "@/components/community/people-picker";
 
 export const metadata: Metadata = { title: "Thử thách" };
 
@@ -24,6 +26,14 @@ export default async function ChallengesPage() {
     take: 60,
     include: { _count: { select: { members: true } }, members: { where: { userId: user.id }, select: { completedAt: true } } },
   });
+  const [people, invites] = await Promise.all([
+    getConnections(user.id),
+    db.challengeInvite.findMany({
+      where: { inviteeId: user.id, status: "PENDING", challenge: { archivedAt: null } },
+      include: { inviter: { select: { id: true, name: true, image: true } }, challenge: { select: { title: true, durationDays: true, startDate: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
   const view = challenges.map((c) => ({ ...c, w: challengeWindow(c, today), joined: c.members.length > 0 }));
   const mine = view.filter((c) => c.joined);
   const explore = view.filter((c) => !c.joined && c.w.state !== "ended");
@@ -79,8 +89,21 @@ export default async function ChallengesPage() {
           today={today}
           tomorrow={addDays(today, 1)}
           nextMonday={nextMonday}
+          people={people}
         />
       </div>
+      {invites.length > 0 && (
+        <section className="mb-10 rounded-[1.75rem] bg-accent-soft p-4 sm:p-5" aria-labelledby="inv">
+          <h2 id="inv" className="mb-3 font-semibold">
+            {t.challengeInvite.title} · {invites.length}
+          </h2>
+          <ul className="space-y-2">
+            {invites.map((i) => (
+              <InviteCard key={i.id} id={i.id} inviter={{ id: i.inviter.id, name: i.inviter.name ?? "—", image: i.inviter.image }} title={i.challenge.title} days={i.challenge.durationDays} />
+            ))}
+          </ul>
+        </section>
+      )}
       {mine.length > 0 && (
         <section className="mb-10" aria-labelledby="mine">
           <h2 id="mine" className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-muted">

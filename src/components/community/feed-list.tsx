@@ -17,7 +17,7 @@ export function FeedList({
 }: {
   initial: PostView[];
   nextCursor: string | null;
-  filter: { category?: string | null; groupId?: string | null; challengeId?: string | null; authorId?: string | null };
+  filter: { category?: string | null; groupId?: string | null; challengeId?: string | null; authorId?: string | null; following?: boolean };
   isAdmin?: boolean;
   emptyText?: string;
 }) {

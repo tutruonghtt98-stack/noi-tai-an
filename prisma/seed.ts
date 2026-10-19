@@ -290,6 +290,31 @@ async function main() {
   // Một yêu cầu tham gia đang chờ trưởng nhóm (demo) duyệt
   await db.groupJoinRequest.create({ data: { groupId: group.id, userId: friends[3]!.id, message: "Mình muốn tập dậy sớm và đọc 20 trang mỗi ngày, cho mình tham gia với!" } });
 
+  // Theo dõi hồ sơ
+  for (const f of [friends[0]!, friends[1]!]) await db.follow.create({ data: { followerId: uid, followingId: f.id } });
+  for (const f of [friends[2]!, friends[3]!, friends[0]!]) await db.follow.create({ data: { followerId: f.id, followingId: uid } });
+
+  // Cột mốc tuần (con của mục tiêu tháng) + việc có giờ các ngày khác trong tuần
+  const monthGoal = await db.goal.findFirst({ where: { userId: uid, horizon: "MONTH" } });
+  const wk = addDays(today, -((dbDate(today).getUTCDay() + 6) % 7));
+  if (monthGoal) {
+    await db.goal.create({
+      data: { userId: uid, title: "Chạy 20km trong tuần", horizon: "WEEK", year, quarter, month, weekStart: dbDate(wk), parentId: monthGoal.id, targetValue: 20, currentValue: 8, unit: "km", color: "jade" },
+    });
+  }
+  const weekPlan = [
+    [1, "07:00", 45, "Chạy 6km"],
+    [1, "14:00", 90, "Họp kế hoạch sprint"],
+    [2, "09:00", 120, "Viết tài liệu API"],
+    [3, "19:30", 60, "Đọc sách cùng nhóm"],
+    [4, "08:00", 60, "Phỏng vấn người dùng"],
+  ] as const;
+  for (const [off, time, est, title] of weekPlan) {
+    const d = addDays(today, off);
+    if (d > addDays(wk, 6)) continue;
+    await db.task.create({ data: { userId: uid, title, date: dbDate(d), startTime: time, estimateMin: est } });
+  }
+
   // Một báo cáo mẫu cho trang kiểm duyệt
   await db.report.create({ data: { reporterId: friends[2]!.id, postId: created[3]!.id, reason: "Spam / quảng cáo" } });
 
