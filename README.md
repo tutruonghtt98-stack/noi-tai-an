@@ -2,7 +2,7 @@
 
 Nền tảng kỷ luật cá nhân cho nhiều người dùng: mục tiêu năm → quý → tháng, theo dõi thói quen, Top 3 ưu tiên mỗi ngày và phiên tập trung sâu.
 
-**Stack:** Next.js 16 (App Router, Server Actions) · TypeScript · Prisma 6 + PostgreSQL · Auth.js v5 (Google) · Tailwind CSS 4 · Be Vietnam Pro · i18n Việt/Anh.
+**Stack:** Next.js 16 (App Router, Server Actions) · TypeScript · Prisma 6 + PostgreSQL (Supabase) · Auth.js v5 (Google) · Tailwind CSS 4 · Be Vietnam Pro · i18n Việt/Anh.
 
 ---
 
@@ -108,11 +108,14 @@ npm install
 cp .env.example .env        # rồi sửa giá trị (xem bên dưới)
 ```
 
-**Cơ sở dữ liệu local không cần cài Postgres:** dự án kèm PGlite (Postgres chạy bằng WASM).
+**Cơ sở dữ liệu: Supabase** (Postgres hosted, dùng chung cho local và production).
+
+1. Tạo project tại [supabase.com](https://supabase.com/dashboard).
+2. **Project Settings → Database → Connection string**: lấy chuỗi kết nối kiểu *Transaction pooler* (cổng `6543`) cho `DATABASE_URL`, và kiểu *Session/Direct* (cổng `5432`) cho `DIRECT_URL`.
+3. Điền cả hai vào `.env`, rồi tạo bảng và seed dữ liệu:
 
 ```bash
-npm run db:local            # cửa sổ 1: Postgres local ở cổng 5433
-npx prisma db push          # cửa sổ 2: tạo bảng
+npx prisma db push          # tạo bảng (dùng DIRECT_URL)
 npm run db:seed             # dữ liệu demo (tuỳ chọn)
 npm run dev                 # http://localhost:3000
 ```
@@ -120,14 +123,15 @@ npm run dev                 # http://localhost:3000
 `.env` cho local:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5433/postgres?sslmode=disable&connection_limit=1&pgbouncer=true"
+DATABASE_URL="postgresql://postgres.xxxx:MAT_KHAU@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
+DIRECT_URL="postgresql://postgres.xxxx:MAT_KHAU@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres"
 AUTH_SECRET="chuoi-ngau-nhien-dai"
 AUTH_URL="http://localhost:3000"
 AUTH_TRUST_HOST=true
 ALLOW_DEV_LOGIN=true        # hiện nút "Vào bằng tài khoản demo" — chỉ hoạt động khi NODE_ENV != production
 ```
 
-> `pgbouncer=true` chỉ cần cho PGlite. **Không** dùng trên VPS.
+> `DATABASE_URL` (pooler, cổng 6543) dùng lúc app chạy; `DIRECT_URL` (cổng 5432) chỉ cần cho `prisma db push` / `prisma migrate`.
 
 ---
 
@@ -165,13 +169,13 @@ DOMAIN=ten-mien.vn EMAIL=ban@email.com REPO=git@github.com:<user>/noi-tai-an.git
   bash /tmp/nta/deploy/setup-vps.sh
 ```
 
-Script sẽ cài Node 22, PM2, PostgreSQL, Nginx, tường lửa UFW và SSL Let's Encrypt, tạo user `deploy` và database `noitaian`, rồi **in mật khẩu DB một lần**. Sau đó làm theo hướng dẫn script in ra:
+Script sẽ cài Node 22, PM2, Nginx, tường lửa UFW và SSL Let's Encrypt, tạo user `deploy`. Database dùng **Supabase** (không cài Postgres trên VPS). Sau đó làm theo hướng dẫn script in ra:
 
 ```bash
 sudo -iu deploy
 git clone git@github.com:<user>/noi-tai-an.git /var/www/noi-tai-an
 cd /var/www/noi-tai-an
-cp .env.example .env && nano .env     # DATABASE_URL, AUTH_SECRET, AUTH_URL, Google, ADMIN_EMAILS
+cp .env.example .env && nano .env     # DATABASE_URL + DIRECT_URL (Supabase), AUTH_SECRET, AUTH_URL, Google, ADMIN_EMAILS
 bash deploy/deploy.sh
 ```
 
@@ -198,8 +202,9 @@ Workflow `.github/workflows/deploy.yml` sẽ typecheck và build, rồi SSH vào
 pm2 logs noi-tai-an          # xem log
 pm2 status
 curl https://ten-mien.vn/api/health
-pg_dump noitaian > backup-$(date +%F).sql   # sao lưu (nên đặt cron hằng ngày)
 ```
+
+Sao lưu database: Supabase tự động backup hằng ngày (Dashboard → Database → Backups). Gói trả phí có Point-in-Time Recovery.
 
 ---
 

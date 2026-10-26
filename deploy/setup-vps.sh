@@ -5,11 +5,10 @@ set -euo pipefail
 : "${DOMAIN:?Thiếu DOMAIN}" "${EMAIL:?Thiếu EMAIL}" "${REPO:?Thiếu REPO}"
 APP_USER=deploy
 APP_DIR=/var/www/noi-tai-an
-DB_PASS="$(openssl rand -hex 16)"
 
 echo "▶ Gói hệ thống"
 apt-get update -y
-apt-get install -y curl git nginx postgresql postgresql-contrib ufw certbot python3-certbot-nginx
+apt-get install -y curl git nginx ufw certbot python3-certbot-nginx
 
 echo "▶ Node.js 22 LTS + PM2"
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
@@ -19,12 +18,6 @@ npm install -g pm2
 echo "▶ Người dùng deploy"
 id -u "$APP_USER" >/dev/null 2>&1 || adduser --disabled-password --gecos "" "$APP_USER"
 mkdir -p "$APP_DIR" && chown "$APP_USER:$APP_USER" "$APP_DIR"
-
-echo "▶ PostgreSQL"
-sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='noitaian'" | grep -q 1 \
-  || sudo -u postgres psql -c "CREATE USER noitaian WITH PASSWORD '$DB_PASS';"
-sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='noitaian'" | grep -q 1 \
-  || sudo -u postgres psql -c "CREATE DATABASE noitaian OWNER noitaian;"
 
 echo "▶ Firewall"
 ufw allow OpenSSH && ufw allow 'Nginx Full' && ufw --force enable
@@ -47,9 +40,8 @@ cat <<MSG
   sudo -iu $APP_USER
   git clone $REPO $APP_DIR && cd $APP_DIR
   cp .env.example .env && nano .env
-     DATABASE_URL="postgresql://noitaian:$DB_PASS@127.0.0.1:5432/noitaian?schema=public"
+     DATABASE_URL="..."   # Supabase — Connection pooling (cổng 6543)
+     DIRECT_URL="..."     # Supabase — Direct connection (cổng 5432)
      AUTH_URL="https://$DOMAIN"
   bash deploy/deploy.sh
-
-(Mật khẩu DB ở trên chỉ hiển thị một lần — hãy lưu lại.)
 MSG

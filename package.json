@@ -11,7 +11,6 @@
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "tsc --noEmit",
-    "db:local": "pglite-server --db=.pglite --port=5433",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
@@ -34,8 +33,6 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.10",
-    "@electric-sql/pglite-socket": "^0.2.13",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
