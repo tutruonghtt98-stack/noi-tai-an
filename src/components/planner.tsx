@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Clock, LocateFixed } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, LocateFixed } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
 import { colorVar, softVar } from "@/lib/colors";
@@ -200,75 +200,119 @@ function DayTrack({ tasks, now }: { tasks: PlannerTask[]; now: number | null }) 
   );
 }
 
-// ---------- Tuần: 7 cột ngày, trục giờ dọc ----------
+// ---------- Tuần: 7 cột ngày, vạch "bây giờ" cố định ở giữa, lịch trôi dọc theo giờ thực ----------
 
-const HOUR_PX = 36;
+const HOUR_PX = 44;
+const VIEW_H = 440;
 
 function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; days: string[]; labels: string[]; today: string; now: number | null }) {
   const { t } = useI18n();
+  const [offset, setOffset] = useState(0); // lệch so với "bây giờ" (giờ)
   const scheduled = tasks.filter((x) => x.startTime);
-  const startH = Math.min(6, ...scheduled.map((x) => Math.floor(toH(x.startTime!))));
-  const endH = Math.max(22, ...scheduled.map((x) => Math.ceil(toH(x.startTime!) + (x.estimateMin ?? 60) / 60)));
-  const hours = Array.from({ length: endH - startH }, (_, i) => startH + i);
-  const height = (endH - startH) * HOUR_PX;
+  const hours = Array.from({ length: 25 }, (_, h) => h);
+  const center = Math.min(24, Math.max(0, (now ?? 12) + offset));
+  const shift = VIEW_H / 2 - center * HOUR_PX;
+  const hh = (v: number) => `${String(Math.floor(v) % 24).padStart(2, "0")}:${String(Math.floor((v % 1) * 60)).padStart(2, "0")}`;
 
   return (
-    <div className="no-scrollbar -mx-[var(--pad)] overflow-x-auto px-[var(--pad)]">
-      <div className="min-w-[720px]">
-        <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] gap-1.5 pb-2">
-          <span />
-          {days.map((d, i) => {
-            const n = tasks.filter((x) => x.date === d && !x.startTime && !x.done).length;
-            return (
-              <div key={d} className={cn("rounded-xl px-2 py-1.5 text-center", d === today ? "bg-ink text-bg" : "bg-surface-2")}>
-                <p className="text-xs font-medium opacity-80">{labels[i]}</p>
-                <p className="tabular text-lg font-semibold leading-tight">{Number(d.slice(8))}</p>
-                {n > 0 && <p className="text-[0.6875rem] opacity-70">+{n}</p>}
-              </div>
-            );
-          })}
-        </div>
-        <div className="relative grid grid-cols-[48px_repeat(7,minmax(0,1fr))] gap-1.5" style={{ height }}>
-          <div className="relative">
-            {hours.map((h) => (
-              <span key={h} className="tabular absolute right-1 -translate-y-1/2 text-xs text-muted" style={{ top: (h - startH) * HOUR_PX }}>
-                {String(h).padStart(2, "0")}:00
-              </span>
-            ))}
+    <div>
+      <div className="no-scrollbar -mx-[var(--pad)] overflow-x-auto px-[var(--pad)]">
+        <div className="min-w-[720px]">
+          <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] gap-1.5 pb-2">
+            <span />
+            {days.map((d, i) => {
+              const n = tasks.filter((x) => x.date === d && !x.startTime && !x.done).length;
+              return (
+                <div key={d} className={cn("rounded-xl px-2 py-1.5 text-center", d === today ? "bg-ink text-bg" : "bg-surface-2")}>
+                  <p className="text-xs font-medium opacity-80">{labels[i]}</p>
+                  <p className="tabular text-lg font-semibold leading-tight">{Number(d.slice(8))}</p>
+                  {n > 0 && <p className="text-[0.6875rem] opacity-70">+{n}</p>}
+                </div>
+              );
+            })}
           </div>
-          {days.map((d) => (
-            <div key={d} className={cn("relative rounded-xl", d === today ? "bg-accent-soft/40" : "bg-surface-2/50")}>
-              {hours.map((h) => (
-                <span key={h} className="absolute inset-x-0 border-t border-dashed border-line" style={{ top: (h - startH) * HOUR_PX }} aria-hidden />
+
+          <div className="relative overflow-hidden rounded-xl" style={{ height: VIEW_H }}>
+            {/* Toàn bộ 24 giờ — trượt dọc để giờ hiện tại luôn nằm giữa */}
+            <div
+              className="absolute inset-x-0 top-0 grid grid-cols-[48px_repeat(7,minmax(0,1fr))] gap-1.5 transition-transform duration-[1200ms] ease-linear motion-reduce:transition-none"
+              style={{ height: 24 * HOUR_PX, transform: `translateY(${shift}px)` }}
+            >
+              <div className="relative">
+                {hours.map((h) => (
+                  <span key={h} className="tabular absolute right-1 -translate-y-1/2 text-xs text-muted" style={{ top: h * HOUR_PX }}>
+                    {String(h % 24).padStart(2, "0")}:00
+                  </span>
+                ))}
+              </div>
+              {days.map((d) => (
+                <div key={d} className={cn("relative rounded-xl", d === today ? "bg-accent-soft/40" : "bg-surface-2/50")}>
+                  {hours.map((h) => (
+                    <span key={h} className="absolute inset-x-0 border-t border-dashed border-line" style={{ top: h * HOUR_PX }} aria-hidden />
+                  ))}
+                  {scheduled
+                    .filter((x) => x.date === d)
+                    .map((x, i) => {
+                      const s = toH(x.startTime!);
+                      const dur = Math.max(0.5, (x.estimateMin ?? 60) / 60);
+                      const c = x.color ?? PALETTE[i % PALETTE.length]!;
+                      const past = now != null && (d < today || (d === today && s + dur < now));
+                      return (
+                        <Link
+                          href={`/today?date=${d}`}
+                          key={x.id}
+                          title={`${x.startTime} · ${x.title}`}
+                          className={cn(
+                            "absolute inset-x-1 overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-[0.6875rem] leading-tight transition-shadow hover:shadow-card",
+                            (x.done || past) && "opacity-55",
+                          )}
+                          style={{ top: s * HOUR_PX + 1, height: dur * HOUR_PX - 2, background: softVar(c), borderColor: colorVar(c) }}
+                        >
+                          <span className={cn("block truncate font-semibold", x.done && "line-through")}>{x.title}</span>
+                          <span className="tabular text-ink-2">{x.startTime}</span>
+                        </Link>
+                      );
+                    })}
+                </div>
               ))}
-              {scheduled
-                .filter((x) => x.date === d)
-                .map((x, i) => {
-                  const s = toH(x.startTime!);
-                  const dur = Math.max(0.5, (x.estimateMin ?? 60) / 60);
-                  const c = x.color ?? PALETTE[i % PALETTE.length]!;
-                  return (
-                    <Link
-                      href={`/today?date=${d}`}
-                      key={x.id}
-                      title={`${x.startTime} · ${x.title}`}
-                      className={cn("absolute inset-x-1 overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-[0.6875rem] leading-tight transition-shadow hover:shadow-card", x.done && "opacity-55")}
-                      style={{ top: (s - startH) * HOUR_PX + 1, height: dur * HOUR_PX - 2, background: softVar(c), borderColor: colorVar(c) }}
-                    >
-                      <span className={cn("block truncate font-semibold", x.done && "line-through")}>{x.title}</span>
-                      <span className="tabular text-ink-2">{x.startTime}</span>
-                    </Link>
-                  );
-                })}
-              {d === today && now != null && now >= startH && now <= endH && (
-                <span className="absolute inset-x-0 z-10 h-0.5 bg-rose" style={{ top: (now - startH) * HOUR_PX }} aria-hidden>
-                  <span className="absolute -left-1 -top-1 size-2.5 rounded-full bg-rose" />
-                </span>
-              )}
             </div>
-          ))}
+
+            {/* Vạch thời gian cố định ở giữa, chạy ngang qua cả tuần */}
+            <div className="pointer-events-none absolute inset-x-0 z-10" style={{ top: VIEW_H / 2 }} aria-hidden>
+              <span className="absolute left-[54px] right-0 h-0.5 -translate-y-1/2 bg-rose/50" />
+              {(() => {
+                const idx = days.indexOf(today);
+                if (idx < 0 || offset !== 0) return null;
+                return (
+                  <span
+                    className="absolute h-[3px] -translate-y-1/2 rounded-full bg-rose"
+                    style={{ left: `calc(54px + (100% - 54px - 6 * 6px) / 7 * ${idx} + ${idx} * 6px)`, width: `calc((100% - 54px - 6 * 6px) / 7)` }}
+                  />
+                );
+              })()}
+              <span className="tabular absolute left-0 -translate-y-1/2 whitespace-nowrap rounded-full bg-rose px-1.5 py-0.5 text-[0.6875rem] font-semibold text-[#1d1c1a] shadow-card">
+                {now != null ? hh(center) : "--:--"}
+              </span>
+            </div>
+            {/* Làm mờ mép trên / dưới */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-surface to-transparent" aria-hidden />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-surface to-transparent" aria-hidden />
+          </div>
+          {scheduled.length === 0 && <p className="mt-3 text-center text-sm text-muted">{t.timeline.weekEmpty}</p>}
         </div>
-        {scheduled.length === 0 && <p className="mt-3 text-center text-sm text-muted">{t.timeline.weekEmpty}</p>}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <button type="button" className="icon-btn size-9" onClick={() => setOffset((o) => Math.max(-24, o - 2))} aria-label="−2h">
+          <ChevronUp className="size-4" aria-hidden />
+        </button>
+        <button type="button" className="icon-btn size-9" onClick={() => setOffset((o) => Math.min(24, o + 2))} aria-label="+2h">
+          <ChevronDown className="size-4" aria-hidden />
+        </button>
+        {offset !== 0 && (
+          <button type="button" className="btn btn-soft btn-sm" onClick={() => setOffset(0)}>
+            <LocateFixed className="size-4" aria-hidden /> {t.timeline.jumpNow}
+          </button>
+        )}
       </div>
     </div>
   );
