@@ -157,54 +157,40 @@ git push -u origin main
 
 ---
 
-## Deploy lên Hostinger VPS
+## Deploy lên Cloudflare Workers
 
-### 1. Cài đặt lần đầu (một lần duy nhất)
+Dự án build bằng [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (chuyển output Next.js thành Cloudflare Worker) và kết nối Postgres (Supabase) qua `@prisma/adapter-pg` với cờ `nodejs_compat` — Workers không chạy được Prisma query engine mặc định.
 
-Trỏ bản ghi **A** của `ten-mien.vn` và `www.ten-mien.vn` về IP của VPS, rồi SSH vào VPS bằng root:
+### 1. Nối Git trong Cloudflare Dashboard
+
+**Workers & Pages → Create → Import a repository**, chọn repo này, nhánh `main`. Trong **Settings → Build**:
+
+- **Build command:** `npm run cf:build`
+- **Deploy command:** `npx wrangler deploy`
+- **Variables and secrets** (mục *Runtime* ngoài phần Build): thêm toàn bộ biến trong `.env.example` — tối thiểu `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AUTH_URL` (= domain `*.workers.dev` hoặc domain riêng), `AUTH_TRUST_HOST=true`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ADMIN_EMAILS`, cấu hình R2 (`R2_*`), cấu hình thanh toán.
+
+> `wrangler.jsonc` ở gốc repo khai báo `nodejs_compat` và thư mục output `.open-next/` — không cần chỉnh gì thêm trừ khi đổi tên Worker.
+
+### 2. Build thử ở local trước khi push (khuyến nghị, chạy trên Linux/macOS/WSL — OpenNext build không ổn định trên Windows thường)
 
 ```bash
-git clone https://github.com/<user>/noi-tai-an.git /tmp/nta
-DOMAIN=ten-mien.vn EMAIL=ban@email.com REPO=git@github.com:<user>/noi-tai-an.git \
-  bash /tmp/nta/deploy/setup-vps.sh
+npm run cf:build       # build Next.js rồi đóng gói thành Cloudflare Worker (.open-next/)
+npm run cf:preview     # chạy thử bằng workerd ở local trước khi deploy
 ```
 
-Script sẽ cài Node 22, PM2, Nginx, tường lửa UFW và SSL Let's Encrypt, tạo user `deploy`. Database dùng **Supabase** (không cài Postgres trên VPS). Sau đó làm theo hướng dẫn script in ra:
+### 3. Migrate database trước khi deploy
+
+`DIRECT_URL` (không qua pooler) cần cho lệnh migrate:
 
 ```bash
-sudo -iu deploy
-git clone git@github.com:<user>/noi-tai-an.git /var/www/noi-tai-an
-cd /var/www/noi-tai-an
-cp .env.example .env && nano .env     # DATABASE_URL + DIRECT_URL (Supabase), AUTH_SECRET, AUTH_URL, Google, ADMIN_EMAILS
-bash deploy/deploy.sh
+npx prisma migrate deploy
 ```
-
-> User `deploy` cần một **deploy key** (SSH key chỉ đọc) trong GitHub repo → *Settings → Deploy keys* để `git clone`/`git fetch` được.
-
-### 2. Tự động deploy khi push lên `main`
-
-Trong GitHub repo → *Settings → Secrets and variables → Actions*, thêm:
-
-| Secret | Giá trị |
-|---|---|
-| `VPS_HOST` | IP của VPS |
-| `VPS_USER` | `deploy` |
-| `VPS_SSH_KEY` | private key được phép SSH vào user `deploy` |
-| `VPS_PORT` | (tuỳ chọn) cổng SSH, mặc định 22 |
-
-Sau đó vào tab *Variables* (cùng trang), tạo biến `DEPLOY_ENABLED` = `true`. Khi chưa đặt biến này, workflow chỉ typecheck và build, không deploy.
-
-Workflow `.github/workflows/deploy.yml` sẽ typecheck và build, rồi SSH vào VPS chạy `deploy/deploy.sh`: pull code → `npm ci` → `prisma migrate deploy` → build → `pm2 startOrReload` → kiểm tra `/api/health`.
 
 ### Vận hành
 
-```bash
-pm2 logs noi-tai-an          # xem log
-pm2 status
-curl https://ten-mien.vn/api/health
-```
-
-Sao lưu database: Supabase tự động backup hằng ngày (Dashboard → Database → Backups). Gói trả phí có Point-in-Time Recovery.
+- Mỗi lần push lên `main`, Cloudflare tự build & deploy (xem **Workers & Pages → noi-tai-an → Deployments**).
+- Log runtime: **Workers & Pages → noi-tai-an → Logs** (hoặc bật Observability).
+- Sao lưu database: Supabase tự động backup hằng ngày (Dashboard → Database → Backups).
 
 ---
 
