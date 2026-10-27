@@ -30,4 +30,12 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-initOpenNextCloudflareForDev();
+
+// Chỉ dùng cho `next dev` — gọi lúc `next build` (NEXT_PHASE=phase-production-build,
+// kể cả trên CI của Cloudflare) sẽ cố giả lập Hyperdrive và crash cả build nếu thiếu
+// local connection string.
+// NEXT_PHASE chưa được set tại thời điểm module này chạy (Next 16 + Turbopack),
+// nên dùng argv của CLI ("next build" vs "next dev") để phân biệt thay vì NEXT_PHASE.
+if (process.argv[2] !== "build") {
+  initOpenNextCloudflareForDev();
+}
