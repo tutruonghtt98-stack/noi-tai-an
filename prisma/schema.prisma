@@ -4,16 +4,8 @@
 
 generator client {
   provider = "prisma-client"
-  runtime  = "cloudflare"
-  output   = "../src/generated/prisma"
-}
-
-// Dùng riêng cho script Node.js chạy ngoài Workers (vd: prisma/seed.ts) —
-// client runtime="cloudflare" ở trên không load được .wasm bên ngoài workerd.
-generator seedClient {
-  provider = "prisma-client"
   runtime  = "nodejs"
-  output   = "../src/generated/prisma-node"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {

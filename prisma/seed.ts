@@ -4,7 +4,7 @@
  * nhiệm vụ hôm nay và các phiên tập trung. Chạy lại sẽ xoá và tạo mới dữ liệu demo.
  */
 import "dotenv/config";
-import { PrismaClient } from "../src/generated/prisma-node/client";
+import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const adapter = new PrismaPg({ connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL });

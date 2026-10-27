@@ -157,30 +157,33 @@ git push -u origin main
 
 ---
 
-## Deploy lên Cloudflare Workers
+## Deploy lên Vercel
 
-Dự án build bằng [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (chuyển output Next.js thành Cloudflare Worker) và kết nối Postgres (Supabase) qua `@prisma/adapter-pg` với cờ `nodejs_compat` — Workers không chạy được Prisma query engine mặc định.
+Next.js chạy native trên Vercel (free Hobby tier) — không cần adapter hay cấu hình runtime đặc biệt nào. Database vẫn dùng Supabase như local.
 
-### 1. Nối Git trong Cloudflare Dashboard
+> **Lưu ý:** trước đó dự án từng thử deploy lên Cloudflare Workers — gặp nhiều vấn đề (Prisma cần driver adapter + WASM query compiler, kết nối Postgres qua Hyperdrive, và quan trọng nhất: gói Workers miễn phí chỉ cho **10ms CPU/request**, không đủ cho một trang Next.js SSR thật). Vercel không có những giới hạn này nên được chọn thay thế.
 
-**Workers & Pages → Create → Import a repository**, chọn repo này, nhánh `main`. Trong **Settings → Build**:
+### 1. Import project trên Vercel
 
-- **Build command:** `npm run cf:build`
-- **Deploy command:** `npx wrangler deploy`
-- **Variables and secrets** (mục *Runtime* ngoài phần Build): thêm toàn bộ biến trong `.env.example` — tối thiểu `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AUTH_URL` (= domain `*.workers.dev` hoặc domain riêng), `AUTH_TRUST_HOST=true`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ADMIN_EMAILS`, cấu hình R2 (`R2_*`), cấu hình thanh toán.
+[vercel.com/new](https://vercel.com/new) → chọn repo GitHub này → Vercel tự nhận diện Next.js, không cần chỉnh build command.
 
-> `wrangler.jsonc` ở gốc repo khai báo `nodejs_compat` và thư mục output `.open-next/` — không cần chỉnh gì thêm trừ khi đổi tên Worker.
+**Environment Variables** (Project Settings → Environment Variables), lấy giá trị từ `.env.example`:
 
-### 2. Build thử ở local trước khi push (khuyến nghị, chạy trên Linux/macOS/WSL — OpenNext build không ổn định trên Windows thường)
+- `DATABASE_URL`, `DIRECT_URL` — connection string Supabase (pooler cho `DATABASE_URL`, direct cho `DIRECT_URL`, dùng cho migrate).
+- `AUTH_SECRET` — `openssl rand -base64 32`.
+- `AUTH_URL` — domain Vercel cấp (vd `https://ten-app.vercel.app`) hoặc domain riêng.
+- `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ADMIN_EMAILS`.
+- Cấu hình R2 (`R2_*`) và thanh toán nếu dùng.
 
-```bash
-npm run cf:build       # build Next.js rồi đóng gói thành Cloudflare Worker (.open-next/)
-npm run cf:preview     # chạy thử bằng workerd ở local trước khi deploy
+### 2. Google OAuth — thêm redirect URI mới
+
+Google Cloud Console → OAuth client → **Authorized redirect URIs**, thêm:
+
+```
+https://ten-app.vercel.app/api/auth/callback/google
 ```
 
-### 3. Migrate database trước khi deploy
-
-`DIRECT_URL` (không qua pooler) cần cho lệnh migrate:
+### 3. Migrate database trước lần deploy đầu
 
 ```bash
 npx prisma migrate deploy
@@ -188,8 +191,8 @@ npx prisma migrate deploy
 
 ### Vận hành
 
-- Mỗi lần push lên `main`, Cloudflare tự build & deploy (xem **Workers & Pages → noi-tai-an → Deployments**).
-- Log runtime: **Workers & Pages → noi-tai-an → Logs** (hoặc bật Observability).
+- Mỗi lần push lên `main`, Vercel tự build & deploy (Project → Deployments).
+- Log runtime: Project → Logs (hoặc `vercel logs`).
 - Sao lưu database: Supabase tự động backup hằng ngày (Dashboard → Database → Backups).
 
 ---
