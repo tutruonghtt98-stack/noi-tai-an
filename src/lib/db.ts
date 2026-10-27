@@ -23,7 +23,15 @@ function resolveConnectionString(): string | undefined {
 }
 
 function createClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: resolveConnectionString() });
+  const adapter = new PrismaPg({
+    connectionString: resolveConnectionString(),
+    // pg.Pool mặc định KHÔNG có timeout khi mở kết nối mới — nếu Hyperdrive/mạng
+    // treo thay vì báo lỗi, request sẽ chờ vô hạn và bị Workers runtime hủy
+    // ("hung and would never generate a response"). Đặt timeout rõ ràng + giới
+    // hạn pool nhỏ (dashboard bắn nhiều query song song qua Promise.all).
+    connectionTimeoutMillis: 8_000,
+    max: 5,
+  });
   return new PrismaClient({ adapter, log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"] });
 }
 
