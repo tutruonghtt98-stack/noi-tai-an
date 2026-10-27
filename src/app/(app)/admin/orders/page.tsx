@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { OrderStatus, Prisma } from "@prisma/client";
+import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { vnd } from "@/lib/billing";

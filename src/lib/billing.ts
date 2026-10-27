@@ -1,4 +1,4 @@
-import type { BillingCycle, Plan } from "@prisma/client";
+import type { BillingCycle, Plan } from "@/generated/prisma/client";
 
 /** Bảng giá (VND). Đổi giá tại đây — mọi trang và cổng thanh toán đọc từ đây. */
 export const PRICES = {

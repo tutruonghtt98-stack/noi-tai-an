@@ -1,5 +1,5 @@
 import "server-only";
-import type { PostCategory, Prisma } from "@prisma/client";
+import type { PostCategory, Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 
 export const PAGE_SIZE = 10;

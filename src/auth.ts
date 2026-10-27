@@ -42,7 +42,9 @@ if (devLoginEnabled) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(db),
+  // @auth/prisma-adapter còn khai kiểu cứng theo gói "@prisma/client" cũ; generator
+  // mới (output tuỳ chỉnh) không khớp generic dù API runtime giống hệt.
+  adapter: PrismaAdapter(db as Parameters<typeof PrismaAdapter>[0]),
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
   pages: { signIn: "/login" },
   providers,

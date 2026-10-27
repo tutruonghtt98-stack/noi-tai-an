@@ -13,4 +13,5 @@ next-env.d.ts
 coverage
 .uploads
 .pglite
+src/generated
 .playwright-mcp

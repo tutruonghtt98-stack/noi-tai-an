@@ -3,9 +3,12 @@
  * Tạo tài khoản demo (demo@noitaian.local) với mục tiêu, thói quen 45 ngày lịch sử,
  * nhiệm vụ hôm nay và các phiên tập trung. Chạy lại sẽ xoá và tạo mới dữ liệu demo.
  */
-import { PrismaClient } from "@prisma/client";
+import "dotenv/config";
+import { PrismaClient } from "../src/generated/prisma-node/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const db = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL });
+const db = new PrismaClient({ adapter });
 const TZ = "Asia/Ho_Chi_Minh";
 const iso = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d);
 const dbDate = (s: string) => new Date(`${s}T00:00:00.000Z`);

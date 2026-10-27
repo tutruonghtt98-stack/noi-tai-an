@@ -1,7 +1,4 @@
-// Import tường minh từ entry point WASM — không dựa vào bundler tự chọn
-// đúng export condition "workerd", vì @prisma/client gốc không phân biệt
-// điều kiện này ở exports map ngoài cùng (luôn trỏ về default.js).
-import { PrismaClient } from "@prisma/client/wasm";
+import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };

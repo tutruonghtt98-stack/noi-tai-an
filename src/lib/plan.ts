@@ -1,4 +1,4 @@
-import type { Plan, User } from "@prisma/client";
+import type { Plan, User } from "@/generated/prisma/client";
 
 export const PLAN_LIMITS = {
   FREE: { activeGoals: 3, habits: 5, analyticsDays: 7, createChallenges: false, joinPublicGroups: false },

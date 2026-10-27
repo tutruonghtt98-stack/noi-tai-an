@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { deleteObject, ownsKey, publicUrlFor, verifyUploaded } from "@/lib/storage";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";

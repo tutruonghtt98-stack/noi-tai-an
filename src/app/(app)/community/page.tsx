@@ -10,7 +10,7 @@ import { challengeWindow } from "@/lib/challenges";
 import { todayISO } from "@/lib/dates";
 import { Composer } from "@/components/community/composer";
 import { FeedList } from "@/components/community/feed-list";
-import type { PostCategory } from "@prisma/client";
+import type { PostCategory } from "@/generated/prisma/client";
 
 export const metadata: Metadata = { title: "Cộng đồng" };
 

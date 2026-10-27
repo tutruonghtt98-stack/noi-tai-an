@@ -3,14 +3,21 @@
 // Giai đoạn 2–3 (Reflection, Payment, Community) sẽ mở rộng thêm model.
 
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "client"
+  provider = "prisma-client"
+  runtime  = "cloudflare"
+  output   = "../src/generated/prisma"
+}
+
+// Dùng riêng cho script Node.js chạy ngoài Workers (vd: prisma/seed.ts) —
+// client runtime="cloudflare" ở trên không load được .wasm bên ngoài workerd.
+generator seedClient {
+  provider = "prisma-client"
+  runtime  = "nodejs"
+  output   = "../src/generated/prisma-node"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 enum Role {
