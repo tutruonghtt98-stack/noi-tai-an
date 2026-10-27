@@ -26,6 +26,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   if (await getOptionalUser()) redirect("/dashboard");
   const { banned } = await searchParams;
   const { t, locale } = await getI18n();
+  const googleOk = googleEnabled();
+  const devOk = devLoginEnabled();
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
@@ -88,19 +90,19 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </p>
           )}
           <div className="mt-10 space-y-3">
-            {googleEnabled && (
+            {googleOk && (
               <form action={signInGoogle}>
                 <button className="btn w-full border border-line bg-surface text-ink shadow-card hover:bg-surface-2">
                   <GoogleIcon /> {t.auth.google}
                 </button>
               </form>
             )}
-            {devLoginEnabled && (
+            {devOk && (
               <form action={signInDev}>
                 <button className="btn btn-primary w-full">{t.auth.dev}</button>
               </form>
             )}
-            {!googleEnabled && !devLoginEnabled && (
+            {!googleOk && !devOk && (
               <p role="alert" className="rounded-2xl bg-rose-soft p-4 text-sm text-rose-ink">
                 {t.auth.noProvider}
               </p>
