@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Trophy, Users } from "lucide-react";
 import { requireUser } from "@/lib/session";
 import { getI18n } from "@/lib/i18n";
-import { fmt } from "@/lib/i18n/format";
-import { db } from "@/lib/db";
 import { CATEGORIES, getFeed } from "@/lib/community";
-import { challengeWindow } from "@/lib/challenges";
-import { todayISO } from "@/lib/dates";
 import { Composer } from "@/components/community/composer";
 import { FeedList } from "@/components/community/feed-list";
+import { CommunitySidebar } from "@/components/community/sidebar";
 import type { PostCategory } from "@/generated/prisma/client";
 
 export const metadata: Metadata = { title: "Cộng đồng" };
@@ -27,19 +23,7 @@ export default async function CommunityFeed({ searchParams }: { searchParams: Pr
     const s = p.toString();
     return s ? `/community?${s}` : "/community";
   };
-  const today = todayISO(user.timezone);
-
-  const [feed, myChallenges, myGroups] = await Promise.all([
-    getFeed(user.id, { category, followingOf: following ? user.id : null }),
-    db.challengeMember.findMany({
-      where: { userId: user.id, challenge: { archivedAt: null } },
-      include: { challenge: true },
-      orderBy: { joinedAt: "desc" },
-      take: 8,
-    }),
-    db.groupMember.findMany({ where: { userId: user.id }, include: { group: { include: { _count: { select: { members: true } } } } }, take: 5 }),
-  ]);
-  const active = myChallenges.filter((m) => challengeWindow(m.challenge, today).state === "active");
+  const feed = await getFeed(user.id, { category, followingOf: following ? user.id : null });
 
   return (
     <div className="grid grid-cols-1 gap-[var(--gap)] lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -75,55 +59,7 @@ export default async function CommunityFeed({ searchParams }: { searchParams: Pr
         />
       </div>
 
-      <aside className="grid content-start gap-[var(--gap)]">
-        <section className="card" aria-labelledby="my-ch">
-          <h2 id="my-ch" className="card-title mb-4 flex items-center gap-2">
-            <Trophy className="size-5 text-ochre-ink" aria-hidden /> {t.community.challenge.mine}
-          </h2>
-          {active.length === 0 ? (
-            <Link href="/community/challenges" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
-              {t.community.challenge.explore} →
-            </Link>
-          ) : (
-            <ul className="space-y-2">
-              {active.map((m) => {
-                const w = challengeWindow(m.challenge, today);
-                return (
-                  <li key={m.challengeId}>
-                    <Link href={`/community/challenges/${m.challengeId}`} className="block rounded-2xl bg-surface-2 p-3 hover:bg-surface-3">
-                      <span className="block truncate font-medium">{m.challenge.title}</span>
-                      <span className="text-xs text-muted">{fmt(t.community.challenge.dayOf, { d: w.dayIndex, t: m.challenge.durationDays })}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-        <section className="card" aria-labelledby="my-gr">
-          <h2 id="my-gr" className="card-title mb-4 flex items-center gap-2">
-            <Users className="size-5 text-jade-ink" aria-hidden /> {t.community.group.mine}
-          </h2>
-          {myGroups.length === 0 ? (
-            <Link href="/community/groups" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
-              {t.community.group.new} →
-            </Link>
-          ) : (
-            <ul className="space-y-2">
-              {myGroups.map((m) => (
-                <li key={m.groupId}>
-                  <Link href={`/community/groups/${m.groupId}`} className="flex items-center justify-between gap-2 rounded-2xl bg-surface-2 p-3 hover:bg-surface-3">
-                    <span className="truncate font-medium">{m.group.name}</span>
-                    <span className="tabular shrink-0 text-xs text-muted">
-                      {m.group._count.members}/{m.group.maxMembers}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </aside>
+      <CommunitySidebar />
     </div>
   );
 }

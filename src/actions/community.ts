@@ -9,6 +9,8 @@ import { rateLimit } from "@/lib/rate-limit";
 import { ALLOWED_TYPES, deleteObject, MAX_UPLOAD_BYTES, newKey, ownsKey, presignPut, publicUrlFor, storageMode, verifyUploaded } from "@/lib/storage";
 import { canViewGroup, getFeed, CATEGORIES } from "@/lib/community";
 import { syncBadges } from "@/lib/badges";
+import { challengeWindow } from "@/lib/challenges";
+import { todayISO } from "@/lib/dates";
 
 /** Xin quyền tải ảnh: trả về URL ký sẵn (R2) hoặc endpoint local khi phát triển. */
 export async function requestUpload(input: { contentType: string; size: number; purpose?: "posts" | "avatars" }) {
@@ -153,5 +155,33 @@ export async function loadFeed(input: { cursor: string; category?: string | null
     if (input.groupId && !(await canViewGroup(user.id, input.groupId))) throw new UserError("FORBIDDEN");
     const category = input.category && (CATEGORIES as string[]).includes(input.category) ? (input.category as "OTHER") : null;
     return getFeed(user.id, { cursor: input.cursor, category, groupId: input.groupId ?? null, challengeId: input.challengeId ?? null, authorId: input.authorId ?? null, followingOf: input.following ? user.id : null });
+  });
+}
+
+/**
+ * Thử thách + nhóm đang tham gia (cột bên của /community) — tách khỏi SSR trang chính
+ * và để client tự gọi sau khi feed đã hiện, tránh dồn quá nhiều query vào 1 request.
+ */
+export async function getCommunitySidebar() {
+  return run(async () => {
+    const user = await requireUser();
+    const today = todayISO(user.timezone);
+    const [myChallenges, myGroups] = await Promise.all([
+      db.challengeMember.findMany({
+        where: { userId: user.id, challenge: { archivedAt: null } },
+        include: { challenge: true },
+        orderBy: { joinedAt: "desc" },
+        take: 8,
+      }),
+      db.groupMember.findMany({ where: { userId: user.id }, include: { group: { include: { _count: { select: { members: true } } } } }, take: 5 }),
+    ]);
+    const active = myChallenges.filter((m) => challengeWindow(m.challenge, today).state === "active");
+    return {
+      challenges: active.map((m) => {
+        const w = challengeWindow(m.challenge, today);
+        return { id: m.challengeId, title: m.challenge.title, dayIndex: w.dayIndex, durationDays: m.challenge.durationDays };
+      }),
+      groups: myGroups.map((m) => ({ id: m.groupId, name: m.group.name, memberCount: m.group._count.members, maxMembers: m.group.maxMembers })),
+    };
   });
 }
