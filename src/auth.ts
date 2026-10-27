@@ -45,6 +45,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // @auth/prisma-adapter còn khai kiểu cứng theo gói "@prisma/client" cũ; generator
   // mới (output tuỳ chỉnh) không khớp generic dù API runtime giống hệt.
   adapter: PrismaAdapter(db as Parameters<typeof PrismaAdapter>[0]),
+  // AUTH_TRUST_HOST đọc qua process.env lúc module nạp, nhưng biến môi trường
+  // trên Cloudflare Workers chỉ có trong request context — set thẳng ở đây để
+  // không phụ thuộc thời điểm Workers bơm biến vào process.env.
+  trustHost: true,
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
   pages: { signIn: "/login" },
   providers,
