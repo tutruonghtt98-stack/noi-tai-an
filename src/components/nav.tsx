@@ -12,8 +12,6 @@ import {
   Users,
   Settings,
   Ellipsis,
-  Package,
-  ShoppingBag,
   Kanban,
   type LucideIcon,
 } from "lucide-react";
@@ -59,11 +57,8 @@ type WorkItem = { href: string; key: keyof Dict["work"]["nav"]; icon: LucideIcon
 
 export const WORK_NAV: WorkItem[] = [
   { href: "/work", key: "dashboard", icon: LayoutGrid },
-  { href: "/work/orders", key: "orders", icon: Package },
-  { href: "/work/products", key: "products", icon: ShoppingBag },
   { href: "/work/customers", key: "customers", icon: Users },
   { href: "/work/workspace", key: "workspace", icon: Kanban },
-  { href: "/work/analytics", key: "analytics", icon: ChartColumn },
 ];
 
 /** Thanh điều hướng dạng "pill" ở giữa header: hiệu ứng "giọt keo" lỏng chảy sang mục đang chọn (tablet/desktop). */

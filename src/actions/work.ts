@@ -4,7 +4,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
-import { DEFAULT_LISTS, ORDER_STATUSES, PRODUCT_STATUSES } from "@/lib/work-queries";
+import { DEFAULT_LISTS } from "@/lib/work-queries";
+import type { Prisma } from "@/generated/prisma/client";
 
 const customerSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -96,7 +97,12 @@ const cardSchema = z.object({
     .optional()
     .transform((v) => v || null),
   title: z.string().trim().min(1).max(160),
-  checklistTotal: z.number().int().min(0).max(99).default(0),
+  assignee: z
+    .string()
+    .trim()
+    .max(60)
+    .optional()
+    .transform((v) => v || null),
   dueDate: z
     .string()
     .trim()
@@ -112,7 +118,38 @@ export async function createWorkCard(input: CardInput) {
     const list = await db.workList.findUnique({ where: { id: data.listId }, select: { board: { select: { userId: true } } } });
     if (!list || list.board.userId !== user.id) throw new UserError("VALIDATION");
     const count = await db.workCard.count({ where: { listId: data.listId } });
-    await db.workCard.create({ data: { ...data, sortOrder: count } });
+    await db.workCard.create({ data: { ...data, sortOrder: count, checklist: [] } });
+    revalidatePath("/work/workspace");
+  });
+}
+
+const cardUpdateSchema = cardSchema;
+export type CardUpdateInput = z.input<typeof cardUpdateSchema>;
+
+export async function updateWorkCard(id: string, input: CardUpdateInput) {
+  return run(async () => {
+    const user = await requireUser();
+    const data = cardUpdateSchema.parse(input);
+    const card = await db.workCard.findUnique({ where: { id }, select: { listId: true, list: { select: { board: { select: { userId: true } } } } } });
+    if (!card || card.list.board.userId !== user.id) throw new UserError("VALIDATION");
+    const targetList = await db.workList.findUnique({ where: { id: data.listId }, select: { board: { select: { userId: true } } } });
+    if (!targetList || targetList.board.userId !== user.id) throw new UserError("VALIDATION");
+    const changingList = data.listId !== card.listId;
+    const sortOrder = changingList ? await db.workCard.count({ where: { listId: data.listId } }) : undefined;
+    await db.workCard.update({ where: { id }, data: { ...data, ...(sortOrder != null ? { sortOrder } : {}) } });
+    revalidatePath("/work/workspace");
+  });
+}
+
+const checklistItemSchema = z.object({ id: z.string().min(1), text: z.string().trim().min(1).max(200), done: z.boolean() });
+
+export async function updateWorkCardChecklist(id: string, checklist: { id: string; text: string; done: boolean }[]) {
+  return run(async () => {
+    const user = await requireUser();
+    const card = await db.workCard.findUnique({ where: { id }, select: { list: { select: { board: { select: { userId: true } } } } } });
+    if (!card || card.list.board.userId !== user.id) throw new UserError("VALIDATION");
+    const parsed = z.array(checklistItemSchema).max(50).parse(checklist);
+    await db.workCard.update({ where: { id }, data: { checklist: parsed as Prisma.InputJsonValue } });
     revalidatePath("/work/workspace");
   });
 }
@@ -137,98 +174,5 @@ export async function deleteWorkCard(id: string) {
     if (!card || card.list.board.userId !== user.id) throw new UserError("VALIDATION");
     await db.workCard.delete({ where: { id } });
     revalidatePath("/work/workspace");
-  });
-}
-
-// ---------- Orders ----------
-
-const orderSchema = z.object({
-  customerName: z.string().trim().min(1).max(120),
-  customerCity: z
-    .string()
-    .trim()
-    .max(80)
-    .optional()
-    .transform((v) => v || null),
-  channel: z.enum(["ONLINE", "IN_STORE"]),
-  items: z.number().int().min(1).max(999).default(1),
-  totalCents: z.number().int().min(0).default(0),
-  payment: z.string().trim().min(1).max(40),
-  status: z.enum(ORDER_STATUSES as [string, ...string[]]),
-});
-export type OrderInput = z.input<typeof orderSchema>;
-
-export async function createWorkOrder(input: OrderInput) {
-  return run(async () => {
-    const user = await requireUser();
-    const data = orderSchema.parse(input);
-    const count = await db.workOrder.count({ where: { userId: user.id } });
-    await db.workOrder.create({ data: { ...data, userId: user.id, orderNo: 10000 + count } });
-    revalidatePath("/work/orders");
-  });
-}
-
-export async function updateWorkOrderStatus(id: string, status: string) {
-  return run(async () => {
-    const user = await requireUser();
-    const order = await db.workOrder.findUnique({ where: { id }, select: { userId: true } });
-    if (!order || order.userId !== user.id) throw new UserError("VALIDATION");
-    if (!ORDER_STATUSES.includes(status as (typeof ORDER_STATUSES)[number])) throw new UserError("VALIDATION");
-    await db.workOrder.update({ where: { id }, data: { status } });
-    revalidatePath("/work/orders");
-  });
-}
-
-export async function deleteWorkOrder(id: string) {
-  return run(async () => {
-    const user = await requireUser();
-    const order = await db.workOrder.findUnique({ where: { id }, select: { userId: true } });
-    if (!order || order.userId !== user.id) throw new UserError("VALIDATION");
-    await db.workOrder.delete({ where: { id } });
-    revalidatePath("/work/orders");
-  });
-}
-
-// ---------- Products ----------
-
-const productSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  sku: z.string().trim().min(1).max(40),
-  category: z.string().trim().min(1).max(40),
-  priceCents: z.number().int().min(0).default(0),
-  costCents: z.number().int().min(0).default(0),
-  stock: z.number().int().min(0).max(999_999).default(0),
-  reorderAt: z.number().int().min(0).max(999_999).default(0),
-  status: z.enum(PRODUCT_STATUSES as [string, ...string[]]).default("ACTIVE"),
-});
-export type ProductInput = z.input<typeof productSchema>;
-
-export async function createWorkProduct(input: ProductInput) {
-  return run(async () => {
-    const user = await requireUser();
-    const data = productSchema.parse(input);
-    await db.workProduct.create({ data: { ...data, userId: user.id } });
-    revalidatePath("/work/products");
-  });
-}
-
-export async function updateWorkProductStatus(id: string, status: string) {
-  return run(async () => {
-    const user = await requireUser();
-    const product = await db.workProduct.findUnique({ where: { id }, select: { userId: true } });
-    if (!product || product.userId !== user.id) throw new UserError("VALIDATION");
-    if (!PRODUCT_STATUSES.includes(status as (typeof PRODUCT_STATUSES)[number])) throw new UserError("VALIDATION");
-    await db.workProduct.update({ where: { id }, data: { status } });
-    revalidatePath("/work/products");
-  });
-}
-
-export async function deleteWorkProduct(id: string) {
-  return run(async () => {
-    const user = await requireUser();
-    const product = await db.workProduct.findUnique({ where: { id }, select: { userId: true } });
-    if (!product || product.userId !== user.id) throw new UserError("VALIDATION");
-    await db.workProduct.delete({ where: { id } });
-    revalidatePath("/work/products");
   });
 }

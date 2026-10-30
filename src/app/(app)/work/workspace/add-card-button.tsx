@@ -13,13 +13,13 @@ export function AddCardButton({ listId }: { listId: string }) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [title, setTitle] = useState("");
-  const [checklist, setChecklist] = useState("");
+  const [assignee, setAssignee] = useState("");
   const [dueDate, setDueDate] = useState("");
 
   const reset = () => {
     setLabel("");
     setTitle("");
-    setChecklist("");
+    setAssignee("");
     setDueDate("");
   };
 
@@ -39,7 +39,7 @@ export function AddCardButton({ listId }: { listId: string }) {
                   listId,
                   label: label || undefined,
                   title,
-                  checklistTotal: checklist ? Number(checklist) : 0,
+                  assignee: assignee || undefined,
                   dueDate: dueDate || undefined,
                 }),
               {
@@ -62,8 +62,8 @@ export function AddCardButton({ listId }: { listId: string }) {
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="field">
-              <span className="label">{w.cardChecklist}</span>
-              <input className="input" type="number" min={0} max={99} value={checklist} onChange={(e) => setChecklist(e.target.value)} />
+              <span className="label">{w.cardAssignee}</span>
+              <input className="input" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder={w.cardAssigneePh} maxLength={60} />
             </label>
             <label className="field">
               <span className="label">{w.cardDue}</span>

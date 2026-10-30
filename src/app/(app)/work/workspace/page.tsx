@@ -7,12 +7,10 @@ import { getWorkBoards } from "@/lib/work-queries";
 import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
 import { BoardSwitcher, NewBoardButton, DeleteBoardButton } from "./board-switcher";
-import { AddCardButton } from "./add-card-button";
-import { CardControls } from "./card-controls";
+import { KanbanBoard, type SerializedList } from "./kanban-board";
+import type { ChecklistItem } from "@/lib/work-types";
 
 export const metadata: Metadata = { title: "Workspace" };
-
-const DOT: Record<string, string> = { muted: "bg-muted", mist: "bg-mist", ochre: "bg-ochre", jade: "bg-jade" };
 
 export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ b?: string }> }) {
   const user = await requireUser();
@@ -78,54 +76,23 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
             })()}
           </section>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {active.lists.map((list) => (
-              <div key={list.id} className="flex min-w-0 flex-col gap-3 rounded-[1.5rem] bg-surface-2 p-3">
-                <div className="flex items-center justify-between gap-2 px-1">
-                  <span className="inline-flex items-center gap-2 font-medium">
-                    <span className={`size-2 shrink-0 rounded-full ${DOT[list.color] ?? "bg-muted"}`} aria-hidden />
-                    {w[list.name as keyof typeof w] ?? list.name}
-                    <span className="tabular text-sm text-muted">{list.cards.length}</span>
-                  </span>
-                  <AddCardButton listId={list.id} />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  {list.cards.length === 0 ? (
-                    <p className="px-2 py-3 text-sm text-muted">{w.emptyList}</p>
-                  ) : (
-                    list.cards.map((card) => {
-                      const pct = card.checklistTotal ? Math.round((card.checklistDone / card.checklistTotal) * 100) : 0;
-                      return (
-                        <div key={card.id} className="group rounded-2xl bg-surface p-3 shadow-card">
-                          {card.label && <span className="badge mb-2">{card.label}</span>}
-                          <p className="font-medium leading-snug">{card.title}</p>
-                          {card.checklistTotal > 0 && (
-                            <div className="mt-2">
-                              <p className="tabular text-xs text-muted">
-                                {card.checklistDone}/{card.checklistTotal}
-                              </p>
-                              <div className="progress mt-1">
-                                <span style={{ width: `${pct}%` }} />
-                              </div>
-                            </div>
-                          )}
-                          <div className="mt-2.5 flex items-center justify-between gap-2">
-                            <span className="text-xs text-muted">{dueLabel(card.dueDate) ?? w.noDue}</span>
-                            <CardControls
-                              cardId={card.id}
-                              currentListId={list.id}
-                              lists={active.lists.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name }))}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <KanbanBoard
+            lists={active.lists.map(
+              (list): SerializedList => ({
+                id: list.id,
+                name: list.name,
+                color: list.color,
+                cards: list.cards.map((card) => ({
+                  id: card.id,
+                  label: card.label,
+                  title: card.title,
+                  assignee: card.assignee,
+                  dueDate: card.dueDate ? card.dueDate.toISOString() : null,
+                  checklist: Array.isArray(card.checklist) ? (card.checklist as unknown as ChecklistItem[]) : [],
+                })),
+              }),
+            )}
+          />
         </>
       )}
     </>
