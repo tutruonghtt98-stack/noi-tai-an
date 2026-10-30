@@ -104,16 +104,15 @@ export function CardModal({
             <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={w.cardLabelPh} maxLength={30} />
           </label>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="field">
-            <span className="label">{w.cardAssignee}</span>
-            <input className="input" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder={w.cardAssigneePh} maxLength={60} />
-          </label>
-          <label className="field">
-            <span className="label">{w.cardDue}</span>
-            <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-          </label>
-        </div>
+        <label className="field">
+          <span className="label">{w.cardAssignee}</span>
+          <input className="input" type="email" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder={w.cardAssigneePh} maxLength={160} />
+          <span className="mt-1 block text-xs text-muted">{w.cardAssigneeHint}</span>
+        </label>
+        <label className="field">
+          <span className="label">{w.cardDue}</span>
+          <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+        </label>
 
         <div>
           <p className="label mb-2">{w.checklistTitle}</p>

@@ -347,3 +347,18 @@ export async function getRandomPublicJournals(excludeUserId: string, take = 6): 
     LIMIT ${take}
   `;
 }
+
+// ---------- Thông báo ----------
+
+export async function getHeaderNotifications(userId: string, take = 20) {
+  const [items, unreadCount] = await Promise.all([
+    db.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take,
+      include: { actor: { select: { name: true, image: true } } },
+    }),
+    db.notification.count({ where: { userId, read: false } }),
+  ]);
+  return { items, unreadCount };
+}

@@ -94,20 +94,23 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  goals         Goal[]
-  projects      Project[]
-  tasks         Task[]
-  habits        Habit[]
-  habitLogs     HabitLog[]
-  focusSessions FocusSession[]
-  dailyPlans    DailyPlan[]
-  journals      JournalEntry[]
-  weeklyReviews WeeklyReview[]
-  orders        Order[]
-  workCustomers WorkCustomer[]
-  workBoards    WorkBoard[]
+  accounts          Account[]
+  sessions          Session[]
+  goals             Goal[]
+  projects          Project[]
+  tasks             Task[]
+  habits            Habit[]
+  habitLogs         HabitLog[]
+  focusSessions     FocusSession[]
+  dailyPlans        DailyPlan[]
+  journals          JournalEntry[]
+  weeklyReviews     WeeklyReview[]
+  orders            Order[]
+  workCustomers     WorkCustomer[]
+  workBoards        WorkBoard[]
+  assignedWorkCards WorkCard[]     @relation("WorkCardAssignee")
+  notifications     Notification[] @relation("NotificationUser")
+  sentNotifications Notification[] @relation("NotificationActor")
 
   posts                    Post[]
   cheers                   Cheer[]
@@ -402,19 +405,39 @@ model WorkList {
 }
 
 model WorkCard {
-  id        String    @id @default(cuid())
-  listId    String
-  label     String?
-  title     String
-  assignee  String?
-  checklist Json      @default("[]")
-  dueDate   DateTime?
-  sortOrder Int       @default(0)
-  createdAt DateTime  @default(now())
+  id             String    @id @default(cuid())
+  listId         String
+  label          String?
+  title          String
+  assignee       String? // email đã nhập (hiển thị dù chưa khớp tài khoản nào)
+  assigneeUserId String? // khớp với User.email nếu có tài khoản tương ứng
+  checklist      Json      @default("[]")
+  dueDate        DateTime?
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
 
-  list WorkList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  list         WorkList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assigneeUser User?    @relation("WorkCardAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
 
   @@index([listId])
+  @@index([assigneeUserId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String // người nhận
+  actorId   String? // người gây ra thông báo (có thể null nếu hệ thống)
+  type      String // "WORK_CARD_ASSIGNED" | ...
+  title     String
+  body      String?
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user  User  @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, read])
 }
 
 model WeeklyReview {

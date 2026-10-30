@@ -100,8 +100,11 @@ const cardSchema = z.object({
   assignee: z
     .string()
     .trim()
-    .max(60)
+    .toLowerCase()
+    .email()
+    .max(160)
     .optional()
+    .or(z.literal(""))
     .transform((v) => v || null),
   dueDate: z
     .string()
@@ -111,6 +114,29 @@ const cardSchema = z.object({
 });
 export type CardInput = z.input<typeof cardSchema>;
 
+async function notifyAssignee(assigneeEmail: string | null, actor: { id: string; name: string | null; email: string | null }, cardTitle: string) {
+  if (!assigneeEmail) return;
+  const target = await db.user.findUnique({ where: { email: assigneeEmail }, select: { id: true } });
+  if (!target || target.id === actor.id) return target?.id ?? null;
+  await db.notification.create({
+    data: {
+      userId: target.id,
+      actorId: actor.id,
+      type: "WORK_CARD_ASSIGNED",
+      title: `${actor.name ?? actor.email ?? "Ai đó"} đã gắn bạn vào một việc`,
+      body: cardTitle,
+      href: "/work/workspace",
+    },
+  });
+  return target.id;
+}
+
+async function resolveAssigneeId(email: string | null) {
+  if (!email) return null;
+  const target = await db.user.findUnique({ where: { email }, select: { id: true } });
+  return target?.id ?? null;
+}
+
 export async function createWorkCard(input: CardInput) {
   return run(async () => {
     const user = await requireUser();
@@ -118,7 +144,9 @@ export async function createWorkCard(input: CardInput) {
     const list = await db.workList.findUnique({ where: { id: data.listId }, select: { board: { select: { userId: true } } } });
     if (!list || list.board.userId !== user.id) throw new UserError("VALIDATION");
     const count = await db.workCard.count({ where: { listId: data.listId } });
-    await db.workCard.create({ data: { ...data, sortOrder: count, checklist: [] } });
+    const assigneeUserId = await resolveAssigneeId(data.assignee);
+    await db.workCard.create({ data: { ...data, assigneeUserId, sortOrder: count, checklist: [] } });
+    await notifyAssignee(data.assignee, user, data.title);
     revalidatePath("/work/workspace");
   });
 }
@@ -130,13 +158,16 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
   return run(async () => {
     const user = await requireUser();
     const data = cardUpdateSchema.parse(input);
-    const card = await db.workCard.findUnique({ where: { id }, select: { listId: true, list: { select: { board: { select: { userId: true } } } } } });
+    const card = await db.workCard.findUnique({ where: { id }, select: { listId: true, assignee: true, list: { select: { board: { select: { userId: true } } } } } });
     if (!card || card.list.board.userId !== user.id) throw new UserError("VALIDATION");
     const targetList = await db.workList.findUnique({ where: { id: data.listId }, select: { board: { select: { userId: true } } } });
     if (!targetList || targetList.board.userId !== user.id) throw new UserError("VALIDATION");
     const changingList = data.listId !== card.listId;
     const sortOrder = changingList ? await db.workCard.count({ where: { listId: data.listId } }) : undefined;
-    await db.workCard.update({ where: { id }, data: { ...data, ...(sortOrder != null ? { sortOrder } : {}) } });
+    const assigneeChanged = data.assignee !== card.assignee;
+    const assigneeUserId = await resolveAssigneeId(data.assignee);
+    await db.workCard.update({ where: { id }, data: { ...data, assigneeUserId, ...(sortOrder != null ? { sortOrder } : {}) } });
+    if (assigneeChanged) await notifyAssignee(data.assignee, user, data.title);
     revalidatePath("/work/workspace");
   });
 }

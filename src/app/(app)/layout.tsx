@@ -1,22 +1,22 @@
 import Link from "next/link";
-import { Bell } from "lucide-react";
 import { requireUser } from "@/lib/session";
 import { effectivePlan } from "@/lib/plan";
 import { getI18n } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/format";
-import { getHeaderGroupmates } from "@/lib/queries";
+import { getHeaderGroupmates, getHeaderNotifications } from "@/lib/queries";
 import { Logo } from "@/components/logo";
 import { DesktopNav, MobileNav } from "@/components/nav";
 import { ThemeToggle, UserMenu } from "@/components/user-menu";
 import { AlertsCenter } from "@/components/alerts-center";
 import { SideDock } from "@/components/side-dock";
 import { HeaderGroupmates } from "@/components/header-groupmates";
+import { NotificationBell } from "@/components/notification-bell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [user, { t }] = await Promise.all([requireUser(), getI18n()]);
   const name = user.name ?? user.email ?? "Bạn";
   const plan = effectivePlan(user);
-  const groupmates = await getHeaderGroupmates(user.id);
+  const [groupmates, { items: notifications, unreadCount }] = await Promise.all([getHeaderGroupmates(user.id), getHeaderNotifications(user.id)]);
 
   const planLabel = plan === "FREE" ? t.settings.planFree : plan === "PRO" ? t.settings.planPro : t.settings.planTeam;
   const daysLeft = user.planExpiresAt ? Math.max(0, Math.ceil((user.planExpiresAt.getTime() - Date.now()) / 86400000)) : null;
@@ -33,9 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="flex items-center gap-3">
           <HeaderGroupmates people={groupmates} />
           <div className="flex items-center gap-2 rounded-full md:bg-surface md:p-1.5 md:shadow-card">
-            <Link href="/settings#alerts" className="icon-btn" aria-label={t.common.notifications} title={t.common.notifications}>
-              <Bell className="size-5" aria-hidden />
-            </Link>
+            <NotificationBell notifications={notifications} unreadCount={unreadCount} />
             <ThemeToggle />
             <UserMenu name={name} image={user.image} plan={effectivePlan(user)} isAdmin={user.role === "ADMIN"} />
           </div>
