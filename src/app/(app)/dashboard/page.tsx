@@ -14,6 +14,7 @@ import { Planner } from "@/components/planner";
 import { db } from "@/lib/db";
 import { ProgressRing, ProgressBar } from "@/components/ui/progress-ring";
 import { CountUp } from "@/components/ui/count-up";
+import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
 import { EnableAlertsButton } from "@/components/alert-settings";
 import { QuoteRotator } from "@/components/quote-rotator";
@@ -59,6 +60,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="grid grid-cols-1 gap-[var(--gap)] md:grid-cols-2 xl:grid-cols-12">
+      <SplitHeading text={t.nav.dashboard} className="text-3xl font-semibold sm:text-[2.5rem] xl:col-span-12" />
       {/* Lời chào + điểm kỷ luật */}
       <section className="card hero-glow rise flex flex-col md:col-span-2 xl:col-span-4" aria-label={t.greet.hello}>
         <div className="flex items-start justify-between gap-4">

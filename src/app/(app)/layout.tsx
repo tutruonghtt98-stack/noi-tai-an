@@ -22,7 +22,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <UserMenu name={name} image={user.image} plan={effectivePlan(user)} isAdmin={user.role === "ADMIN"} />
         </div>
       </header>
-      <main id="main">{children}</main>
+      <main id="main" className="mt-3 md:mt-4">
+        {children}
+      </main>
       <MobileNav />
       <AlertsCenter />
     </div>
