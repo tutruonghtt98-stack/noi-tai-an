@@ -5,7 +5,7 @@ import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(useGSAP);
 
-type Shape = "number" | "minutes";
+type Shape = "number" | "minutes" | "vnd";
 
 const SHAPES: Record<Shape, (n: number, suffix: string, decimals: number) => string> = {
   number: (n, suffix, decimals) => n.toFixed(decimals) + suffix,
@@ -14,6 +14,7 @@ const SHAPES: Record<Shape, (n: number, suffix: string, decimals: number) => str
     const r = Math.round(n);
     return r >= 60 ? `${Math.floor(r / 60)}h${String(r % 60).padStart(2, "0")}` : `${r}′`;
   },
+  vnd: (n) => new Intl.NumberFormat("vi-VN").format(Math.round(n)) + "₫",
 };
 
 /** Số chạy đếm lên từ 0 khi xuất hiện — dùng cho StatCard. */

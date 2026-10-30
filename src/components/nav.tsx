@@ -12,6 +12,10 @@ import {
   Users,
   Settings,
   Ellipsis,
+  Package,
+  ShoppingBag,
+  MessageSquare,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -36,8 +40,33 @@ export const NAV: Item[] = [
 
 const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
 
-/** Cộng đồng & Cài đặt chuyển sang thanh dọc bên trái (SideDock) nên bỏ khỏi thanh ngang. */
-const TOP_NAV = NAV.filter((i) => i.key !== "community" && i.key !== "settings");
+/** Khớp theo href dài nhất (cụ thể nhất) — tránh "/work" khớp nhầm mọi "/work/*". */
+const bestMatchIndex = (list: { href: string }[], path: string) => {
+  let best = -1;
+  let bestLen = -1;
+  list.forEach((item, i) => {
+    if (isActive(path, item.href) && item.href.length > bestLen) {
+      best = i;
+      bestLen = item.href.length;
+    }
+  });
+  return Math.max(0, best);
+};
+
+/** Cài đặt chuyển sang thanh dọc bên trái (SideDock) nên bỏ khỏi thanh ngang. */
+const TOP_NAV = NAV.filter((i) => i.key !== "settings");
+
+type WorkItem = { href: string; key: keyof Dict["work"]["nav"]; icon: LucideIcon };
+
+export const WORK_NAV: WorkItem[] = [
+  { href: "/work", key: "dashboard", icon: LayoutGrid },
+  { href: "/work/orders", key: "orders", icon: Package },
+  { href: "/work/products", key: "products", icon: ShoppingBag },
+  { href: "/work/customers", key: "customers", icon: Users },
+  { href: "/work/messages", key: "messages", icon: MessageSquare },
+  { href: "/work/analytics", key: "analytics", icon: ChartColumn },
+  { href: "/work/automations", key: "automations", icon: Workflow },
+];
 
 /** Thanh điều hướng dạng "pill" ở giữa header: hiệu ứng "giọt keo" lỏng chảy sang mục đang chọn (tablet/desktop). */
 export function DesktopNav() {
@@ -45,19 +74,16 @@ export function DesktopNav() {
   const router = useRouter();
   const { t } = useI18n();
   const theme = useAppTheme();
-  const activeIndex = Math.max(
-    0,
-    TOP_NAV.findIndex((i) => isActive(path, i.href)),
-  );
+  const isWork = path.startsWith("/work");
+  const items = isWork
+    ? WORK_NAV.map(({ href, key, icon: Icon }) => ({ href, label: t.work.nav[key], icon: <Icon aria-hidden strokeWidth={1.9} /> }))
+    : TOP_NAV.map(({ href, key, icon: Icon }) => ({ href, label: t.nav[key], icon: <Icon aria-hidden strokeWidth={1.9} /> }));
+  const activeIndex = bestMatchIndex(isWork ? WORK_NAV : TOP_NAV, path);
 
   return (
     <nav aria-label={t.nav.mainNav} className="hidden md:block">
       <GooeyNav
-        items={TOP_NAV.map(({ href, key, icon: Icon }) => ({
-          href,
-          label: t.nav[key],
-          icon: <Icon aria-hidden strokeWidth={1.9} />,
-        }))}
+        items={items}
         activeIndex={activeIndex}
         onNavigate={(href) => router.push(href)}
         onChange={() => {}}
