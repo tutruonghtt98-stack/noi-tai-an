@@ -36,6 +36,8 @@ interface GooeyNavProps {
   gooeyness?: number;
   wobble?: number;
   hoverEffect?: boolean;
+  /** Độ đậm bóng đổ dưới viên nang đang chọn (0 = tắt hẳn). Mặc định theo theme. */
+  pillShadow?: number;
   className?: string;
   style?: CSSProperties;
 }
@@ -331,6 +333,7 @@ export function GooeyNav({
   gooeyness = 0.5,
   wobble = 0.5,
   hoverEffect = true,
+  pillShadow,
   className = "",
   style,
 }: GooeyNavProps) {
@@ -358,7 +361,7 @@ export function GooeyNav({
     pillRgb,
     tints: colors.map(parse),
     hoverRgb: parse(PILLS[palette].hover),
-    shadow: PILLS[palette].shadow,
+    shadow: pillShadow ?? PILLS[palette].shadow,
   };
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -859,7 +862,7 @@ export function GooeyNav({
   useEffect(() => {
     engineRef.current?.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pillColor, palette, gooeyness, size, frame]);
+  }, [pillColor, palette, gooeyness, size, frame, pillShadow]);
 
   const textColor = activeTextColor || contrastInk(pillRgb);
 

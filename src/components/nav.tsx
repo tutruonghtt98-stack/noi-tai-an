@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import {
   LayoutGrid,
   Target,
@@ -83,10 +83,11 @@ export function DesktopNav() {
         onChange={() => {}}
         theme={theme}
         color="#f2c14e" // --ochre trong globals.css — màu nhấn thương hiệu, không đổi theo theme
-        size="sm"
+        size="md"
+        pillShadow={0}
         animationTime={550}
         gooeyness={0.55}
-        className="shadow-card"
+        style={{ "--gn-gap": "2px", "--gn-x": "18px", "--gn-y": "11px", "--gn-pad": "6px" } as CSSProperties}
       />
     </nav>
   );
