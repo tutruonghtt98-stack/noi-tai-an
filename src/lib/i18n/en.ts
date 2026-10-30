@@ -70,6 +70,7 @@ const en: Dict = {
     sub: "Today you only need to win the few things that matter. Here's your overview.",
   },
   dashboard: {
+    subtitle: "Your discipline picture for today — goals, habits, and schedule in one place.",
     priorities: "priorities",
     habitsLeft: "habits left",
     disciplineToday: "Discipline today",

@@ -68,6 +68,7 @@ const vi = {
     sub: "Hôm nay chỉ cần thắng những việc quan trọng nhất. Đây là bức tranh của bạn.",
   },
   dashboard: {
+    subtitle: "Bức tranh kỷ luật của bạn hôm nay — mục tiêu, thói quen và lịch trình ở một nơi.",
     priorities: "ưu tiên",
     habitsLeft: "thói quen còn lại",
     disciplineToday: "Kỷ luật hôm nay",
