@@ -12,7 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="mx-auto min-h-dvh max-w-[1440px] px-4 pb-28 sm:px-6 md:pb-12 lg:px-8">
-      <header className="flex items-center justify-between gap-4 py-5 md:py-6">
+      <header className="flex items-center justify-between gap-4 py-3 md:py-4">
         <Link href="/dashboard" aria-label="Nội Tại Ẩn" className="shrink-0 rounded-xl">
           <Logo />
         </Link>
