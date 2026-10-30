@@ -337,6 +337,8 @@ model JournalEntry {
   // Nguyên nhân trì hoãn (mã: unclear, too_big, distraction, fatigue, fear, perfectionism, low_energy, other)
   procrastination     String[] @default([])
   procrastinationNote String?
+  // Người viết tự bật để chia sẻ ẩn danh cho người dùng khác đọc (tab "Ngẫu nhiên")
+  isPublic            Boolean  @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -344,6 +346,7 @@ model JournalEntry {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+  @@index([isPublic])
 }
 
 model WeeklyReview {

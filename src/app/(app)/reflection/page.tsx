@@ -6,7 +6,7 @@ import { getI18n } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/format";
 import { db } from "@/lib/db";
 import { addDays, formatDate, fromDbDate, isValidISO, startOfWeek, toDbDate, todayISO } from "@/lib/dates";
-import { getDailyStats, getHabitsWithStats, summarize } from "@/lib/queries";
+import { getDailyStats, getHabitsWithStats, getRandomPublicJournals, summarize } from "@/lib/queries";
 import { CAUSES, type Cause } from "@/lib/reflection";
 import { PageHeader } from "@/components/page-header";
 import { BarList } from "@/components/charts";
@@ -14,7 +14,7 @@ import { JournalForm, WeeklyForm } from "./forms";
 
 export const metadata: Metadata = { title: "Suy ngẫm" };
 
-type Tab = "daily" | "weekly" | "insights";
+type Tab = "daily" | "weekly" | "insights" | "random";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -29,12 +29,13 @@ export default async function ReflectionPage({ searchParams }: { searchParams: P
   const user = await requireUser();
   const { t, locale } = await getI18n();
   const sp = await searchParams;
-  const tab: Tab = sp.tab === "weekly" || sp.tab === "insights" ? sp.tab : "daily";
+  const tab: Tab = sp.tab === "weekly" || sp.tab === "insights" || sp.tab === "random" ? sp.tab : "daily";
   const today = todayISO(user.timezone);
   const minutes = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}h${String(n % 60).padStart(2, "0")}` : `${n}′`);
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "daily", label: t.reflection.tabDaily },
+    { id: "random", label: t.reflection.tabRandom },
     { id: "weekly", label: t.reflection.tabWeekly },
     { id: "insights", label: t.reflection.tabInsights },
   ];
@@ -79,6 +80,7 @@ export default async function ReflectionPage({ searchParams }: { searchParams: P
               tomorrow: entry?.tomorrow ?? "",
               procrastination: (entry?.procrastination ?? []) as Cause[],
               procrastinationNote: entry?.procrastinationNote ?? "",
+              isPublic: entry?.isPublic ?? false,
             }}
           />
         </section>
@@ -94,6 +96,61 @@ export default async function ReflectionPage({ searchParams }: { searchParams: P
           </div>
         </aside>
       </div>
+    );
+  } else if (tab === "random") {
+    const entries = await getRandomPublicJournals(user.id, 6);
+    body = (
+      <section className="card" aria-labelledby="random-journals">
+        <div className="mb-5">
+          <h2 id="random-journals" className="card-title">
+            {t.reflection.randomTitle}
+          </h2>
+          <p className="mt-1 text-sm text-muted">{t.reflection.randomSubtitle}</p>
+        </div>
+        {entries.length === 0 ? (
+          <p className="py-10 text-center text-sm text-muted">{t.reflection.randomEmpty}</p>
+        ) : (
+          <>
+            <ul className="grid gap-3 md:grid-cols-2">
+              {entries.map((j) => (
+                <li key={j.id} className="rounded-2xl bg-surface-2 p-4 text-sm">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="badge">{t.reflection.randomAnonymous}</span>
+                    {j.mood != null && <span className="tabular text-xs text-muted">{t.reflection.mood}: {j.mood}/5</span>}
+                  </div>
+                  <div className="space-y-2 text-ink-2">
+                    {j.wins && (
+                      <p>
+                        <span className="font-medium text-ink">{t.reflection.wins}:</span> {j.wins}
+                      </p>
+                    )}
+                    {j.lessons && (
+                      <p>
+                        <span className="font-medium text-ink">{t.reflection.lessons}:</span> {j.lessons}
+                      </p>
+                    )}
+                    {j.gratitude && (
+                      <p>
+                        <span className="font-medium text-ink">{t.reflection.gratitude}:</span> {j.gratitude}
+                      </p>
+                    )}
+                    {j.tomorrow && (
+                      <p>
+                        <span className="font-medium text-ink">{t.reflection.tomorrow}:</span> {j.tomorrow}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-5 flex justify-center">
+              <Link href={`/reflection?tab=random&r=${Math.random().toString(36).slice(2)}`} className="btn btn-soft btn-sm">
+                {t.reflection.randomRefresh}
+              </Link>
+            </div>
+          </>
+        )}
+      </section>
     );
   } else if (tab === "weekly") {
     const thisWeek = startOfWeek(today, user.weekStartsOn);

@@ -29,6 +29,7 @@ export function JournalForm({ date, initial, locked }: { date: string; initial: 
     tomorrow: initial.tomorrow ?? "",
     procrastination: (initial.procrastination ?? []) as Cause[],
     procrastinationNote: initial.procrastinationNote ?? "",
+    isPublic: initial.isPublic ?? false,
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
   const toggleCause = (c: Cause) =>
@@ -112,6 +113,18 @@ export function JournalForm({ date, initial, locked }: { date: string; initial: 
           <Area label={t.reflection.gratitude} value={f.gratitude} onChange={(v) => set("gratitude", v)} placeholder={t.reflection.gratitudePh} rows={2} />
           <Area label={t.reflection.tomorrow} value={f.tomorrow} onChange={(v) => set("tomorrow", v)} placeholder={t.reflection.tomorrowPh} rows={2} />
         </div>
+        <label className="flex cursor-pointer items-start gap-3 rounded-[1.25rem] bg-surface-2 p-4">
+          <input
+            type="checkbox"
+            checked={f.isPublic}
+            onChange={(e) => set("isPublic", e.target.checked)}
+            className="mt-0.5 size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
+          />
+          <span>
+            <span className="block font-medium">{t.reflection.publicToggle}</span>
+            <span className="mt-0.5 block text-sm text-muted">{t.reflection.publicToggleHint}</span>
+          </span>
+        </label>
         <div className="flex justify-end">
           <button className="btn btn-primary" disabled={pending}>
             {t.reflection.save}

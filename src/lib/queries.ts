@@ -310,3 +310,27 @@ export async function getMonthCalendar(user: CurrentUser, year: number, month: n
   for (const s of stats) days[s.date] = s.score;
   return { year, month, days };
 }
+
+// ---------- Suy ngẫm ẩn danh ----------
+
+export type RandomJournal = {
+  id: string;
+  mood: number | null;
+  wins: string | null;
+  lessons: string | null;
+  gratitude: string | null;
+  tomorrow: string | null;
+};
+
+/** Vài mục nhật ký công khai (isPublic) ngẫu nhiên từ người dùng khác — không kèm userId/tên. */
+export async function getRandomPublicJournals(excludeUserId: string, take = 6): Promise<RandomJournal[]> {
+  return db.$queryRaw<RandomJournal[]>`
+    SELECT id, mood, wins, lessons, gratitude, tomorrow
+    FROM "JournalEntry"
+    WHERE "isPublic" = true
+      AND "userId" != ${excludeUserId}
+      AND (wins IS NOT NULL OR lessons IS NOT NULL OR gratitude IS NOT NULL OR tomorrow IS NOT NULL)
+    ORDER BY RANDOM()
+    LIMIT ${take}
+  `;
+}

@@ -27,6 +27,7 @@ const journalSchema = z.object({
   tomorrow: text(600),
   procrastination: z.array(z.enum(CAUSES)).max(CAUSES.length).default([]),
   procrastinationNote: text(1000),
+  isPublic: z.boolean().default(false),
 });
 export type JournalInput = z.input<typeof journalSchema>;
 
