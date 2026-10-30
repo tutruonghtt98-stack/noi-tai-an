@@ -3,6 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 import type { Dict } from "@/lib/i18n/vi";
 import { dayOfWeek, monthBounds, rangeISO, type ISODate } from "@/lib/dates";
 import { cn } from "@/lib/cn";
+import { StatIcon } from "@/components/ui/stat-icon";
 
 export function StatCard({
   label,
@@ -24,9 +25,9 @@ export function StatCard({
     >
       <div className="flex items-start justify-between gap-2">
         <span className="font-medium">{label}</span>
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-ink-2 shadow-card transition-transform group-hover:rotate-45">
+        <StatIcon>
           <ArrowUpRight className="size-4" aria-hidden />
-        </span>
+        </StatIcon>
       </div>
       <span className="tabular mt-auto pt-6 text-[2.5rem] font-semibold leading-none tracking-tight">{value}</span>
       <span
