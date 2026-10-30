@@ -7,15 +7,15 @@
 
 :root {
   color-scheme: light;
-  --bg: #f5f3ee;
-  --surface: #f7f7f6;
-  --surface-2: #f3f0ea;
-  --surface-3: #e9e5dc;
-  --ink: #1d1c1a;
+  --bg: #efefed;
+  --surface: #ffffff;
+  --surface-2: #f1f1ef;
+  --surface-3: #e6e6e3;
+  --ink: #121212;
   --ink-2: #47443e;
   --muted: #6f6a62;
-  --line: #e8e3da;
-  --overlay: rgb(29 28 26 / 0.4);
+  --line: #e4e4e1;
+  --overlay: rgb(18 18 18 / 0.4);
 
   --ochre: #f2c14e;
   --ochre-soft: #fcefc7;
@@ -207,7 +207,7 @@ h1, h2, h3 {
     pointer-events: none;
     border-radius: inherit;
     clip-path: inset(0 round var(--radius-card));
-    background: radial-gradient(260px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
+    background: radial-gradient(260px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in oklab, var(--ink) 10%, transparent), transparent 70%);
     opacity: 0;
     transition: opacity 400ms ease;
   }
@@ -224,7 +224,7 @@ h1, h2, h3 {
     pointer-events: none;
     border-radius: inherit;
     padding: 1px;
-    background: radial-gradient(220px circle at var(--spot-x, 50%) var(--spot-y, 50%), var(--accent), transparent 70%);
+    background: radial-gradient(220px circle at var(--spot-x, 50%) var(--spot-y, 50%), var(--ink), transparent 70%);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -241,7 +241,7 @@ h1, h2, h3 {
     z-index: 0;
     pointer-events: none;
     border-radius: 9999px;
-    background: radial-gradient(circle, color-mix(in oklab, var(--accent) 55%, transparent), transparent 72%);
+    background: radial-gradient(circle, color-mix(in oklab, var(--ink) 35%, transparent), transparent 72%);
     transform: translate(-50%, -50%) scale(0);
     opacity: 0.6;
     animation: card-ripple-expand 650ms ease-out forwards;
@@ -457,9 +457,9 @@ h1, h2, h3 {
   }
   .segmented > [aria-pressed="true"],
   .segmented > [aria-current="page"] {
-    /* Chữ đậm cố định — mọi màu nhấn (ochre/jade/mist/rose) đều đủ sáng để tương phản tốt với #18161d ở cả 2 theme */
-    background: var(--accent);
-    color: #18161d;
+    /* Viên nang đen/trắng trung tính (kiểu Corbel) thay vì màu nhấn — tự đổi theo theme qua --ink/--bg */
+    background: var(--ink);
+    color: var(--bg);
     box-shadow: var(--shadow);
   }
 

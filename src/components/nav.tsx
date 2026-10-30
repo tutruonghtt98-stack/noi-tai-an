@@ -88,7 +88,7 @@ export function DesktopNav() {
         onNavigate={(href) => router.push(href)}
         onChange={() => {}}
         theme={theme}
-        color="#f2c14e" // --ochre trong globals.css — màu nhấn thương hiệu, không đổi theo theme
+        // Không truyền color: dùng màu mặc định đen/trắng trung tính theo theme (giống Corbel) có sẵn trong GooeyNav
         size="md"
         pillShadow={0}
         animationTime={550}

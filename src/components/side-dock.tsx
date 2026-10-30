@@ -47,7 +47,7 @@ export function SideDock() {
         items={items}
         position="left"
         theme={theme}
-        accentColor="#f2c14e"
+        accentColor="#121212"
         baseItemSize={40}
         magnification={58}
         distance={130}
