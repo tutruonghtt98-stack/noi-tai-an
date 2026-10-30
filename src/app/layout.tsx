@@ -6,6 +6,7 @@ import { getOptionalUser } from "@/lib/session";
 import { dictionaries, getLocale } from "@/lib/i18n";
 import { I18nProvider } from "@/lib/i18n/client";
 import { ToastProvider } from "@/components/ui/toast";
+import { SpotlightCursor } from "@/components/spotlight-cursor";
 
 const font = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -43,6 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <I18nProvider value={{ t: dictionaries[locale], locale }}>
           <ToastProvider>{children}</ToastProvider>
         </I18nProvider>
+        <SpotlightCursor />
       </body>
     </html>
   );

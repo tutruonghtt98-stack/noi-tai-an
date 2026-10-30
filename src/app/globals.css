@@ -191,11 +191,34 @@ h1, h2, h3 {
 /* ---------- Components ---------- */
 @layer components {
   .card {
+    position: relative;
     background: var(--surface);
     border-radius: var(--radius-card);
     padding: var(--pad);
     box-shadow: var(--shadow);
     border: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+  }
+  /* Hiệu ứng "spotlight" theo con trỏ — vị trí --spot-x/--spot-y do SpotlightCursor set. */
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    clip-path: inset(0 round var(--radius-card));
+    background: radial-gradient(260px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in oklab, var(--ink) 9%, transparent), transparent 70%);
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+  .card:hover::before,
+  .card:focus-within::before {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card::before {
+      display: none;
+    }
   }
   .card-inset {
     background: var(--surface-2);
