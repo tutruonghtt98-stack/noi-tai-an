@@ -13,7 +13,7 @@ const ITEMS = [
 export function AdminNav() {
   const path = usePathname();
   return (
-    <nav className="segmented mb-6 max-w-full overflow-x-auto bg-surface shadow-card" aria-label="Admin">
+    <nav className="segmented mb-6 max-w-full overflow-x-auto" aria-label="Admin">
       {ITEMS.map((i) => (
         <Link key={i.href} href={i.href} aria-current={(i.href === "/admin" ? path === i.href : path.startsWith(i.href)) ? "page" : undefined}>
           {i.label}

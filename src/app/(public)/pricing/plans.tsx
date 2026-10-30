@@ -59,7 +59,7 @@ export function PricingPlans({
   return (
     <>
       <div className="mb-8 flex justify-center">
-        <div className="segmented bg-surface shadow-card" role="group" aria-label={t.billing.title}>
+        <div className="segmented" role="group" aria-label={t.billing.title}>
           <button type="button" aria-pressed={cycle === "MONTHLY"} onClick={() => setCycle("MONTHLY")}>
             {t.billing.monthly}
           </button>

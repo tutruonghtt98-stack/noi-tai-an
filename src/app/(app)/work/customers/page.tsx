@@ -67,9 +67,17 @@ export default async function WorkCustomersPage({ searchParams }: { searchParams
       </div>
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="segmented bg-surface shadow-card">
-          <span aria-current="page">{c.tabCustomers}</span>
-          <span className="cursor-not-allowed opacity-50" title={t.common.comingSoon}>
+        <div role="radiogroup" aria-label={c.tableTitle} className="flex flex-wrap items-center gap-2">
+          <span role="radio" aria-checked="true" className="inline-flex h-9 shrink-0 items-center rounded-full bg-ink px-4 text-sm font-medium text-bg">
+            {c.tabCustomers}
+          </span>
+          <span
+            role="radio"
+            aria-checked="false"
+            aria-disabled="true"
+            className="inline-flex h-9 shrink-0 cursor-not-allowed items-center rounded-full bg-surface-2 px-4 text-sm font-medium text-ink-2 opacity-60"
+            title={t.common.comingSoon}
+          >
             {c.tabFeedback}
           </span>
         </div>
@@ -88,12 +96,7 @@ export default async function WorkCustomersPage({ searchParams }: { searchParams
         items={FILTERS.map((f) => ({
           value: f,
           href: href({ filter: f }),
-          label: (
-            <span className="inline-flex items-center gap-1.5">
-              {filterLabel[f]}
-              {filterCount[f] > 0 && <span className="tabular rounded-full bg-surface-2 px-1.5 py-0.5 text-xs">{filterCount[f]}</span>}
-            </span>
-          ),
+          label: filterCount[f] > 0 ? `${filterLabel[f]} ${filterCount[f]}` : filterLabel[f],
         }))}
       />
 

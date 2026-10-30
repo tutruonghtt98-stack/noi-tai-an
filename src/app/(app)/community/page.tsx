@@ -29,7 +29,7 @@ export default async function CommunityFeed({ searchParams }: { searchParams: Pr
     <div className="grid grid-cols-1 gap-[var(--gap)] lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="grid min-w-0 grid-cols-1 content-start gap-[var(--gap)]">
         <Composer />
-        <nav className="segmented w-fit bg-surface shadow-card" aria-label={t.follow.feedFollowing}>
+        <nav className="segmented w-fit" aria-label={t.follow.feedFollowing}>
           <Link href={qs({ cat: category })} aria-current={!following ? "page" : undefined}>
             {t.follow.feedAll}
           </Link>

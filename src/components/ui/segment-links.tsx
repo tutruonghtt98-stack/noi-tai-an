@@ -1,42 +1,39 @@
-"use client";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { RubberSegment, type RubberSegmentSize } from "@/components/ui/rubber-segment";
 
 export type SegmentLink = { value: string; label: React.ReactNode; href: string };
 
-/**
- * Thanh tab điều hướng dạng viên nang "cao su" — bọc RubberSegment để điều hướng qua
- * router.push, đặt trong khung nền trắng (giống thanh nav chính) thay vì nổi trần.
- */
+/** Dãy chip lọc/tab rời nhau, mỗi mục một viên nang riêng (kiểu Corbel) — mục đang chọn nền đen. */
 export function SegmentLinks({
   items,
   active,
   ariaLabel,
-  size = "md",
   className,
 }: {
   items: SegmentLink[];
   active: string;
   ariaLabel: string;
-  size?: RubberSegmentSize;
   className?: string;
 }) {
-  const router = useRouter();
   return (
-    <div className={cn("inline-flex max-w-full rounded-full bg-surface p-1.5 shadow-card", className)}>
-      <RubberSegment
-        aria-label={ariaLabel}
-        items={items.map(({ value, label }) => ({ value, label }))}
-        value={active}
-        size={size}
-        trackColor="transparent"
-        className="max-w-full overflow-x-auto"
-        onChange={(value) => {
-          const item = items.find((i) => i.value === value);
-          if (item) router.push(item.href);
-        }}
-      />
+    <div role="radiogroup" aria-label={ariaLabel} className={cn("flex flex-wrap items-center gap-2", className)}>
+      {items.map((item) => {
+        const isActive = item.value === active;
+        return (
+          <Link
+            key={item.value}
+            href={item.href}
+            role="radio"
+            aria-checked={isActive}
+            className={cn(
+              "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors",
+              isActive ? "bg-ink text-bg" : "bg-surface-2 text-ink-2 hover:bg-surface-3 hover:text-ink",
+            )}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
     </div>
   );
 }

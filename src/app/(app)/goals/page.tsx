@@ -44,7 +44,7 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
           active={horizon ?? "ALL"}
           items={[{ value: "ALL", label: t.goals.all, href: href() }, ...HORIZONS.map((h) => ({ value: h, label: t.goals.horizon[h], href: href(h) }))]}
         />
-        <nav className="segmented bg-surface shadow-card" aria-label={t.goals.fields.year}>
+        <nav className="segmented" aria-label={t.goals.fields.year}>
           {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
             <Link key={y} href={href(horizon, y)} aria-current={year === y ? "page" : undefined} className="tabular">
               {y}
