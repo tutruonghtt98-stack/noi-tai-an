@@ -1,57 +1,63 @@
 "use client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Users, Settings, Sparkles } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Users, Settings, Sparkles, Sun, Moon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
-import { ThemeToggle } from "@/components/user-menu";
+import { useAppTheme } from "@/lib/use-app-theme";
+import { setTheme } from "@/actions/settings";
+import Dock, { type DockItemData } from "@/components/ui/dock";
 
 const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
 
 /** Thanh dọc nổi bên trái: Cộng đồng, Cài đặt, Nâng cấp Pro, đổi giao diện sáng/tối (desktop rộng). */
 export function SideDock() {
   const path = usePathname();
+  const router = useRouter();
   const { t } = useI18n();
-  const items = [
-    { href: "/community", label: t.nav.community, icon: Users },
-    { href: "/settings", label: t.nav.settings, icon: Settings },
+  const theme = useAppTheme();
+  const [, startTransition] = useTransition();
+
+  const toggleTheme = () => {
+    const root = document.documentElement;
+    const dark = theme === "dark";
+    const next = dark ? "LIGHT" : "DARK";
+    root.dataset.theme = next.toLowerCase();
+    startTransition(async () => {
+      await setTheme(next);
+    });
+  };
+
+  const items: DockItemData[] = [
+    { icon: <Users className="size-5" aria-hidden />, label: t.nav.community, active: isActive(path, "/community"), onClick: () => router.push("/community") },
+    { icon: <Settings className="size-5" aria-hidden />, label: t.nav.settings, active: isActive(path, "/settings"), onClick: () => router.push("/settings") },
+    { icon: <Sparkles className="size-5 text-accent-ink" aria-hidden />, label: t.common.upgrade, onClick: () => router.push("/billing") },
+    {
+      icon: theme === "dark" ? <Sun className="size-5" aria-hidden /> : <Moon className="size-5" aria-hidden />,
+      label: t.settings.theme,
+      onClick: toggleTheme,
+    },
   ];
 
   return (
-    <nav
-      aria-label={`${t.nav.community} / ${t.nav.settings}`}
-      className="fixed left-6 top-1/2 z-40 hidden -translate-y-1/2 flex-col items-center gap-1 rounded-full bg-surface p-2 shadow-card xl:flex"
-    >
-      {items.map(({ href, label, icon: Icon }) => {
-        const active = isActive(path, href);
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            aria-label={label}
-            title={label}
-            className={cn(
-              "grid size-11 shrink-0 place-items-center rounded-full transition-colors duration-200",
-              active ? "bg-accent-soft text-accent-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
-            )}
-          >
-            <Icon className="size-5" aria-hidden />
-          </Link>
-        );
-      })}
-
-      <Link
-        href="/billing"
-        aria-label={t.common.upgrade}
-        title={t.common.upgrade}
-        className="grid size-11 shrink-0 place-items-center rounded-full text-accent-ink transition-colors duration-200 hover:bg-accent-soft"
-      >
-        <Sparkles className="size-5" aria-hidden />
-      </Link>
-
-      <div className="my-1 h-px w-6 bg-line" aria-hidden />
-      <ThemeToggle />
-    </nav>
+    <div className="pointer-events-none fixed inset-0 z-40 hidden xl:block">
+      <Dock
+        items={items}
+        position="left"
+        theme={theme}
+        accentColor="#f2c14e"
+        baseItemSize={40}
+        magnification={58}
+        distance={130}
+        panelHeight={56}
+        gap={6}
+        roundness={1}
+        tiles={false}
+        showLabels
+        showIndicators
+        showBadges={false}
+        bounce
+        className="pointer-events-auto"
+      />
+    </div>
   );
 }

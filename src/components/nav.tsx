@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import {
   LayoutGrid,
   Target,
@@ -18,31 +18,8 @@ import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/client";
 import { Modal } from "@/components/ui/modal";
 import { GooeyNav } from "@/components/ui/gooey-nav";
+import { useAppTheme } from "@/lib/use-app-theme";
 import type { Dict } from "@/lib/i18n/vi";
-
-/** Theo dõi giao diện sáng/tối hiện tại (đổi qua nút trên header) để đồng bộ màu cho GooeyNav. */
-function useAppTheme(): "light" | "dark" {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  useEffect(() => {
-    const root = document.documentElement;
-    const read = (): "light" | "dark" => {
-      const attr = root.dataset.theme;
-      if (attr === "dark" || attr === "light") return attr;
-      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    };
-    setTheme(read());
-    const mo = new MutationObserver(() => setTheme(read()));
-    mo.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => setTheme(read());
-    mq.addEventListener("change", onChange);
-    return () => {
-      mo.disconnect();
-      mq.removeEventListener("change", onChange);
-    };
-  }, []);
-  return theme;
-}
 
 type Item = { href: string; key: keyof Dict["nav"]; icon: LucideIcon };
 
