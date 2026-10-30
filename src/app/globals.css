@@ -207,7 +207,7 @@ h1, h2, h3 {
     pointer-events: none;
     border-radius: inherit;
     clip-path: inset(0 round var(--radius-card));
-    background: radial-gradient(260px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in oklab, var(--ink) 9%, transparent), transparent 70%);
+    background: radial-gradient(260px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
     opacity: 0;
     transition: opacity 400ms ease;
   }
