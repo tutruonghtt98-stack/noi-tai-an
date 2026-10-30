@@ -1,5 +1,9 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { ORDER_STATUSES, type OrderChannelFilter, type OrderStatus } from "@/lib/work-types";
+
+export type { OrderStatus, OrderChannelFilter } from "@/lib/work-types";
+export { ORDER_STATUSES } from "@/lib/work-types";
 
 export type WorkFilter = "all" | "vip" | "wholesale" | "new" | "subscribers";
 export type WorkSort = "spend" | "orders" | "recent";
@@ -79,3 +83,53 @@ export async function getWorkBoards(userId: string) {
 }
 
 export type WorkBoardWithLists = Awaited<ReturnType<typeof getWorkBoards>>[number];
+
+// ---------- Orders ----------
+
+export async function getWorkOrders(
+  userId: string,
+  opts: { search?: string; status?: OrderStatus | "all"; channel?: OrderChannelFilter; sort?: "recent" | "total" } = {},
+) {
+  const { search, status = "all", channel = "all", sort = "recent" } = opts;
+  const q = search?.trim();
+  return db.workOrder.findMany({
+    where: {
+      userId,
+      ...(q ? { OR: [{ customerName: { contains: q, mode: "insensitive" } }, { customerCity: { contains: q, mode: "insensitive" } }] } : {}),
+      ...(status !== "all" ? { status } : {}),
+      ...(channel !== "all" ? { channel: channel === "online" ? "ONLINE" : "IN_STORE" } : {}),
+    },
+    orderBy: sort === "total" ? { totalCents: "desc" } : { placedAt: "desc" },
+  });
+}
+
+export async function getWorkOrderStats(userId: string) {
+  const all = await db.workOrder.findMany({
+    where: { userId },
+    select: { status: true, totalCents: true, refundedCents: true, refundedAt: true },
+  });
+  const total = all.length;
+  const open = all.filter((o) => o.status !== "CLOSED").length;
+  const awaitingPayment = all.filter((o) => o.status === "PENDING").length;
+  const toShip = all.filter((o) => o.status === "PAID" || o.status === "PACKED").length;
+  const packed = all.filter((o) => o.status === "PACKED").length;
+  const toPack = all.filter((o) => o.status === "PAID").length;
+  const totalValueCents = all.reduce((sum, o) => sum + o.totalCents, 0);
+  const avgOrderCents = total ? Math.round(totalValueCents / total) : 0;
+  const month = startOfMonth();
+  const refundsThisMonth = all.filter((o) => o.refundedAt && o.refundedAt >= month).reduce((sum, o) => sum + o.refundedCents, 0);
+  const refundCount = all.filter((o) => o.refundedAt && o.refundedAt >= month).length;
+  const statusCount = (s: OrderStatus) => all.filter((o) => o.status === s).length;
+  return {
+    total,
+    open,
+    awaitingPayment,
+    toShip,
+    packed,
+    toPack,
+    avgOrderCents,
+    refundsThisMonth,
+    refundCount,
+    byStatus: Object.fromEntries(ORDER_STATUSES.map((s) => [s, statusCount(s)])) as Record<OrderStatus, number>,
+  };
+}

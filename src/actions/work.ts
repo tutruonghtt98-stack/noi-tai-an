@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
-import { DEFAULT_LISTS } from "@/lib/work-queries";
+import { DEFAULT_LISTS, ORDER_STATUSES } from "@/lib/work-queries";
 
 const customerSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -137,5 +137,54 @@ export async function deleteWorkCard(id: string) {
     if (!card || card.list.board.userId !== user.id) throw new UserError("VALIDATION");
     await db.workCard.delete({ where: { id } });
     revalidatePath("/work/workspace");
+  });
+}
+
+// ---------- Orders ----------
+
+const orderSchema = z.object({
+  customerName: z.string().trim().min(1).max(120),
+  customerCity: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform((v) => v || null),
+  channel: z.enum(["ONLINE", "IN_STORE"]),
+  items: z.number().int().min(1).max(999).default(1),
+  totalCents: z.number().int().min(0).default(0),
+  payment: z.string().trim().min(1).max(40),
+  status: z.enum(ORDER_STATUSES as [string, ...string[]]),
+});
+export type OrderInput = z.input<typeof orderSchema>;
+
+export async function createWorkOrder(input: OrderInput) {
+  return run(async () => {
+    const user = await requireUser();
+    const data = orderSchema.parse(input);
+    const count = await db.workOrder.count({ where: { userId: user.id } });
+    await db.workOrder.create({ data: { ...data, userId: user.id, orderNo: 10000 + count } });
+    revalidatePath("/work/orders");
+  });
+}
+
+export async function updateWorkOrderStatus(id: string, status: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const order = await db.workOrder.findUnique({ where: { id }, select: { userId: true } });
+    if (!order || order.userId !== user.id) throw new UserError("VALIDATION");
+    if (!ORDER_STATUSES.includes(status as (typeof ORDER_STATUSES)[number])) throw new UserError("VALIDATION");
+    await db.workOrder.update({ where: { id }, data: { status } });
+    revalidatePath("/work/orders");
+  });
+}
+
+export async function deleteWorkOrder(id: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const order = await db.workOrder.findUnique({ where: { id }, select: { userId: true } });
+    if (!order || order.userId !== user.id) throw new UserError("VALIDATION");
+    await db.workOrder.delete({ where: { id } });
+    revalidatePath("/work/orders");
   });
 }
