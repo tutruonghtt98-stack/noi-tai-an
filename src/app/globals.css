@@ -215,8 +215,47 @@ h1, h2, h3 {
   .card:focus-within::before {
     opacity: 1;
   }
+  /* Viền sáng theo con trỏ (kiểu "Magic Bento") — chỉ tô đúng viền 1px nhờ mask. */
+  .card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    padding: 1px;
+    background: radial-gradient(220px circle at var(--spot-x, 50%) var(--spot-y, 50%), var(--accent), transparent 70%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+  .card:hover::after,
+  .card:focus-within::after {
+    opacity: 0.6;
+  }
+  /* Vệt gợn sóng khi bấm vào thẻ — spotlight-cursor.tsx tạo/huỷ phần tử này. */
+  .card-ripple {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: 9999px;
+    background: radial-gradient(circle, color-mix(in oklab, var(--accent) 55%, transparent), transparent 72%);
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.6;
+    animation: card-ripple-expand 650ms ease-out forwards;
+  }
+  @keyframes card-ripple-expand {
+    to {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .card::before {
+    .card::before,
+    .card::after,
+    .card-ripple {
       display: none;
     }
   }
