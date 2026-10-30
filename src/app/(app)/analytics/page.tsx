@@ -161,9 +161,15 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
               v: <CountUp value={cur.habitRate * 100} suffix="%" />,
               d: <Delta cur={cur.habitRate} prev={prev.habitRate} pct label={t.analytics.vsPrev} />,
             },
-          ].map((k) => (
-            <div key={k.l} className="rounded-[1.5rem] bg-surface-2 p-5">
-              <p className="text-sm font-medium text-ink-2">{k.l}</p>
+          ].map((k, i) => (
+            <div
+              key={k.l}
+              className={cn(
+                "rounded-[1.5rem] p-5",
+                i === 0 ? "bg-ink text-bg [&_.text-danger]:text-[#f97066] [&_.text-muted]:text-bg/60 [&_.text-success]:text-[#6ce9a6]" : "bg-surface-2",
+              )}
+            >
+              <p className={cn("text-sm font-medium", i === 0 ? "opacity-80" : "text-ink-2")}>{k.l}</p>
               <p className="tabular mt-4 text-4xl font-semibold tracking-tight">{k.v}</p>
               <div className="mt-2">{k.d}</div>
             </div>

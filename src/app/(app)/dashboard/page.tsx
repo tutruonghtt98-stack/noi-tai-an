@@ -129,6 +129,7 @@ export default async function DashboardPage() {
           value={<CountUp value={d.activeGoals.length} />}
           note={fmt(t.dashboard.completedThisMonth, { n: d.completedThisMonth })}
           tone={d.completedThisMonth > 0 ? "up" : "muted"}
+          featured
         />
         <StatCard
           href="/goals"

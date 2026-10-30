@@ -11,20 +11,26 @@ export function StatCard({
   note,
   tone = "muted",
   href,
+  featured = false,
 }: {
   label: string;
   value: React.ReactNode;
   note: string;
   tone?: "up" | "down" | "warn" | "muted";
   href: string;
+  /** Thẻ nổi bật nền tối (kiểu Corbel) — dùng cho ô số liệu quan trọng nhất trong hàng. */
+  featured?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="group flex min-h-44 flex-col rounded-[1.5rem] bg-surface-2 p-5 transition-colors hover:bg-surface-3"
+      className={cn(
+        "group flex min-h-44 flex-col rounded-[1.5rem] p-5 transition-colors",
+        featured ? "bg-ink text-bg hover:bg-ink/90" : "bg-surface-2 hover:bg-surface-3",
+      )}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="font-medium">{label}</span>
+        <span className={cn("font-medium", featured && "opacity-80")}>{label}</span>
         <StatIcon>
           <ArrowUpRight className="size-4" aria-hidden />
         </StatIcon>
@@ -33,10 +39,14 @@ export function StatCard({
       <span
         className={cn(
           "mt-3 text-sm",
-          tone === "up" && "text-success",
-          tone === "down" && "text-danger",
-          tone === "warn" && "text-ochre-ink",
-          tone === "muted" && "text-muted",
+          featured
+            ? "opacity-70"
+            : cn(
+                tone === "up" && "text-success",
+                tone === "down" && "text-danger",
+                tone === "warn" && "text-ochre-ink",
+                tone === "muted" && "text-muted",
+              ),
         )}
       >
         {note}
