@@ -15,6 +15,7 @@ import { db } from "@/lib/db";
 import { ProgressRing, ProgressBar } from "@/components/ui/progress-ring";
 import { CountUp } from "@/components/ui/count-up";
 import { SplitHeading } from "@/components/ui/split-heading";
+import { SplitChars } from "@/components/ui/split-chars";
 import { Empty } from "@/components/ui/empty";
 import { EnableAlertsButton } from "@/components/alert-settings";
 import { QuoteRotator } from "@/components/quote-rotator";
@@ -26,7 +27,9 @@ export const metadata: Metadata = { title: "Tổng quan" };
 function CardHead({ title, href, label }: { title: string; href?: string; label?: string }) {
   return (
     <div className="mb-5 flex items-center justify-between gap-3">
-      <h2 className="card-title text-[1.375rem]">{title}</h2>
+      <h2 className="card-title text-[1.375rem]">
+        <SplitChars text={title} />
+      </h2>
       {href && (
         <Link href={href} className="icon-btn" aria-label={label ?? title}>
           <ArrowUpRight className="size-4" aria-hidden />
@@ -65,10 +68,12 @@ export default async function DashboardPage() {
       <section className="card hero-glow rise flex flex-col md:col-span-2 xl:col-span-4" aria-label={t.greet.hello}>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[1.75rem] font-semibold leading-tight">{t.greet.hello}</p>
+            <p className="text-[1.75rem] font-semibold leading-tight">
+              <SplitChars text={t.greet.hello} />
+            </p>
             <h1 className="text-[1.75rem] font-semibold leading-tight">
-              {greet}
-              {firstName && <span className="text-muted">, {firstName}</span>}
+              <SplitChars text={greet} delay={0.1} />
+              {firstName && <SplitChars text={`, ${firstName}`} className="text-muted" delay={0.1} />}
             </h1>
           </div>
           <ProgressRing value={d.score / 100} size={76} stroke={8} label={`${t.dashboard.disciplineToday}: ${d.score}/100`}>
@@ -96,7 +101,7 @@ export default async function DashboardPage() {
       <section className="card rise xl:col-span-4" style={{ animationDelay: "60ms" }} aria-labelledby="cal">
         <div className="mb-4 flex items-center justify-between border-b border-line pb-4">
           <h2 id="cal" className="card-title text-[1.375rem]">
-            {t.dashboard.calendar}
+            <SplitChars text={t.dashboard.calendar} />
           </h2>
           <Link href="/habits" className="btn btn-soft btn-sm">
             {t.common.seeAll}
@@ -167,7 +172,7 @@ export default async function DashboardPage() {
       <section className="card rise min-w-0 md:col-span-2 xl:col-span-8" style={{ animationDelay: "240ms" }} aria-labelledby="planner">
         <div className="mb-5 flex items-center justify-between gap-3 border-b border-line pb-4">
           <h2 id="planner" className="card-title text-[1.375rem]">
-            {t.dashboard.planner}
+            <SplitChars text={t.dashboard.planner} />
           </h2>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <EnableAlertsButton />
