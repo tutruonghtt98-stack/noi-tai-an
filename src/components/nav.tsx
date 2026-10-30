@@ -1,9 +1,7 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useRef, useState } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutGrid,
   Target,
@@ -19,9 +17,32 @@ import {
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/client";
 import { Modal } from "@/components/ui/modal";
+import { GooeyNav } from "@/components/ui/gooey-nav";
 import type { Dict } from "@/lib/i18n/vi";
 
-gsap.registerPlugin(useGSAP);
+/** Theo dõi giao diện sáng/tối hiện tại (đổi qua nút trên header) để đồng bộ màu cho GooeyNav. */
+function useAppTheme(): "light" | "dark" {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  useEffect(() => {
+    const root = document.documentElement;
+    const read = (): "light" | "dark" => {
+      const attr = root.dataset.theme;
+      if (attr === "dark" || attr === "light") return attr;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    };
+    setTheme(read());
+    const mo = new MutationObserver(() => setTheme(read()));
+    mo.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => setTheme(read());
+    mq.addEventListener("change", onChange);
+    return () => {
+      mo.disconnect();
+      mq.removeEventListener("change", onChange);
+    };
+  }, []);
+  return theme;
+}
 
 type Item = { href: string; key: keyof Dict["nav"]; icon: LucideIcon };
 
@@ -38,62 +59,35 @@ export const NAV: Item[] = [
 
 const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
 
-/** Thanh điều hướng dạng "pill" ở giữa header: nền trượt mượt theo mục đang chọn (tablet/desktop). */
+/** Thanh điều hướng dạng "pill" ở giữa header: hiệu ứng "giọt keo" lỏng chảy sang mục đang chọn (tablet/desktop). */
 export function DesktopNav() {
   const path = usePathname();
+  const router = useRouter();
   const { t } = useI18n();
-  const listRef = useRef<HTMLUListElement>(null);
-  const indicatorRef = useRef<HTMLSpanElement>(null);
-  const itemRefs = useRef(new Map<string, HTMLAnchorElement>());
-  const activeHref = NAV.find((i) => isActive(path, i.href))?.href ?? NAV[0].href;
-
-  useGSAP(
-    () => {
-      const el = itemRefs.current.get(activeHref);
-      const list = listRef.current;
-      const indicator = indicatorRef.current;
-      if (!el || !list || !indicator) return;
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const listRect = list.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-      const target = { x: elRect.left - listRect.left + list.scrollLeft, width: elRect.width, opacity: 1 };
-      if (indicator.dataset.ready === "1") {
-        gsap.to(indicator, { ...target, duration: reduced ? 0 : 0.5, ease: "power3.out" });
-      } else {
-        gsap.set(indicator, target);
-        indicator.dataset.ready = "1";
-      }
-    },
-    { dependencies: [activeHref], scope: listRef },
+  const theme = useAppTheme();
+  const activeIndex = Math.max(
+    0,
+    NAV.findIndex((i) => isActive(path, i.href)),
   );
 
   return (
     <nav aria-label={t.nav.mainNav} className="hidden md:block">
-      <ul ref={listRef} className="relative flex items-center gap-1 overflow-x-auto rounded-full bg-surface p-1.5 shadow-card">
-        <span ref={indicatorRef} className="absolute inset-y-1.5 left-0 w-0 rounded-full bg-surface-2 opacity-0" aria-hidden />
-        {NAV.map(({ href, key, icon: Icon }) => {
-          const active = href === activeHref;
-          return (
-            <li key={href} className="relative shrink-0">
-              <Link
-                ref={(el) => {
-                  if (el) itemRefs.current.set(href, el);
-                  else itemRefs.current.delete(href);
-                }}
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex h-11 items-center gap-2 whitespace-nowrap rounded-full px-4 transition-colors duration-200",
-                  active ? "font-medium text-ink" : "text-ink-2 hover:text-ink",
-                )}
-              >
-                <Icon className="size-5 shrink-0" aria-hidden strokeWidth={active ? 2.2 : 1.8} />
-                <span className="text-[0.9375rem]">{t.nav[key]}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <GooeyNav
+        items={NAV.map(({ href, key, icon: Icon }) => ({
+          href,
+          label: t.nav[key],
+          icon: <Icon aria-hidden strokeWidth={1.9} />,
+        }))}
+        activeIndex={activeIndex}
+        onNavigate={(href) => router.push(href)}
+        onChange={() => {}}
+        theme={theme}
+        color="#f2c14e" // --ochre trong globals.css — màu nhấn thương hiệu, không đổi theo theme
+        size="sm"
+        animationTime={550}
+        gooeyness={0.55}
+        className="shadow-card"
+      />
     </nav>
   );
 }
