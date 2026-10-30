@@ -11,6 +11,7 @@ import { CAUSES, type Cause } from "@/lib/reflection";
 import { PageHeader } from "@/components/page-header";
 import { BarList } from "@/components/charts";
 import { JournalList, WeeklyForm } from "./forms";
+import { SegmentLinks } from "@/components/ui/segment-links";
 
 export const metadata: Metadata = { title: "Suy ngẫm" };
 
@@ -268,13 +269,12 @@ export default async function ReflectionPage({ searchParams }: { searchParams: P
   return (
     <>
       <PageHeader title={t.reflection.title} subtitle={t.reflection.subtitle} />
-      <nav className="segmented mb-6 max-w-full overflow-x-auto bg-surface shadow-card" aria-label={t.reflection.title}>
-        {tabs.map((x) => (
-          <Link key={x.id} href={`/reflection?tab=${x.id}`} aria-current={tab === x.id ? "page" : undefined}>
-            {x.label}
-          </Link>
-        ))}
-      </nav>
+      <SegmentLinks
+        ariaLabel={t.reflection.title}
+        active={tab}
+        className="mb-6 max-w-full"
+        items={tabs.map((x) => ({ value: x.id, label: x.label, href: `/reflection?tab=${x.id}` }))}
+      />
       {body}
     </>
   );

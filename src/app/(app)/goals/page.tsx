@@ -8,6 +8,7 @@ import { GoalCard, NewGoalButton } from "@/components/goals";
 import { periodLabel } from "@/lib/goal-format";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/ui/empty";
+import { SegmentLinks } from "@/components/ui/segment-links";
 import { todayISO } from "@/lib/dates";
 
 export const metadata: Metadata = { title: "Mục tiêu" };
@@ -38,16 +39,11 @@ export default async function GoalsPage({ searchParams }: { searchParams: Promis
       <PageHeader title={t.goals.title} subtitle={t.goals.subtitle} action={<NewGoalButton options={options} defaults={{ horizon: horizon ?? "YEAR", year }} />} />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <nav className="segmented bg-surface shadow-card" aria-label={t.goals.fields.horizon}>
-          <Link href={href()} aria-current={!horizon ? "page" : undefined}>
-            {t.goals.all}
-          </Link>
-          {HORIZONS.map((h) => (
-            <Link key={h} href={href(h)} aria-current={horizon === h ? "page" : undefined}>
-              {t.goals.horizon[h]}
-            </Link>
-          ))}
-        </nav>
+        <SegmentLinks
+          ariaLabel={t.goals.fields.horizon}
+          active={horizon ?? "ALL"}
+          items={[{ value: "ALL", label: t.goals.all, href: href() }, ...HORIZONS.map((h) => ({ value: h, label: t.goals.horizon[h], href: href(h) }))]}
+        />
         <nav className="segmented bg-surface shadow-card" aria-label={t.goals.fields.year}>
           {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
             <Link key={y} href={href(horizon, y)} aria-current={year === y ? "page" : undefined} className="tabular">

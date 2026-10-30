@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, Lock, Minus } from "lucide-react";
 import { requireUser } from "@/lib/session";
 import { getI18n } from "@/lib/i18n";
@@ -11,6 +10,7 @@ import { isScheduled } from "@/lib/stats";
 import { PageHeader } from "@/components/page-header";
 import { BarList, ChartCard, ColumnChart, HabitHeatmap, ScoreLine } from "@/components/charts";
 import { CountUp } from "@/components/ui/count-up";
+import { SegmentLinks } from "@/components/ui/segment-links";
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = { title: "Phân tích" };
@@ -124,19 +124,22 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title={t.analytics.title} subtitle={t.analytics.subtitle} />
 
-      <nav className="segmented mb-2 max-w-full overflow-x-auto bg-surface shadow-card" aria-label={t.analytics.range}>
-        {RANGES.map((r) =>
-          allowed(r) ? (
-            <Link key={r} href={`/analytics?range=${r}`} aria-current={range === r ? "page" : undefined}>
-              {rangeLabel[r]}
-            </Link>
+      <SegmentLinks
+        ariaLabel={t.analytics.range}
+        active={range}
+        className="mb-2 max-w-full"
+        items={RANGES.map((r) => ({
+          value: r,
+          href: allowed(r) ? `/analytics?range=${r}` : "/pricing",
+          label: allowed(r) ? (
+            rangeLabel[r]
           ) : (
-            <Link key={r} href="/pricing" className="text-muted" title={t.analytics.freeLimit}>
+            <span className="inline-flex items-center gap-1.5 text-muted" title={t.analytics.freeLimit}>
               <Lock className="size-3.5" aria-hidden /> {rangeLabel[r]}
-            </Link>
+            </span>
           ),
-        )}
-      </nav>
+        }))}
+      />
       <p className="mb-6 text-sm text-muted">
         {formatDate(b.from, locale, { day: "numeric", month: "long" })} – {formatDate(b.to, locale, { day: "numeric", month: "long", year: "numeric" })}
         {limit < 30 && <> · {t.analytics.freeLimit}</>}

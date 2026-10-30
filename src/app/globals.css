@@ -418,8 +418,9 @@ h1, h2, h3 {
   }
   .segmented > [aria-pressed="true"],
   .segmented > [aria-current="page"] {
-    background: var(--surface);
-    color: var(--ink);
+    /* Chữ đậm cố định — mọi màu nhấn (ochre/jade/mist/rose) đều đủ sáng để tương phản tốt với #18161d ở cả 2 theme */
+    background: var(--accent);
+    color: #18161d;
     box-shadow: var(--shadow);
   }
 
