@@ -87,7 +87,15 @@ export function DesktopNav() {
         pillShadow={0}
         animationTime={550}
         gooeyness={0.55}
-        style={{ "--gn-gap": "2px", "--gn-x": "18px", "--gn-y": "11px", "--gn-pad": "6px" } as CSSProperties}
+        style={
+          {
+            "--gn-gap": "2px",
+            "--gn-x": "18px",
+            "--gn-y": "11px",
+            "--gn-pad": "6px",
+            "--gn-frame": "var(--surface)",
+          } as CSSProperties
+        }
       />
     </nav>
   );
