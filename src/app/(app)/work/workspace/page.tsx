@@ -6,7 +6,7 @@ import { fmt } from "@/lib/i18n/format";
 import { getWorkBoards } from "@/lib/work-queries";
 import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
-import { BoardSwitcher, NewBoardButton } from "./board-switcher";
+import { BoardSwitcher, NewBoardButton, DeleteBoardButton } from "./board-switcher";
 import { AddCardButton } from "./add-card-button";
 import { CardControls } from "./card-controls";
 
@@ -72,6 +72,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
                     <span style={{ width: `${pct}%` }} />
                   </div>
                   <span className="tabular text-sm text-ink-2">{fmt(w.progressDone, { done, total })}</span>
+                  <DeleteBoardButton boardId={active.id} />
                 </div>
               );
             })()}

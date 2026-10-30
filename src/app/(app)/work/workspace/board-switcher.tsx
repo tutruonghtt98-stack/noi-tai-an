@@ -1,12 +1,12 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
 import { SegmentLinks } from "@/components/ui/segment-links";
-import { createWorkBoard } from "@/actions/work";
+import { createWorkBoard, deleteWorkBoard } from "@/actions/work";
 
 export function BoardSwitcher({ boards, active }: { boards: { id: string; name: string; cards: number }[]; active?: string }) {
   const { t } = useI18n();
@@ -73,5 +73,30 @@ export function NewBoardButton({ primary = false }: { primary?: boolean }) {
         </form>
       </Modal>
     </>
+  );
+}
+
+export function DeleteBoardButton({ boardId }: { boardId: string }) {
+  const { t } = useI18n();
+  const w = t.work.workspace;
+  const router = useRouter();
+  const { exec, pending } = useAction();
+
+  return (
+    <button
+      type="button"
+      className="icon-btn icon-btn-plain shrink-0"
+      aria-label={w.deleteBoard}
+      title={w.deleteBoard}
+      disabled={pending}
+      onClick={() => {
+        if (!window.confirm(w.deleteBoard)) return;
+        exec(() => deleteWorkBoard(boardId), {
+          onSuccess: () => router.push("/work/workspace"),
+        });
+      }}
+    >
+      <Trash2 className="size-4" aria-hidden />
+    </button>
   );
 }
