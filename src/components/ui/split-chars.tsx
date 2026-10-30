@@ -1,5 +1,5 @@
 "use client";
-import { useRef } from "react";
+import { Fragment, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -23,12 +23,21 @@ export function SplitChars({ text, className, delay = 0 }: { text: string; class
     { dependencies: [text], scope: ref },
   );
 
+  const words = text.split(" ");
+
   return (
     <span ref={ref} className={className} aria-label={text}>
-      {[...text].map((ch, i) => (
-        <span key={i} aria-hidden data-char className="inline-block" style={ch === " " ? { whiteSpace: "pre" } : undefined}>
-          {ch}
-        </span>
+      {words.map((word, wi) => (
+        <Fragment key={wi}>
+          <span className="inline-block whitespace-nowrap">
+            {[...word].map((ch, ci) => (
+              <span key={ci} aria-hidden data-char className="inline-block">
+                {ch}
+              </span>
+            ))}
+          </span>
+          {wi < words.length - 1 ? " " : ""}
+        </Fragment>
       ))}
     </span>
   );

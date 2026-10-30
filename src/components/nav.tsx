@@ -59,6 +59,9 @@ export const NAV: Item[] = [
 
 const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
 
+/** Cộng đồng & Cài đặt chuyển sang thanh dọc bên trái (SideDock) nên bỏ khỏi thanh ngang. */
+const TOP_NAV = NAV.filter((i) => i.key !== "community" && i.key !== "settings");
+
 /** Thanh điều hướng dạng "pill" ở giữa header: hiệu ứng "giọt keo" lỏng chảy sang mục đang chọn (tablet/desktop). */
 export function DesktopNav() {
   const path = usePathname();
@@ -67,13 +70,13 @@ export function DesktopNav() {
   const theme = useAppTheme();
   const activeIndex = Math.max(
     0,
-    NAV.findIndex((i) => isActive(path, i.href)),
+    TOP_NAV.findIndex((i) => isActive(path, i.href)),
   );
 
   return (
     <nav aria-label={t.nav.mainNav} className="hidden md:block">
       <GooeyNav
-        items={NAV.map(({ href, key, icon: Icon }) => ({
+        items={TOP_NAV.map(({ href, key, icon: Icon }) => ({
           href,
           label: t.nav[key],
           icon: <Icon aria-hidden strokeWidth={1.9} />,

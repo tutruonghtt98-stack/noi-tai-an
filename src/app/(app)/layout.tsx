@@ -5,13 +5,15 @@ import { Logo } from "@/components/logo";
 import { DesktopNav, MobileNav } from "@/components/nav";
 import { ThemeToggle, UserMenu } from "@/components/user-menu";
 import { AlertsCenter } from "@/components/alerts-center";
+import { SideDock } from "@/components/side-dock";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const name = user.name ?? user.email ?? "Bạn";
 
   return (
-    <div className="mx-auto min-h-dvh max-w-[1440px] px-4 pb-28 sm:px-6 md:pb-12 lg:px-8">
+    <div className="mx-auto min-h-dvh max-w-[1440px] px-4 pb-28 sm:px-6 md:pb-12 lg:px-8 xl:pl-28">
+      <SideDock />
       <header className="flex items-center justify-between gap-4 py-3 md:py-4">
         <Link href="/dashboard" aria-label="Nội Tại Ẩn" className="shrink-0 rounded-xl">
           <Logo />
