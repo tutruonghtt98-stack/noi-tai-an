@@ -13,6 +13,7 @@ import { DisciplineCalendar, StatCard } from "@/components/dashboard";
 import { Planner } from "@/components/planner";
 import { db } from "@/lib/db";
 import { ProgressRing, ProgressBar } from "@/components/ui/progress-ring";
+import { CountUp } from "@/components/ui/count-up";
 import { Empty } from "@/components/ui/empty";
 import { EnableAlertsButton } from "@/components/alert-settings";
 import { QuoteRotator } from "@/components/quote-rotator";
@@ -115,15 +116,20 @@ export default async function DashboardPage() {
         <StatCard
           href="/goals"
           label={t.dashboard.activeGoals}
-          value={d.activeGoals.length}
+          value={<CountUp value={d.activeGoals.length} />}
           note={fmt(t.dashboard.completedThisMonth, { n: d.completedThisMonth })}
           tone={d.completedThisMonth > 0 ? "up" : "muted"}
         />
-        <StatCard href="/goals" label={t.dashboard.avgProgress} value={`${Math.round(d.avgProgress * 100)}%`} note={t.dashboard.acrossGoals} />
+        <StatCard
+          href="/goals"
+          label={t.dashboard.avgProgress}
+          value={<CountUp value={Math.round(d.avgProgress * 100)} suffix="%" />}
+          note={t.dashboard.acrossGoals}
+        />
         <StatCard
           href="/habits"
           label={t.dashboard.bestStreak}
-          value={d.bestStreak}
+          value={<CountUp value={d.bestStreak} />}
           note={t.dashboard.streakDays}
           tone={d.bestStreak >= 7 ? "up" : "warn"}
         />
@@ -132,7 +138,7 @@ export default async function DashboardPage() {
           label={t.dashboard.focusToday}
           value={
             <>
-              {d.day.focusMinutes}
+              <CountUp value={d.day.focusMinutes} />
               <span className="ml-1 text-lg font-medium text-muted">{t.common.min}</span>
             </>
           }
