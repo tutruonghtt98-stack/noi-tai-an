@@ -157,22 +157,8 @@ export default async function DashboardPage() {
         />
       </section>
 
-      {/* Phiên tập trung */}
-      <section className="card rise flex flex-col xl:col-span-4 xl:row-span-2" style={{ animationDelay: "180ms" }} aria-label={t.focus.title}>
-        <CardHead title={t.focus.title} href="/today" label={t.nav.today} />
-        <div className="flex flex-1 items-center justify-center">
-          <FocusTimer
-            compact
-            focusMinutes={user.focusMinutes}
-            breakMinutes={user.breakMinutes}
-            tasks={d.day.tasks.filter((x) => !x.done).map((x) => ({ id: x.id, title: x.title }))}
-            stats={{ count: d.day.focusCount, minutes: d.day.focusMinutes }}
-          />
-        </div>
-      </section>
-
       {/* Timeline */}
-      <section className="card rise min-w-0 md:col-span-2 xl:col-span-8" style={{ animationDelay: "240ms" }} aria-labelledby="planner">
+      <section className="card rise min-w-0 md:col-span-2 xl:col-span-12" style={{ animationDelay: "180ms" }} aria-labelledby="planner">
         <div className="mb-5 flex items-center justify-between gap-3 border-b border-line pb-4">
           <h2 id="planner" className="card-title text-[1.375rem]">
             <SplitChars text={t.dashboard.planner} />
@@ -199,6 +185,20 @@ export default async function DashboardPage() {
             color: x.goal?.color ?? null,
           }))}
         />
+      </section>
+
+      {/* Phiên tập trung */}
+      <section className="card rise flex flex-col xl:col-span-4" style={{ animationDelay: "240ms" }} aria-label={t.focus.title}>
+        <CardHead title={t.focus.title} href="/today" label={t.nav.today} />
+        <div className="flex flex-1 items-center justify-center">
+          <FocusTimer
+            compact
+            focusMinutes={user.focusMinutes}
+            breakMinutes={user.breakMinutes}
+            tasks={d.day.tasks.filter((x) => !x.done).map((x) => ({ id: x.id, title: x.title }))}
+            stats={{ count: d.day.focusCount, minutes: d.day.focusMinutes }}
+          />
+        </div>
       </section>
 
       {/* Top 3 */}
