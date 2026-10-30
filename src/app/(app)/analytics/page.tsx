@@ -10,6 +10,7 @@ import { limitsFor } from "@/lib/plan";
 import { isScheduled } from "@/lib/stats";
 import { PageHeader } from "@/components/page-header";
 import { BarList, ChartCard, ColumnChart, HabitHeatmap, ScoreLine } from "@/components/charts";
+import { CountUp } from "@/components/ui/count-up";
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = { title: "Phân tích" };
@@ -145,10 +146,18 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         {/* KPI */}
         <section className="card grid grid-cols-2 gap-3 p-3 sm:p-4 lg:col-span-2 lg:grid-cols-4" aria-label={t.analytics.title}>
           {[
-            { l: t.analytics.avgScore, v: String(cur.avgScore), d: <Delta cur={cur.avgScore} prev={prev.avgScore} label={t.analytics.vsPrev} /> },
-            { l: t.analytics.focusTotal, v: minutes(cur.focusMinutes), d: <Delta cur={cur.focusMinutes} prev={prev.focusMinutes} label={t.analytics.vsPrev} /> },
-            { l: t.analytics.tasksDone, v: String(cur.tasksDone), d: <Delta cur={cur.tasksDone} prev={prev.tasksDone} label={t.analytics.vsPrev} /> },
-            { l: t.analytics.habitRate, v: pctStr(cur), d: <Delta cur={cur.habitRate} prev={prev.habitRate} pct label={t.analytics.vsPrev} /> },
+            { l: t.analytics.avgScore, v: <CountUp value={cur.avgScore} />, d: <Delta cur={cur.avgScore} prev={prev.avgScore} label={t.analytics.vsPrev} /> },
+            {
+              l: t.analytics.focusTotal,
+              v: <CountUp value={cur.focusMinutes} shape="minutes" />,
+              d: <Delta cur={cur.focusMinutes} prev={prev.focusMinutes} label={t.analytics.vsPrev} />,
+            },
+            { l: t.analytics.tasksDone, v: <CountUp value={cur.tasksDone} />, d: <Delta cur={cur.tasksDone} prev={prev.tasksDone} label={t.analytics.vsPrev} /> },
+            {
+              l: t.analytics.habitRate,
+              v: <CountUp value={cur.habitRate * 100} suffix="%" />,
+              d: <Delta cur={cur.habitRate} prev={prev.habitRate} pct label={t.analytics.vsPrev} />,
+            },
           ].map((k) => (
             <div key={k.l} className="rounded-[1.5rem] bg-surface-2 p-5">
               <p className="text-sm font-medium text-ink-2">{k.l}</p>
