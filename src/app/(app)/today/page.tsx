@@ -9,6 +9,7 @@ import { TaskBoard, PullList } from "@/components/tasks";
 import { FocusTimer } from "@/components/focus-timer";
 import { HabitQuickList } from "@/components/habits";
 import { IntentionCard } from "./intention";
+import { SplitChars } from "@/components/ui/split-chars";
 
 export const metadata: Metadata = { title: "Thực thi" };
 
@@ -38,11 +39,13 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     <>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4 md:mb-8">
         <div>
-          <p className="text-sm font-medium uppercase tracking-[0.14em] text-muted">{t.today.title}</p>
+          <p className="text-sm font-medium uppercase tracking-[0.14em] text-muted">
+            <SplitChars text={t.today.title} />
+          </p>
           <h1 className="mt-1 text-3xl font-semibold first-letter:uppercase sm:text-[2.5rem]">
-            {rel ?? formatDate(date, locale, { weekday: "long" })}
+            <SplitChars text={rel ?? formatDate(date, locale, { weekday: "long" })} />
             <span className="ml-3 align-middle text-lg font-normal normal-case text-muted">
-              {formatDate(date, locale, { weekday: rel ? "long" : undefined, day: "numeric", month: "long" })}
+              <SplitChars text={formatDate(date, locale, { weekday: rel ? "long" : undefined, day: "numeric", month: "long" })} delay={0.08} />
             </span>
           </h1>
         </div>
