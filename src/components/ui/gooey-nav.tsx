@@ -132,7 +132,7 @@ const SIZES: Record<Size, Record<string, string>> = {
 const ROOT = "relative inline-flex max-w-full text-[length:var(--gn-font)] leading-[1.2]";
 const FRAMED =
   "rounded-full p-[var(--gn-pad)] backdrop-blur-[20px] backdrop-saturate-[1.6] [background:var(--gn-frame)] [box-shadow:var(--gn-frame-shadow)]";
-const LIST_BASE = "m-0 flex list-none flex-wrap gap-[var(--gn-gap)] p-0";
+const LIST_BASE = "no-scrollbar m-0 flex list-none flex-nowrap gap-[var(--gn-gap)] overflow-x-auto p-0";
 const LIST = `relative ${LIST_BASE}`;
 const OVERLAY = `${LIST_BASE} pointer-events-none invisible absolute inset-0 text-[var(--gn-active-ink)] [clip-path:inset(100%)]`;
 const LINK_BASE =
@@ -876,7 +876,7 @@ export function GooeyNav({
       );
       if (!interactive) {
         return (
-          <li key={index} className="flex">
+          <li key={index} className="flex shrink-0">
             <span className={GHOST}>{content}</span>
           </li>
         );
@@ -897,7 +897,7 @@ export function GooeyNav({
         },
       };
       return (
-        <li key={index} className="group flex" data-gooey-index={index} data-active={index === current ? "" : undefined}>
+        <li key={index} className="group flex shrink-0" data-gooey-index={index} data-active={index === current ? "" : undefined}>
           {item.href ? (
             <a href={item.href} {...shared}>
               {content}

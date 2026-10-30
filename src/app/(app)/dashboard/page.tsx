@@ -60,12 +60,28 @@ export default async function DashboardPage() {
   const band = scoreBand(d.score);
   const habitsLeft = d.dueHabits.filter((h) => !h.stats.doneToday).length;
   const prioritiesLeft = d.priorities.filter((p) => !p.done).length;
+  const scoreTrend = Object.entries(d.calendar.days)
+    .filter(([iso]) => iso <= today)
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .slice(-14)
+    .map(([, v]) => v ?? 0);
 
   return (
     <div className="grid grid-cols-1 gap-[var(--gap)] md:grid-cols-2 xl:grid-cols-12">
-      <div className="xl:col-span-12">
-        <SplitHeading text={t.nav.dashboard} className="text-2xl font-semibold sm:text-[2rem]" />
-        <p className="mt-2 text-ink-2">{t.dashboard.subtitle}</p>
+      <div className="flex flex-wrap items-end justify-between gap-4 xl:col-span-12">
+        <div>
+          <SplitHeading text={t.nav.dashboard} className="text-2xl font-semibold sm:text-[2rem]" />
+          <p className="mt-2 text-ink-2">{t.dashboard.subtitle}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="badge inline-flex items-center gap-2">
+            <span className={cn("size-2 rounded-full", band === "high" ? "bg-success" : band === "mid" ? "bg-ochre" : "bg-muted")} aria-hidden />
+            {t.dashboard.disciplineToday}: {d.score}/100
+          </span>
+          <Link href="/today" className="btn btn-primary btn-sm">
+            {t.dashboard.planDay}
+          </Link>
+        </div>
       </div>
       {/* Lời chào + điểm kỷ luật */}
       <section className="card hero-glow rise flex flex-col md:col-span-2 xl:col-span-4" aria-label={t.greet.hello}>
@@ -130,12 +146,14 @@ export default async function DashboardPage() {
           note={fmt(t.dashboard.completedThisMonth, { n: d.completedThisMonth })}
           tone={d.completedThisMonth > 0 ? "up" : "muted"}
           featured
+          spark={scoreTrend}
         />
         <StatCard
           href="/goals"
           label={t.dashboard.avgProgress}
           value={<CountUp value={Math.round(d.avgProgress * 100)} suffix="%" />}
           note={t.dashboard.acrossGoals}
+          spark={scoreTrend}
         />
         <StatCard
           href="/habits"
@@ -143,6 +161,7 @@ export default async function DashboardPage() {
           value={<CountUp value={d.bestStreak} />}
           note={t.dashboard.streakDays}
           tone={d.bestStreak >= 7 ? "up" : "warn"}
+          spark={scoreTrend}
         />
         <StatCard
           href="/today"
@@ -155,6 +174,7 @@ export default async function DashboardPage() {
           }
           note={fmt(t.dashboard.ofGoal, { n: user.dailyFocusGoal })}
           tone={d.day.focusMinutes >= user.dailyFocusGoal ? "up" : "warn"}
+          spark={scoreTrend}
         />
       </section>
 

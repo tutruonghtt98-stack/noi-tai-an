@@ -28,6 +28,8 @@ const en: Dict = {
     archive: "Archive",
     comingSoon: "Coming soon",
     upgrade: "Upgrade to Pro",
+    notifications: "Notifications",
+    daysLeft: "{plan} · {n} days left",
     planLimitGoals: "The Free plan allows up to {n} active goals. Upgrade to Pro for unlimited.",
     planLimitHabits: "The Free plan allows up to {n} habits. Upgrade to Pro for unlimited.",
   },

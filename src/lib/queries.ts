@@ -311,6 +311,19 @@ export async function getMonthCalendar(user: CurrentUser, year: number, month: n
   return { year, month, days };
 }
 
+/** Vài người cùng nhóm đồng hành (tối đa `take`) — hiện dải avatar trên header, giống "collaborators" của Corbel. */
+export async function getHeaderGroupmates(userId: string, take = 3) {
+  const memberships = await db.groupMember.findMany({ where: { userId }, select: { groupId: true }, take: 5 });
+  if (!memberships.length) return [];
+  const rows = await db.groupMember.findMany({
+    where: { groupId: { in: memberships.map((m) => m.groupId) }, userId: { not: userId } },
+    select: { user: { select: { id: true, name: true, image: true } } },
+    distinct: ["userId"],
+    take,
+  });
+  return rows.map((r) => r.user);
+}
+
 // ---------- Suy ngẫm ẩn danh ----------
 
 export type RandomJournal = {

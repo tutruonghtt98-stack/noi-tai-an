@@ -4,6 +4,7 @@ import type { Dict } from "@/lib/i18n/vi";
 import { dayOfWeek, monthBounds, rangeISO, type ISODate } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 import { StatIcon } from "@/components/ui/stat-icon";
+import { Sparkline } from "@/components/ui/sparkline";
 
 export function StatCard({
   label,
@@ -12,6 +13,7 @@ export function StatCard({
   tone = "muted",
   href,
   featured = false,
+  spark,
 }: {
   label: string;
   value: React.ReactNode;
@@ -20,12 +22,14 @@ export function StatCard({
   href: string;
   /** Thẻ nổi bật nền tối (kiểu Corbel) — dùng cho ô số liệu quan trọng nhất trong hàng. */
   featured?: boolean;
+  /** Biểu đồ mini theo chuỗi giá trị gần đây (vd. 14 ngày gần nhất). */
+  spark?: number[];
 }) {
   return (
     <Link
       href={href}
       className={cn(
-        "group flex min-h-44 flex-col rounded-[1.5rem] p-5 transition-colors",
+        "group flex min-h-44 flex-col overflow-hidden rounded-[1.5rem] p-5 transition-colors",
         featured ? "bg-ink text-bg hover:bg-ink/90" : "bg-surface-2 hover:bg-surface-3",
       )}
     >
@@ -51,6 +55,11 @@ export function StatCard({
       >
         {note}
       </span>
+      {spark && spark.length > 1 && (
+        <div className={cn("mt-2", featured ? "text-bg/70" : "text-accent-ink")}>
+          <Sparkline data={spark} />
+        </div>
+      )}
     </Link>
   );
 }

@@ -14,11 +14,14 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({ className, subtitle }: { className?: string; subtitle?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <LogoMark />
-      <span className="whitespace-nowrap text-xl font-semibold tracking-tight">Nội Tại Ẩn</span>
+      <span className="flex flex-col leading-tight">
+        <span className="whitespace-nowrap text-xl font-semibold tracking-tight">Nội Tại Ẩn</span>
+        {subtitle && <span className="whitespace-nowrap text-xs text-muted">{subtitle}</span>}
+      </span>
     </span>
   );
 }

@@ -26,6 +26,8 @@ const vi = {
     archive: "Lưu trữ",
     comingSoon: "Sắp ra mắt",
     upgrade: "Nâng cấp Pro",
+    notifications: "Thông báo",
+    daysLeft: "{plan} · còn {n} ngày",
     planLimitGoals: "Gói Free cho phép tối đa {n} mục tiêu đang chạy. Nâng cấp Pro để không giới hạn.",
     planLimitHabits: "Gói Free cho phép tối đa {n} thói quen. Nâng cấp Pro để không giới hạn.",
   },

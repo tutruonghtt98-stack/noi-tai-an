@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { BarList, ChartCard, ColumnChart, HabitHeatmap, ScoreLine } from "@/components/charts";
 import { CountUp } from "@/components/ui/count-up";
 import { SegmentLinks } from "@/components/ui/segment-links";
+import { Sparkline } from "@/components/ui/sparkline";
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = { title: "Phân tích" };
@@ -149,17 +150,29 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         {/* KPI */}
         <section className="card grid grid-cols-2 gap-3 p-3 sm:p-4 lg:col-span-2 lg:grid-cols-4" aria-label={t.analytics.title}>
           {[
-            { l: t.analytics.avgScore, v: <CountUp value={cur.avgScore} />, d: <Delta cur={cur.avgScore} prev={prev.avgScore} label={t.analytics.vsPrev} /> },
+            {
+              l: t.analytics.avgScore,
+              v: <CountUp value={cur.avgScore} />,
+              d: <Delta cur={cur.avgScore} prev={prev.avgScore} label={t.analytics.vsPrev} />,
+              spark: days.map((d) => d.score ?? 0),
+            },
             {
               l: t.analytics.focusTotal,
               v: <CountUp value={cur.focusMinutes} shape="minutes" />,
               d: <Delta cur={cur.focusMinutes} prev={prev.focusMinutes} label={t.analytics.vsPrev} />,
+              spark: days.map((d) => d.focusMinutes),
             },
-            { l: t.analytics.tasksDone, v: <CountUp value={cur.tasksDone} />, d: <Delta cur={cur.tasksDone} prev={prev.tasksDone} label={t.analytics.vsPrev} /> },
+            {
+              l: t.analytics.tasksDone,
+              v: <CountUp value={cur.tasksDone} />,
+              d: <Delta cur={cur.tasksDone} prev={prev.tasksDone} label={t.analytics.vsPrev} />,
+              spark: days.map((d) => d.tasksDone),
+            },
             {
               l: t.analytics.habitRate,
               v: <CountUp value={cur.habitRate * 100} suffix="%" />,
               d: <Delta cur={cur.habitRate} prev={prev.habitRate} pct label={t.analytics.vsPrev} />,
+              spark: days.map((d) => (d.habitsDue ? d.habitsDone / d.habitsDue : 0)),
             },
           ].map((k, i) => (
             <div
@@ -172,6 +185,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
               <p className={cn("text-sm font-medium", i === 0 ? "opacity-80" : "text-ink-2")}>{k.l}</p>
               <p className="tabular mt-4 text-4xl font-semibold tracking-tight">{k.v}</p>
               <div className="mt-2">{k.d}</div>
+              <div className={cn("mt-2", i === 0 ? "text-accent" : "text-accent-ink")}>
+                <Sparkline data={k.spark} />
+              </div>
             </div>
           ))}
         </section>
