@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, ChevronRight, Plus } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { saveJournal, saveWeeklyReview, type JournalInput, type WeeklyInput } from "@/actions/reflection";
 import { CAUSES, type Cause } from "@/lib/reflection";
+import { addDays, formatDate, type ISODate } from "@/lib/dates";
+import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
 
 const MOODS = [1, 2, 3, 4, 5] as const;
@@ -18,7 +20,102 @@ function Area({ label, value, onChange, placeholder, rows = 3 }: { label: string
   );
 }
 
-export function JournalForm({ date, initial, locked }: { date: string; initial: JournalInput; locked: boolean }) {
+type JournalSummary = {
+  id: string;
+  date: ISODate;
+  mood: number | null;
+  wins: string | null;
+  lessons: string | null;
+  gratitude: string | null;
+  tomorrow: string | null;
+  procrastination: Cause[];
+  procrastinationNote: string | null;
+  isPublic: boolean;
+};
+
+/** Danh sách nhật ký đã viết + nút tạo mới mở popup nhập liệu. */
+export function JournalList({ entries, today }: { entries: JournalSummary[]; today: ISODate }) {
+  const { t, locale } = useI18n();
+  const [openDate, setOpenDate] = useState<ISODate | null>(null);
+  const minDate = addDays(today, -7);
+  const byDate = new Map(entries.map((e) => [e.date, e]));
+  const active = openDate ? byDate.get(openDate) : undefined;
+  const excerpt = (e: JournalSummary) => e.wins || e.lessons || e.gratitude || e.tomorrow || "";
+
+  return (
+    <>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h2 className="card-title">{t.reflection.tabDaily}</h2>
+        <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpenDate(today)}>
+          <Plus className="size-4" aria-hidden /> {t.reflection.newEntry}
+        </button>
+      </div>
+      {entries.length === 0 ? (
+        <p className="py-10 text-center text-sm text-muted">{t.reflection.listEmpty}</p>
+      ) : (
+        <ul className="grid gap-2">
+          {entries.map((e) => (
+            <li key={e.id}>
+              <button
+                type="button"
+                onClick={() => setOpenDate(e.date)}
+                className="flex w-full items-start gap-3 rounded-2xl bg-surface-2 p-4 text-left transition-colors hover:bg-surface-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium first-letter:uppercase">
+                      {formatDate(e.date, locale, { weekday: "short", day: "numeric", month: "short" })}
+                    </span>
+                    {e.mood != null && <span className="badge">{e.mood}/5</span>}
+                    {e.isPublic && <span className="badge bg-accent-soft text-accent-ink">{t.reflection.publicToggle}</span>}
+                  </div>
+                  <p className="mt-1 truncate text-sm text-ink-2">{excerpt(e) || "—"}</p>
+                </div>
+                <ChevronRight className="size-5 shrink-0 text-muted" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Modal
+        open={openDate !== null}
+        onClose={() => setOpenDate(null)}
+        title={openDate ? formatDate(openDate, locale, { weekday: "long", day: "numeric", month: "long" }) : ""}
+      >
+        {openDate && (
+          <JournalForm
+            key={openDate}
+            date={openDate}
+            locked={openDate < minDate}
+            onSaved={() => setOpenDate(null)}
+            initial={{
+              mood: active?.mood ?? null,
+              wins: active?.wins ?? "",
+              lessons: active?.lessons ?? "",
+              gratitude: active?.gratitude ?? "",
+              tomorrow: active?.tomorrow ?? "",
+              procrastination: active?.procrastination ?? [],
+              procrastinationNote: active?.procrastinationNote ?? "",
+              isPublic: active?.isPublic ?? false,
+            }}
+          />
+        )}
+      </Modal>
+    </>
+  );
+}
+
+export function JournalForm({
+  date,
+  initial,
+  locked,
+  onSaved,
+}: {
+  date: string;
+  initial: JournalInput;
+  locked: boolean;
+  onSaved?: () => void;
+}) {
   const { t } = useI18n();
   const { exec, pending } = useAction();
   const [f, setF] = useState({
@@ -40,7 +137,7 @@ export function JournalForm({ date, initial, locked }: { date: string; initial: 
       className="grid gap-5"
       onSubmit={(e) => {
         e.preventDefault();
-        exec(() => saveJournal(date, f), { success: t.common.saved });
+        exec(() => saveJournal(date, f), { success: t.common.saved, onSuccess: () => onSaved?.() });
       }}
     >
       <fieldset disabled={locked} className="grid gap-5 disabled:opacity-60">

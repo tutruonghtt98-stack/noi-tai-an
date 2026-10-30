@@ -289,6 +289,8 @@ const en: Dict = {
     tomorrow: "One improvement for tomorrow",
     tomorrowPh: "Specific, small, doable. E.g. phone off during the 9am session.",
     save: "Save journal",
+    newEntry: "New entry",
+    listEmpty: "No journal entries yet. Click \"New entry\" to start.",
     daySummary: "Today in numbers",
     causes: {
       unclear: "Unclear next step",

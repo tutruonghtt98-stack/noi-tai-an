@@ -287,6 +287,8 @@ const vi = {
     tomorrow: "Một cải thiện cho ngày mai",
     tomorrowPh: "Cụ thể, nhỏ, làm được. VD: Tắt điện thoại trong phiên 9h.",
     save: "Lưu nhật ký",
+    newEntry: "Tạo nhật ký mới",
+    listEmpty: "Chưa có nhật ký nào. Bấm \"Tạo nhật ký mới\" để bắt đầu.",
     daySummary: "Hôm nay bằng con số",
     causes: {
       unclear: "Không rõ bước tiếp theo",

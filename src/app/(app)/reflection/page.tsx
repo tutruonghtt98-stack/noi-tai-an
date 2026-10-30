@@ -10,7 +10,7 @@ import { getDailyStats, getHabitsWithStats, getRandomPublicJournals, summarize }
 import { CAUSES, type Cause } from "@/lib/reflection";
 import { PageHeader } from "@/components/page-header";
 import { BarList } from "@/components/charts";
-import { JournalForm, WeeklyForm } from "./forms";
+import { JournalList, WeeklyForm } from "./forms";
 
 export const metadata: Metadata = { title: "Suy ngẫm" };
 
@@ -43,45 +43,28 @@ export default async function ReflectionPage({ searchParams }: { searchParams: P
   let body: React.ReactNode;
 
   if (tab === "daily") {
-    const date = isValidISO(sp.date) && sp.date <= today ? sp.date : today;
-    const locked = date < addDays(today, -7);
     const habits = await getHabitsWithStats(user, today, 60);
-    const [entry, [day]] = await Promise.all([
-      db.journalEntry.findUnique({ where: { userId_date: { userId: user.id, date: toDbDate(date) } } }),
-      getDailyStats(user, date, date, today, habits),
+    const [entries, [day]] = await Promise.all([
+      db.journalEntry.findMany({ where: { userId: user.id }, orderBy: { date: "desc" }, take: 90 }),
+      getDailyStats(user, today, today, today, habits),
     ]);
     body = (
       <div className="grid grid-cols-1 gap-[var(--gap)] lg:grid-cols-[minmax(0,1fr)_320px]">
         <section className="card" aria-labelledby="journal">
-          <div className="mb-6 flex items-center justify-between gap-3">
-            <h2 id="journal" className="card-title first-letter:uppercase">
-              {formatDate(date, locale, { weekday: "long", day: "numeric", month: "long" })}
-            </h2>
-            <div className="flex gap-2">
-              <Link href={`/reflection?date=${addDays(date, -1)}`} className="icon-btn" aria-label={t.common.prev}>
-                <ChevronLeft className="size-5" aria-hidden />
-              </Link>
-              {date < today && (
-                <Link href={`/reflection?date=${addDays(date, 1)}`} className="icon-btn" aria-label={t.common.next}>
-                  <ChevronRight className="size-5" aria-hidden />
-                </Link>
-              )}
-            </div>
-          </div>
-          <JournalForm
-            key={date}
-            date={date}
-            locked={locked}
-            initial={{
-              mood: entry?.mood ?? null,
-              wins: entry?.wins ?? "",
-              lessons: entry?.lessons ?? "",
-              gratitude: entry?.gratitude ?? "",
-              tomorrow: entry?.tomorrow ?? "",
-              procrastination: (entry?.procrastination ?? []) as Cause[],
-              procrastinationNote: entry?.procrastinationNote ?? "",
-              isPublic: entry?.isPublic ?? false,
-            }}
+          <JournalList
+            today={today}
+            entries={entries.map((e) => ({
+              id: e.id,
+              date: fromDbDate(e.date),
+              mood: e.mood,
+              wins: e.wins,
+              lessons: e.lessons,
+              gratitude: e.gratitude,
+              tomorrow: e.tomorrow,
+              procrastination: e.procrastination as Cause[],
+              procrastinationNote: e.procrastinationNote,
+              isPublic: e.isPublic,
+            }))}
           />
         </section>
         <aside className="card h-fit" aria-labelledby="day-sum">
