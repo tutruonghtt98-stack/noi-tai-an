@@ -19,7 +19,7 @@ export default async function SettingsPage() {
   return (
     <>
       <PageHeader title={t.settings.title} />
-      <div className="grid grid-cols-1 gap-[var(--gap)] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-[var(--gap)]">
         <section className="card" aria-labelledby="appearance">
           <h2 id="appearance" className="card-title">
             {t.settings.appearance}
@@ -35,8 +35,7 @@ export default async function SettingsPage() {
           />
         </section>
 
-        <div className="grid min-w-0 grid-cols-1 content-start gap-[var(--gap)]">
-          <section className="card" aria-labelledby="plan">
+        <section className="card" aria-labelledby="plan">
             <h2 id="plan" className="card-title">
               {t.settings.plan}
             </h2>
@@ -112,7 +111,6 @@ export default async function SettingsPage() {
               {t.settings.exportData}
             </a>
           </section>
-        </div>
       </div>
     </>
   );
