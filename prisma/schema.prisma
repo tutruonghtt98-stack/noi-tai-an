@@ -107,6 +107,7 @@ model User {
   weeklyReviews WeeklyReview[]
   orders        Order[]
   workCustomers WorkCustomer[]
+  workBoards    WorkBoard[]
 
   posts                    Post[]
   cheers                   Cheer[]
@@ -370,6 +371,50 @@ model WorkCustomer {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model WorkBoard {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  dueDate     DateTime?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lists WorkList[]
+
+  @@index([userId])
+}
+
+model WorkList {
+  id        String @id @default(cuid())
+  boardId   String
+  name      String
+  color     String // "muted" | "mist" | "ochre" | "jade"
+  sortOrder Int    @default(0)
+
+  board WorkBoard  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards WorkCard[]
+
+  @@index([boardId])
+}
+
+model WorkCard {
+  id              String    @id @default(cuid())
+  listId          String
+  label           String?
+  title           String
+  checklistDone   Int       @default(0)
+  checklistTotal  Int       @default(0)
+  dueDate         DateTime?
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+
+  list WorkList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
 }
 
 model WeeklyReview {

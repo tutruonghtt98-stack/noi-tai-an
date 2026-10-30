@@ -14,8 +14,7 @@ import {
   Ellipsis,
   Package,
   ShoppingBag,
-  MessageSquare,
-  Workflow,
+  Kanban,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -63,9 +62,8 @@ export const WORK_NAV: WorkItem[] = [
   { href: "/work/orders", key: "orders", icon: Package },
   { href: "/work/products", key: "products", icon: ShoppingBag },
   { href: "/work/customers", key: "customers", icon: Users },
-  { href: "/work/messages", key: "messages", icon: MessageSquare },
+  { href: "/work/workspace", key: "workspace", icon: Kanban },
   { href: "/work/analytics", key: "analytics", icon: ChartColumn },
-  { href: "/work/automations", key: "automations", icon: Workflow },
 ];
 
 /** Thanh điều hướng dạng "pill" ở giữa header: hiệu ứng "giọt keo" lỏng chảy sang mục đang chọn (tablet/desktop). */

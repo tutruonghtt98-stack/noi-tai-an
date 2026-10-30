@@ -55,3 +55,27 @@ export async function getWorkStats(userId: string) {
     subscribers: tagCount("Đăng ký nhận tin"),
   };
 }
+
+// ---------- Workspace (Kanban) ----------
+
+export const DEFAULT_LISTS: { name: string; color: string }[] = [
+  { name: "listToDo", color: "muted" },
+  { name: "listInProgress", color: "mist" },
+  { name: "listReview", color: "ochre" },
+  { name: "listDone", color: "jade" },
+];
+
+export async function getWorkBoards(userId: string) {
+  return db.workBoard.findMany({
+    where: { userId },
+    orderBy: { sortOrder: "asc" },
+    include: {
+      lists: {
+        orderBy: { sortOrder: "asc" },
+        include: { cards: { orderBy: { sortOrder: "asc" } } },
+      },
+    },
+  });
+}
+
+export type WorkBoardWithLists = Awaited<ReturnType<typeof getWorkBoards>>[number];
