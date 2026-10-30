@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
-import { DEFAULT_LISTS, ORDER_STATUSES } from "@/lib/work-queries";
+import { DEFAULT_LISTS, ORDER_STATUSES, PRODUCT_STATUSES } from "@/lib/work-queries";
 
 const customerSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -186,5 +186,49 @@ export async function deleteWorkOrder(id: string) {
     if (!order || order.userId !== user.id) throw new UserError("VALIDATION");
     await db.workOrder.delete({ where: { id } });
     revalidatePath("/work/orders");
+  });
+}
+
+// ---------- Products ----------
+
+const productSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  sku: z.string().trim().min(1).max(40),
+  category: z.string().trim().min(1).max(40),
+  priceCents: z.number().int().min(0).default(0),
+  costCents: z.number().int().min(0).default(0),
+  stock: z.number().int().min(0).max(999_999).default(0),
+  reorderAt: z.number().int().min(0).max(999_999).default(0),
+  status: z.enum(PRODUCT_STATUSES as [string, ...string[]]).default("ACTIVE"),
+});
+export type ProductInput = z.input<typeof productSchema>;
+
+export async function createWorkProduct(input: ProductInput) {
+  return run(async () => {
+    const user = await requireUser();
+    const data = productSchema.parse(input);
+    await db.workProduct.create({ data: { ...data, userId: user.id } });
+    revalidatePath("/work/products");
+  });
+}
+
+export async function updateWorkProductStatus(id: string, status: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const product = await db.workProduct.findUnique({ where: { id }, select: { userId: true } });
+    if (!product || product.userId !== user.id) throw new UserError("VALIDATION");
+    if (!PRODUCT_STATUSES.includes(status as (typeof PRODUCT_STATUSES)[number])) throw new UserError("VALIDATION");
+    await db.workProduct.update({ where: { id }, data: { status } });
+    revalidatePath("/work/products");
+  });
+}
+
+export async function deleteWorkProduct(id: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const product = await db.workProduct.findUnique({ where: { id }, select: { userId: true } });
+    if (!product || product.userId !== user.id) throw new UserError("VALIDATION");
+    await db.workProduct.delete({ where: { id } });
+    revalidatePath("/work/products");
   });
 }
