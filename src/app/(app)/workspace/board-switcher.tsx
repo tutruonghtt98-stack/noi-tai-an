@@ -8,20 +8,17 @@ import { Modal } from "@/components/ui/modal";
 import { SegmentLinks } from "@/components/ui/segment-links";
 import { createWorkBoard, deleteWorkBoard } from "@/actions/work";
 
-export function BoardSwitcher({ boards, active }: { boards: { id: string; name: string; cards: number }[]; active?: string }) {
+export function BoardSwitcher({ boards, active, assignedCount }: { boards: { id: string; name: string; cards: number }[]; active?: string; assignedCount?: number }) {
   const { t } = useI18n();
-  if (!boards.length) return null;
-  return (
-    <SegmentLinks
-      ariaLabel={t.work.workspace.title}
-      active={active ?? boards[0]!.id}
-      items={boards.map((b) => ({
-        value: b.id,
-        href: `/workspace?b=${b.id}`,
-        label: b.cards > 0 ? `${b.name} ${b.cards}` : b.name,
-      }))}
-    />
-  );
+  const w = t.work.workspace;
+  const items = [
+    ...boards.map((b) => ({ value: b.id, href: `/workspace?b=${b.id}`, label: b.cards > 0 ? `${b.name} ${b.cards}` : b.name })),
+    ...(assignedCount != null
+      ? [{ value: "assigned", href: "/workspace?b=assigned", label: assignedCount > 0 ? `${w.assignedToMe} ${assignedCount}` : w.assignedToMe }]
+      : []),
+  ];
+  if (!items.length) return null;
+  return <SegmentLinks ariaLabel={w.title} active={active ?? items[0]!.value} items={items} />;
 }
 
 export function NewBoardButton({ primary = false }: { primary?: boolean }) {
