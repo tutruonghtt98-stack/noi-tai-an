@@ -3,10 +3,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
+import { fmt } from "@/lib/i18n/format";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
 import { SegmentLinks } from "@/components/ui/segment-links";
-import { createWorkBoard, deleteWorkBoard } from "@/actions/work";
+import { createWorkBoard, deleteWorkBoard, updateWorkBoard } from "@/actions/work";
 
 export function BoardSwitcher({
   boards,
@@ -126,6 +127,153 @@ export function NewBoardButton({ primary = false, teams = [] }: { primary?: bool
           <div className="flex justify-end">
             <button className="btn btn-primary" disabled={pending}>
               {w.createBoard}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </>
+  );
+}
+
+type BoardInfo = {
+  id: string;
+  name: string;
+  description: string | null;
+  dueDate: string | null;
+  assignee: string | null;
+  teamId: string | null;
+};
+
+/** Thanh thông tin bảng ở đầu trang Workspace — bấm vào (khi là chủ bảng) để mở popup chỉnh sửa tên/mô tả/hạn/người-team phụ trách. */
+export function BoardHeaderCard({
+  board,
+  title,
+  shared,
+  ownerName,
+  dueText,
+  cardsText,
+  progressPct,
+  progressText,
+  canManage,
+  teams = [],
+}: {
+  board: BoardInfo;
+  title: string;
+  shared: boolean;
+  ownerName: string | null;
+  dueText: string;
+  cardsText: string;
+  progressPct: number;
+  progressText: string;
+  canManage: boolean;
+  teams?: { id: string; name: string }[];
+}) {
+  const { t } = useI18n();
+  const w = t.work.workspace;
+  const { exec, pending } = useAction();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(board.name);
+  const [description, setDescription] = useState(board.description ?? "");
+  const [dueDate, setDueDate] = useState(board.dueDate ? board.dueDate.slice(0, 10) : "");
+  const [assignee, setAssignee] = useState(board.assignee ?? "");
+  const [teamId, setTeamId] = useState(board.teamId ?? "");
+
+  const openEdit = () => {
+    if (!canManage) return;
+    setName(board.name);
+    setDescription(board.description ?? "");
+    setDueDate(board.dueDate ? board.dueDate.slice(0, 10) : "");
+    setAssignee(board.assignee ?? "");
+    setTeamId(board.teamId ?? "");
+    setOpen(true);
+  };
+
+  const saveBoard = () => {
+    exec(
+      () =>
+        updateWorkBoard(board.id, {
+          name,
+          description: description || undefined,
+          dueDate: dueDate || undefined,
+          assignee: assignee || undefined,
+          teamId: teamId || undefined,
+        }),
+      { success: w.boardUpdated, onSuccess: () => setOpen(false) },
+    );
+  };
+
+  return (
+    <>
+      <section className="card mb-5 flex flex-wrap items-center justify-between gap-4" aria-label={title}>
+        <div
+          className={canManage ? "flex min-w-0 cursor-pointer items-center gap-3" : "flex min-w-0 items-center gap-3"}
+          role={canManage ? "button" : undefined}
+          tabIndex={canManage ? 0 : undefined}
+          onClick={openEdit}
+        >
+          <span className="size-2.5 shrink-0 rounded-full bg-ink" aria-hidden />
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 font-semibold">
+              {title}
+              {shared && <span className="chip chip-soft text-xs">{w.sharedBoardBadge}</span>}
+            </p>
+            <p className="mt-0.5 text-sm text-muted">
+              {dueText} · {cardsText}
+              {shared && ownerName ? ` · ${fmt(w.ownerLabel, { name: ownerName })}` : ""}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="progress w-32">
+            <span style={{ width: `${progressPct}%` }} />
+          </div>
+          <span className="tabular text-sm text-ink-2">{progressText}</span>
+          {canManage && <DeleteBoardButton boardId={board.id} />}
+        </div>
+      </section>
+
+      <Modal open={open} onClose={() => setOpen(false)} title={w.editBoardTitle}>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveBoard();
+          }}
+        >
+          <label className="field">
+            <span className="label">{w.boardName}</span>
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={w.boardNamePh} required maxLength={100} autoFocus />
+          </label>
+          <label className="field">
+            <span className="label">{w.boardDesc}</span>
+            <input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={w.boardDescPh} maxLength={200} />
+          </label>
+          <label className="field">
+            <span className="label">{w.boardDue}</span>
+            <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </label>
+          <label className="field">
+            <span className="label">{w.boardAssignee}</span>
+            <input className="input" type="email" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder={w.boardAssigneePh} maxLength={160} />
+            <span className="mt-1 block text-xs text-muted">{w.boardAssigneeHint}</span>
+          </label>
+          {teams.length > 0 && (
+            <label className="field">
+              <span className="label">{w.boardTeam}</span>
+              <select className="input" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+                <option value="">{w.boardTeamNone}</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-xs text-muted">{w.boardTeamHint}</span>
+            </label>
+          )}
+          <div className="flex justify-end">
+            <button className="btn btn-primary" disabled={pending}>
+              {w.save}
             </button>
           </div>
         </form>

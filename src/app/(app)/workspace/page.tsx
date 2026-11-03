@@ -7,7 +7,7 @@ import { getAccessibleBoards } from "@/lib/work-queries";
 import { getUserTeams } from "@/lib/department-queries";
 import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
-import { BoardSwitcher, NewBoardButton, DeleteBoardButton } from "./board-switcher";
+import { BoardHeaderCard, BoardSwitcher, NewBoardButton } from "./board-switcher";
 import { KanbanBoard, type SerializedList } from "./kanban-board";
 import { WorkspaceLiveSync } from "./live-sync";
 import type { ChecklistItem } from "@/lib/work-types";
@@ -71,35 +71,32 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
         </div>
       ) : (
         <>
-          <section className="card mb-5 flex flex-wrap items-center justify-between gap-4" aria-label={active.name}>
-            <div className="flex items-center gap-3">
-              <span className="size-2.5 shrink-0 rounded-full bg-ink" aria-hidden />
-              <div>
-                <p className="flex items-center gap-2 font-semibold">
-                  {active.description || active.name}
-                  {active.access !== "owner" && <span className="chip chip-soft text-xs">{w.sharedBoardBadge}</span>}
-                </p>
-                <p className="mt-0.5 text-sm text-muted">
-                  {dueLabel(active.dueDate) ?? w.noDue} · {fmt(w.cardsCount, { n: totalCards(active.lists) })}
-                  {active.access !== "owner" && active.user.name ? ` · ${fmt(w.ownerLabel, { name: active.user.name })}` : ""}
-                </p>
-              </div>
-            </div>
-            {(() => {
-              const total = totalCards(active.lists);
-              const done = active.lists.find((l) => l.name === "listDone")?.cards.length ?? 0;
-              const pct = total ? Math.round((done / total) * 100) : 0;
-              return (
-                <div className="flex items-center gap-3">
-                  <div className="progress w-32">
-                    <span style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="tabular text-sm text-ink-2">{fmt(w.progressDone, { done, total })}</span>
-                  {active.access === "owner" && <DeleteBoardButton boardId={active.id} />}
-                </div>
-              );
-            })()}
-          </section>
+          {(() => {
+            const total = totalCards(active.lists);
+            const done = active.lists.find((l) => l.name === "listDone")?.cards.length ?? 0;
+            const pct = total ? Math.round((done / total) * 100) : 0;
+            return (
+              <BoardHeaderCard
+                board={{
+                  id: active.id,
+                  name: active.name,
+                  description: active.description,
+                  dueDate: active.dueDate ? active.dueDate.toISOString() : null,
+                  assignee: active.assignee,
+                  teamId: active.teamId,
+                }}
+                title={active.description || active.name}
+                shared={active.access !== "owner"}
+                ownerName={active.access !== "owner" ? active.user.name : null}
+                dueText={dueLabel(active.dueDate) ?? w.noDue}
+                cardsText={fmt(w.cardsCount, { n: total })}
+                progressPct={pct}
+                progressText={fmt(w.progressDone, { done, total })}
+                canManage={active.access === "owner"}
+                teams={teamOptions}
+              />
+            );
+          })()}
 
           <KanbanBoard
             lists={active.lists.map(

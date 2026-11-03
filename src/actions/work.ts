@@ -127,6 +127,34 @@ export async function createWorkBoard(input: BoardInput) {
   });
 }
 
+export async function updateWorkBoard(id: string, input: BoardInput) {
+  return run(async () => {
+    const user = await requireUser();
+    const row = await db.workBoard.findUnique({ where: { id }, select: { userId: true, assigneeUserId: true, teamId: true } });
+    if (!row || row.userId !== user.id) throw new UserError("VALIDATION");
+    const { teamId: rawTeamId, ...data } = boardSchema.parse(input);
+    const teamId = await resolveTeam(user.id, rawTeamId);
+    const assigneeUserId = await resolveAssigneeId(data.assignee);
+    await db.workBoard.update({ where: { id }, data: { ...data, assigneeUserId, teamId } });
+    if (assigneeUserId && assigneeUserId !== user.id && assigneeUserId !== row.assigneeUserId) {
+      await db.notification.create({
+        data: {
+          userId: assigneeUserId,
+          actorId: user.id,
+          type: "WORK_BOARD_SHARED",
+          title: `${user.name ?? user.email ?? "Ai đó"} đã gắn bạn làm người phụ trách một bảng công việc`,
+          body: data.name,
+          href: "/workspace",
+        },
+      });
+    }
+    if (teamId && teamId !== row.teamId) {
+      await notifyTeamShared(teamId, user, `${user.name ?? user.email ?? "Ai đó"} đã chia sẻ bảng công việc với team của bạn`, data.name);
+    }
+    revalidatePath("/workspace");
+  });
+}
+
 export async function deleteWorkBoard(id: string) {
   return run(async () => {
     const user = await requireUser();
