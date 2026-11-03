@@ -34,7 +34,7 @@ export default async function WorkCustomersPage({ searchParams }: { searchParams
     if (merged.filter !== "all") params.set("filter", merged.filter);
     if (merged.sort !== "spend") params.set("sort", merged.sort);
     const qs = params.toString();
-    return `/work/customers${qs ? `?${qs}` : ""}`;
+    return `/customers${qs ? `?${qs}` : ""}`;
   };
 
   const c = t.work.customers;
@@ -82,7 +82,7 @@ export default async function WorkCustomersPage({ searchParams }: { searchParams
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <a href={`/api/work/customers/export?${new URLSearchParams({ ...(search ? { q: search } : {}), ...(filter !== "all" ? { filter } : {}) }).toString()}`} className="btn btn-soft">
+          <a href={`/api/customers/export?${new URLSearchParams({ ...(search ? { q: search } : {}), ...(filter !== "all" ? { filter } : {}) }).toString()}`} className="btn btn-soft">
             <Download className="size-4" aria-hidden /> {c.export}
           </a>
           <AddCustomerButton />

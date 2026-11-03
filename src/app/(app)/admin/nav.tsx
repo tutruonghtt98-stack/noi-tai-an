@@ -6,8 +6,6 @@ const ITEMS = [
   { href: "/admin", label: "Tổng quan" },
   { href: "/admin/users", label: "Người dùng & gói" },
   { href: "/admin/orders", label: "Giao dịch" },
-  { href: "/admin/moderation", label: "Kiểm duyệt" },
-  { href: "/admin/challenges", label: "Thử thách chính thức" },
 ];
 
 export function AdminNav() {

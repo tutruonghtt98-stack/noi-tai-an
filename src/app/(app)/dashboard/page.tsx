@@ -78,9 +78,6 @@ export default async function DashboardPage() {
             <span className={cn("size-2 rounded-full", band === "high" ? "bg-success" : band === "mid" ? "bg-ochre" : "bg-muted")} aria-hidden />
             {t.dashboard.disciplineToday}: {d.score}/100
           </span>
-          <Link href="/today" className="btn btn-primary btn-sm">
-            {t.dashboard.planDay}
-          </Link>
         </div>
       </div>
       {/* Lời chào + điểm kỷ luật */}
@@ -107,9 +104,9 @@ export default async function DashboardPage() {
           </span>
         </p>
         <div className="mt-auto flex flex-wrap gap-2.5 pt-8">
-          <Link href="/today" className="chip hover:bg-surface-3">
+          <span className="chip">
             <span className="chip-num tabular">{prioritiesLeft}</span> {t.dashboard.priorities}
-          </Link>
+          </span>
           <Link href="/habits" className="chip hover:bg-surface-3">
             <span className="chip-num tabular">{habitsLeft}</span> {t.dashboard.habitsLeft}
           </Link>
@@ -164,7 +161,7 @@ export default async function DashboardPage() {
           spark={scoreTrend}
         />
         <StatCard
-          href="/today"
+          href="/dashboard"
           label={t.dashboard.focusToday}
           value={
             <>
@@ -186,9 +183,6 @@ export default async function DashboardPage() {
           </h2>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <EnableAlertsButton />
-            <Link href="/today" className="btn btn-soft btn-sm">
-              {t.dashboard.planDay}
-            </Link>
           </div>
         </div>
         <Planner
@@ -210,7 +204,7 @@ export default async function DashboardPage() {
 
       {/* Phiên tập trung */}
       <section className="card rise flex flex-col xl:col-span-4" style={{ animationDelay: "240ms" }} aria-label={t.focus.title}>
-        <CardHead title={t.focus.title} href="/today" label={t.nav.today} />
+        <CardHead title={t.focus.title} />
         <div className="flex flex-1 items-center justify-center">
           <FocusTimer
             compact
@@ -224,13 +218,9 @@ export default async function DashboardPage() {
 
       {/* Top 3 */}
       <section className="card rise xl:col-span-4" style={{ animationDelay: "300ms" }} aria-labelledby="top3">
-        <CardHead title={t.dashboard.top3} href="/today" />
+        <CardHead title={t.dashboard.top3} />
         {d.priorities.length === 0 ? (
-          <Empty icon={Star} text={t.dashboard.top3Empty}>
-            <Link href="/today" className="btn btn-primary btn-sm">
-              {t.dashboard.planDay}
-            </Link>
-          </Empty>
+          <Empty icon={Star} text={t.dashboard.top3Empty} />
         ) : (
           <ol className="space-y-2">
             {d.priorities.map((p, i) => (

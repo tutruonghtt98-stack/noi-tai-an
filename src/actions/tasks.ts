@@ -2,7 +2,6 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { syncBadges } from "@/lib/badges";
-import { checkAchievements } from "@/lib/achievements";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -17,7 +16,6 @@ const time = z
   .optional();
 
 function touch(goalId?: string | null) {
-  revalidatePath("/today");
   revalidatePath("/dashboard");
   if (goalId) revalidatePath(`/goals/${goalId}`);
   revalidatePath("/goals");
@@ -96,7 +94,6 @@ export async function toggleTask(id: string) {
       data: { status: done ? "DONE" : "TODO", completedAt: done ? new Date() : null },
     });
     touch(task.goalId);
-    if (done) after(() => checkAchievements(user.id));
     return { done };
   });
 }
@@ -167,28 +164,6 @@ export async function setPriority(id: string, on: boolean) {
   });
 }
 
-// ---------- Daily plan ----------
-
-const planSchema = z.object({
-  intention: z.string().trim().max(400).nullable().optional(),
-  energy: z.coerce.number().int().min(1).max(5).nullable().optional(),
-});
-
-export async function saveDailyPlan(date: ISODate, input: z.input<typeof planSchema>) {
-  return run(async () => {
-    const user = await requireUser();
-    const d = toDbDate(isoDate.parse(date));
-    const data = planSchema.parse(input);
-    await db.dailyPlan.upsert({
-      where: { userId_date: { userId: user.id, date: d } },
-      update: data,
-      create: { userId: user.id, date: d, ...data },
-    });
-    revalidatePath("/today");
-    revalidatePath("/dashboard");
-  });
-}
-
 // ---------- Focus ----------
 
 const focusSchema = z.object({
@@ -217,11 +192,7 @@ export async function logFocusSession(input: z.input<typeof focusSchema>) {
         date: toDbDate(todayISO(user.timezone)),
       },
     });
-    after(async () => {
-      await syncBadges(user.id);
-      await checkAchievements(user.id);
-    });
-    revalidatePath("/today");
+    after(() => syncBadges(user.id));
     revalidatePath("/dashboard");
   });
 }

@@ -40,13 +40,12 @@ export type HabitView = Awaited<ReturnType<typeof getHabitsWithStats>>[number];
 
 export async function getDay(user: CurrentUser, date: ISODate) {
   const d = toDbDate(date);
-  const [tasks, plan, focus] = await Promise.all([
+  const [tasks, focus] = await Promise.all([
     db.task.findMany({
       where: { userId: user.id, date: d },
       orderBy: [{ priority: { sort: "asc", nulls: "last" } }, { status: "asc" }, { startTime: { sort: "asc", nulls: "last" } }, { sortOrder: "asc" }],
       include: { goal: { select: { id: true, title: true, color: true } } },
     }),
-    db.dailyPlan.findUnique({ where: { userId_date: { userId: user.id, date: d } } }),
     db.focusSession.findMany({ where: { userId: user.id, date: d }, orderBy: { startedAt: "asc" } }),
   ]);
   return {
@@ -60,32 +59,12 @@ export async function getDay(user: CurrentUser, date: ISODate) {
       done: t.status === "DONE",
       goal: t.goal,
     })),
-    plan: plan ? { intention: plan.intention, energy: plan.energy } : null,
     focusMinutes: focus.reduce((s, f) => s + f.actualMinutes, 0),
     focusCount: focus.length,
   };
 }
 export type DayView = Awaited<ReturnType<typeof getDay>>;
 export type TaskView = DayView["tasks"][number];
-
-export async function getBacklog(user: CurrentUser) {
-  return db.task.findMany({
-    where: { userId: user.id, date: null, status: "TODO" },
-    orderBy: { createdAt: "desc" },
-    take: 30,
-    select: { id: true, title: true, goal: { select: { id: true, title: true } } },
-  });
-}
-
-/** Việc cũ chưa xong (trước hôm nay) — gợi ý kéo sang hôm nay. */
-export async function getOverdue(user: CurrentUser, today: ISODate) {
-  return db.task.findMany({
-    where: { userId: user.id, status: "TODO", date: { lt: toDbDate(today), gte: toDbDate(addDays(today, -14)) } },
-    orderBy: { date: "desc" },
-    take: 20,
-    select: { id: true, title: true, date: true, goal: { select: { id: true, title: true } } },
-  });
-}
 
 // ---------- Goals ----------
 
@@ -283,24 +262,6 @@ export async function getDailyStats(user: CurrentUser, from: ISODate, to: ISODat
   return out;
 }
 
-/** Tổng hợp một khoảng ngày cho báo cáo tuần/tháng. */
-export function summarize(days: DayStat[]) {
-  const scored = days.filter((d) => d.score != null);
-  const sum = <K extends keyof DayStat>(k: K) => days.reduce((s, d) => s + (d[k] as number), 0);
-  const due = sum("habitsDue");
-  const pt = sum("prioritiesTotal");
-  return {
-    avgScore: scored.length ? Math.round(scored.reduce((s, d) => s + d.score!, 0) / scored.length) : 0,
-    focusMinutes: sum("focusMinutes"),
-    sessions: sum("sessions"),
-    tasksDone: sum("tasksDone"),
-    habitRate: due ? sum("habitsDone") / due : 0,
-    prioritiesRate: pt ? sum("prioritiesDone") / pt : 0,
-    best: scored.reduce<DayStat | null>((b, d) => (!b || d.score! > b.score! ? d : b), null),
-  };
-}
-export type Summary = ReturnType<typeof summarize>;
-
 /** Điểm kỷ luật cho từng ngày trong tháng (đến hôm nay). */
 export async function getMonthCalendar(user: CurrentUser, year: number, month: number, today: ISODate, habits: HabitView[]) {
   const { from, to } = monthBounds(year, month);
@@ -309,43 +270,6 @@ export async function getMonthCalendar(user: CurrentUser, year: number, month: n
   for (const iso of rangeISO(from, to)) days[iso] = null;
   for (const s of stats) days[s.date] = s.score;
   return { year, month, days };
-}
-
-/** Vài người cùng nhóm đồng hành (tối đa `take`) — hiện dải avatar trên header, giống "collaborators" của Corbel. */
-export async function getHeaderGroupmates(userId: string, take = 3) {
-  const memberships = await db.groupMember.findMany({ where: { userId }, select: { groupId: true }, take: 5 });
-  if (!memberships.length) return [];
-  const rows = await db.groupMember.findMany({
-    where: { groupId: { in: memberships.map((m) => m.groupId) }, userId: { not: userId } },
-    select: { user: { select: { id: true, name: true, image: true } } },
-    distinct: ["userId"],
-    take,
-  });
-  return rows.map((r) => r.user);
-}
-
-// ---------- Suy ngẫm ẩn danh ----------
-
-export type RandomJournal = {
-  id: string;
-  mood: number | null;
-  wins: string | null;
-  lessons: string | null;
-  gratitude: string | null;
-  tomorrow: string | null;
-};
-
-/** Vài mục nhật ký công khai (isPublic) ngẫu nhiên từ người dùng khác — không kèm userId/tên. */
-export async function getRandomPublicJournals(excludeUserId: string, take = 6): Promise<RandomJournal[]> {
-  return db.$queryRaw<RandomJournal[]>`
-    SELECT id, mood, wins, lessons, gratitude, tomorrow
-    FROM "JournalEntry"
-    WHERE "isPublic" = true
-      AND "userId" != ${excludeUserId}
-      AND (wins IS NOT NULL OR lessons IS NOT NULL OR gratitude IS NOT NULL OR tomorrow IS NOT NULL)
-    ORDER BY RANDOM()
-    LIMIT ${take}
-  `;
 }
 
 // ---------- Thông báo ----------

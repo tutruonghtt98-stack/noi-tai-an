@@ -3,20 +3,19 @@ import { requireUser } from "@/lib/session";
 import { effectivePlan } from "@/lib/plan";
 import { getI18n } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/format";
-import { getHeaderGroupmates, getHeaderNotifications } from "@/lib/queries";
+import { getHeaderNotifications } from "@/lib/queries";
 import { Logo } from "@/components/logo";
 import { DesktopNav, MobileNav } from "@/components/nav";
 import { ThemeToggle, UserMenu } from "@/components/user-menu";
 import { AlertsCenter } from "@/components/alerts-center";
 import { SideDock } from "@/components/side-dock";
-import { HeaderGroupmates } from "@/components/header-groupmates";
 import { NotificationBell } from "@/components/notification-bell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [user, { t }] = await Promise.all([requireUser(), getI18n()]);
   const name = user.name ?? user.email ?? "Bạn";
   const plan = effectivePlan(user);
-  const [groupmates, { items: notifications, unreadCount }] = await Promise.all([getHeaderGroupmates(user.id), getHeaderNotifications(user.id)]);
+  const { items: notifications, unreadCount } = await getHeaderNotifications(user.id);
 
   const planLabel = plan === "FREE" ? t.settings.planFree : plan === "PRO" ? t.settings.planPro : t.settings.planTeam;
   const daysLeft = user.planExpiresAt ? Math.max(0, Math.ceil((user.planExpiresAt.getTime() - Date.now()) / 86400000)) : null;
@@ -31,7 +30,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </Link>
         <DesktopNav />
         <div className="flex items-center gap-3">
-          <HeaderGroupmates people={groupmates} />
           <div className="flex items-center gap-2 rounded-full md:bg-surface md:p-1.5 md:shadow-card">
             <NotificationBell notifications={notifications} unreadCount={unreadCount} />
             <ThemeToggle />

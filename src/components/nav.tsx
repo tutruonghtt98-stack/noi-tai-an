@@ -2,19 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type CSSProperties } from "react";
-import {
-  LayoutGrid,
-  Target,
-  Repeat,
-  ListChecks,
-  ChartColumn,
-  NotebookPen,
-  Users,
-  Settings,
-  Ellipsis,
-  Kanban,
-  type LucideIcon,
-} from "lucide-react";
+import { LayoutGrid, Target, Repeat, Users, Kanban, ChartColumn, Settings, Ellipsis, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/client";
 import { Modal } from "@/components/ui/modal";
@@ -26,18 +14,17 @@ type Item = { href: string; key: keyof Dict["nav"]; icon: LucideIcon };
 
 export const NAV: Item[] = [
   { href: "/dashboard", key: "dashboard", icon: LayoutGrid },
-  { href: "/today", key: "today", icon: ListChecks },
-  { href: "/habits", key: "habits", icon: Repeat },
   { href: "/goals", key: "goals", icon: Target },
+  { href: "/habits", key: "habits", icon: Repeat },
+  { href: "/customers", key: "customers", icon: Users },
+  { href: "/workspace", key: "workspace", icon: Kanban },
   { href: "/analytics", key: "analytics", icon: ChartColumn },
-  { href: "/reflection", key: "reflection", icon: NotebookPen },
-  { href: "/community", key: "community", icon: Users },
   { href: "/settings", key: "settings", icon: Settings },
 ];
 
 const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
 
-/** Khớp theo href dài nhất (cụ thể nhất) — tránh "/work" khớp nhầm mọi "/work/*". */
+/** Khớp theo href dài nhất (cụ thể nhất). */
 const bestMatchIndex = (list: { href: string }[], path: string) => {
   let best = -1;
   let bestLen = -1;
@@ -53,25 +40,14 @@ const bestMatchIndex = (list: { href: string }[], path: string) => {
 /** Cài đặt chuyển sang thanh dọc bên trái (SideDock) nên bỏ khỏi thanh ngang. */
 const TOP_NAV = NAV.filter((i) => i.key !== "settings");
 
-type WorkItem = { href: string; key: keyof Dict["work"]["nav"]; icon: LucideIcon };
-
-export const WORK_NAV: WorkItem[] = [
-  { href: "/work", key: "dashboard", icon: LayoutGrid },
-  { href: "/work/customers", key: "customers", icon: Users },
-  { href: "/work/workspace", key: "workspace", icon: Kanban },
-];
-
 /** Thanh điều hướng dạng "pill" ở giữa header: hiệu ứng "giọt keo" lỏng chảy sang mục đang chọn (tablet/desktop). */
 export function DesktopNav() {
   const path = usePathname();
   const router = useRouter();
   const { t } = useI18n();
   const theme = useAppTheme();
-  const isWork = path.startsWith("/work");
-  const items = isWork
-    ? WORK_NAV.map(({ href, key, icon: Icon }) => ({ href, label: t.work.nav[key], icon: <Icon aria-hidden strokeWidth={1.9} /> }))
-    : TOP_NAV.map(({ href, key, icon: Icon }) => ({ href, label: t.nav[key], icon: <Icon aria-hidden strokeWidth={1.9} /> }));
-  const activeIndex = bestMatchIndex(isWork ? WORK_NAV : TOP_NAV, path);
+  const items = TOP_NAV.map(({ href, key, icon: Icon }) => ({ href, label: t.nav[key], icon: <Icon aria-hidden strokeWidth={1.9} /> }));
+  const activeIndex = bestMatchIndex(TOP_NAV, path);
 
   return (
     <nav aria-label={t.nav.mainNav} className="hidden md:block">

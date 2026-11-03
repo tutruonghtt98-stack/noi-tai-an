@@ -1,9 +1,9 @@
 import type { Plan, User } from "@/generated/prisma/client";
 
 export const PLAN_LIMITS = {
-  FREE: { activeGoals: 3, habits: 5, analyticsDays: 7, createChallenges: false, joinPublicGroups: false },
-  PRO: { activeGoals: Infinity, habits: Infinity, analyticsDays: 3650, createChallenges: true, joinPublicGroups: true },
-  TEAM: { activeGoals: Infinity, habits: Infinity, analyticsDays: 3650, createChallenges: true, joinPublicGroups: true },
+  FREE: { activeGoals: 3, habits: 5, analyticsDays: 7 },
+  PRO: { activeGoals: Infinity, habits: Infinity, analyticsDays: 3650 },
+  TEAM: { activeGoals: Infinity, habits: Infinity, analyticsDays: 3650 },
 } as const satisfies Record<Plan, unknown>;
 
 /** Gói thực tế: gói trả phí hết hạn sẽ quay về FREE. */

@@ -5,9 +5,8 @@ import { getI18n } from "@/lib/i18n";
 import { effectivePlan } from "@/lib/plan";
 import { PageHeader } from "@/components/page-header";
 import { AppearanceForm, ProfileForm } from "./forms";
-import { JourneyForm } from "./journey-form";
 import { AlertSettings } from "@/components/alert-settings";
-import { AvatarUploader } from "@/components/community/avatar-uploader";
+import { Avatar } from "@/components/ui/avatar";
 
 export const metadata: Metadata = { title: "Cài đặt" };
 
@@ -61,7 +60,7 @@ export default async function SettingsPage() {
               {t.settings.profile} · {t.settings.work}
             </h2>
             <div className="mt-4">
-              <AvatarUploader name={user.name ?? "?"} image={user.image} size={72} showRemove />
+              <Avatar name={user.name ?? "?"} image={user.image} size={72} />
             </div>
             <ProfileForm
               initial={{
@@ -81,26 +80,6 @@ export default async function SettingsPage() {
             </h2>
             <p className="mt-1 text-sm text-ink-2">{t.alerts.desc}</p>
             <AlertSettings />
-          </section>
-
-          <section className="card scroll-mt-6" id="journey" aria-labelledby="journey-h">
-            <h2 id="journey-h" className="card-title">
-              {t.community.profile.title}
-            </h2>
-            <JourneyForm
-              suggested={(user.email ?? "ban").split("@")[0]!.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20).padEnd(3, "0")}
-              initial={{
-                username: user.username ?? "",
-                bio: user.bio ?? "",
-                profilePublic: user.profilePublic,
-                showGoals: user.showGoals,
-                showStats: user.showStats,
-                showBadges: user.showBadges,
-                showChallenges: user.showChallenges,
-                leaderboardOptIn: user.leaderboardOptIn,
-                autoShareAchievements: user.autoShareAchievements,
-              }}
-            />
           </section>
 
           <section className="card" aria-labelledby="data">

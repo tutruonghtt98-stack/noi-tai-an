@@ -6,7 +6,7 @@ export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return new Response("Unauthorized", { status: 401 });
   const userId = session.user.id;
-  const [user, goals, projects, tasks, habits, habitLogs, focusSessions, dailyPlans] = await Promise.all([
+  const [user, goals, projects, tasks, habits, habitLogs, focusSessions] = await Promise.all([
     db.user.findUnique({
       where: { id: userId },
       select: { name: true, email: true, locale: true, timezone: true, plan: true, createdAt: true },
@@ -17,10 +17,9 @@ export async function GET() {
     db.habit.findMany({ where: { userId } }),
     db.habitLog.findMany({ where: { userId } }),
     db.focusSession.findMany({ where: { userId } }),
-    db.dailyPlan.findMany({ where: { userId } }),
   ]);
   const body = JSON.stringify(
-    { exportedAt: new Date().toISOString(), user, goals, projects, tasks, habits, habitLogs, focusSessions, dailyPlans },
+    { exportedAt: new Date().toISOString(), user, goals, projects, tasks, habits, habitLogs, focusSessions },
     null,
     2,
   );

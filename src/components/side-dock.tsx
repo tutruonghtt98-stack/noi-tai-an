@@ -1,7 +1,7 @@
 "use client";
 import { useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { User, Briefcase, Settings, Sparkles, Sun, Moon } from "lucide-react";
+import { Settings, Sparkles, Sun, Moon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAppTheme } from "@/lib/use-app-theme";
 import { setTheme } from "@/actions/settings";
@@ -16,7 +16,6 @@ export function SideDock() {
   const { t } = useI18n();
   const theme = useAppTheme();
   const [, startTransition] = useTransition();
-  const isWork = path.startsWith("/work");
 
   const toggleTheme = () => {
     const root = document.documentElement;
@@ -29,9 +28,6 @@ export function SideDock() {
   };
 
   const items: DockItemData[] = [
-    { icon: <User className="size-5" aria-hidden />, label: t.work.switcherPersonal, active: !isWork, onClick: () => router.push("/dashboard") },
-    { icon: <Briefcase className="size-5" aria-hidden />, label: t.work.switcherWork, active: isWork, onClick: () => router.push("/work/customers") },
-    { separator: true },
     { icon: <Settings className="size-5" aria-hidden />, label: t.nav.settings, active: isActive(path, "/settings"), onClick: () => router.push("/settings") },
     { icon: <Sparkles className="size-5 text-accent-ink" aria-hidden />, label: t.common.upgrade, onClick: () => router.push("/billing") },
     {

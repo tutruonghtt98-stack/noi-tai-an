@@ -17,7 +17,7 @@ export function BoardSwitcher({ boards, active }: { boards: { id: string; name: 
       active={active ?? boards[0]!.id}
       items={boards.map((b) => ({
         value: b.id,
-        href: `/work/workspace?b=${b.id}`,
+        href: `/workspace?b=${b.id}`,
         label: b.cards > 0 ? `${b.name} ${b.cards}` : b.name,
       }))}
     />
@@ -48,7 +48,7 @@ export function NewBoardButton({ primary = false }: { primary?: boolean }) {
               success: w.boardCreated,
               onSuccess: (id) => {
                 setOpen(false);
-                router.push(`/work/workspace?b=${id}`);
+                router.push(`/workspace?b=${id}`);
               },
             });
           }}
@@ -92,7 +92,7 @@ export function DeleteBoardButton({ boardId }: { boardId: string }) {
       onClick={() => {
         if (!window.confirm(w.deleteBoard)) return;
         exec(() => deleteWorkBoard(boardId), {
-          onSuccess: () => router.push("/work/workspace"),
+          onSuccess: () => router.push("/workspace"),
         });
       }}
     >

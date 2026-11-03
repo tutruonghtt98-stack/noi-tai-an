@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, LocateFixed } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
@@ -138,11 +137,10 @@ function DayTrack({ tasks, now }: { tasks: PlannerTask[]; now: number | null }) 
           {placed.map((p) => {
             const past = now != null && p.end < now;
             return (
-              <Link
-                href="/today"
+              <div
                 key={p.id}
                 className={cn(
-                  "absolute flex h-[68px] items-center gap-3 overflow-hidden rounded-[1.25rem] px-4 transition-[box-shadow,opacity] hover:shadow-card",
+                  "absolute flex h-[68px] items-center gap-3 overflow-hidden rounded-[1.25rem] px-4",
                   (p.done || past) && "opacity-55",
                 )}
                 style={{ left: p.start * PX_PER_HOUR + 2, width: p.w - 6, top: 36 + p.lane * ROW, background: softVar(p.c) }}
@@ -158,7 +156,7 @@ function DayTrack({ tasks, now }: { tasks: PlannerTask[]; now: number | null }) 
                     {p.estimateMin ? ` · ${p.estimateMin}′` : ""}
                   </span>
                 </span>
-              </Link>
+              </div>
             );
           })}
         </div>
@@ -190,11 +188,7 @@ function DayTrack({ tasks, now }: { tasks: PlannerTask[]; now: number | null }) 
             </button>
           )}
         </div>
-        {unscheduled > 0 && (
-          <Link href="/today" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
-            {fmt(t.timeline.unscheduled, { n: unscheduled })} →
-          </Link>
-        )}
+        {unscheduled > 0 && <span className="text-sm text-muted">{fmt(t.timeline.unscheduled, { n: unscheduled })}</span>}
       </div>
     </div>
   );
@@ -258,19 +252,18 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                       const c = x.color ?? PALETTE[i % PALETTE.length]!;
                       const past = now != null && (d < today || (d === today && s + dur < now));
                       return (
-                        <Link
-                          href={`/today?date=${d}`}
+                        <div
                           key={x.id}
                           title={`${x.startTime} · ${x.title}`}
                           className={cn(
-                            "absolute inset-x-1 overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-[0.6875rem] leading-tight transition-shadow hover:shadow-card",
+                            "absolute inset-x-1 overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-[0.6875rem] leading-tight",
                             (x.done || past) && "opacity-55",
                           )}
                           style={{ top: s * HOUR_PX + 1, height: dur * HOUR_PX - 2, background: softVar(c), borderColor: colorVar(c) }}
                         >
                           <span className={cn("block truncate font-semibold", x.done && "line-through")}>{x.title}</span>
                           <span className="tabular text-ink-2">{x.startTime}</span>
-                        </Link>
+                        </div>
                       );
                     })}
                 </div>

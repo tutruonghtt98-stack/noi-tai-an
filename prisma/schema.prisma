@@ -80,17 +80,6 @@ model User {
   bannedAt       DateTime? // Admin khoá tài khoản
   teamSeats      Int? // số chỗ khi mua gói Team
 
-  // H5. Hồ sơ hành trình & quyền riêng tư
-  username              String? @unique
-  bio                   String?
-  profilePublic         Boolean @default(false)
-  showGoals             Boolean @default(true)
-  showStats             Boolean @default(true)
-  showBadges            Boolean @default(true)
-  showChallenges        Boolean @default(true)
-  leaderboardOptIn      Boolean @default(true)
-  autoShareAchievements Boolean @default(true)
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -102,30 +91,13 @@ model User {
   habits            Habit[]
   habitLogs         HabitLog[]
   focusSessions     FocusSession[]
-  dailyPlans        DailyPlan[]
-  journals          JournalEntry[]
-  weeklyReviews     WeeklyReview[]
   orders            Order[]
   workCustomers     WorkCustomer[]
   workBoards        WorkBoard[]
   assignedWorkCards WorkCard[]     @relation("WorkCardAssignee")
   notifications     Notification[] @relation("NotificationUser")
   sentNotifications Notification[] @relation("NotificationActor")
-
-  posts                    Post[]
-  cheers                   Cheer[]
-  comments                 Comment[]
-  reports                  Report[]
-  challenges               Challenge[]        @relation("ChallengeCreator")
-  challengeMembers         ChallengeMember[]
-  challengeCheckins        ChallengeCheckin[]
-  groupMembers             GroupMember[]
-  badges                   UserBadge[]
-  joinRequests             GroupJoinRequest[]
-  following                Follow[]           @relation("Follower")
-  followers                Follow[]           @relation("Following")
-  challengeInvitesSent     ChallengeInvite[]  @relation("Inviter")
-  challengeInvitesReceived ChallengeInvite[]  @relation("Invitee")
+  badges            UserBadge[]
 }
 
 model Account {
@@ -271,21 +243,6 @@ model FocusSession {
   @@index([userId, date])
 }
 
-model DailyPlan {
-  id        String   @id @default(cuid())
-  userId    String
-  date      DateTime @db.Date
-  intention String?
-  energy    Int? // 1–5
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, date])
-}
-
 // ---------- C. Habit Tracker ----------
 
 model Habit {
@@ -326,32 +283,6 @@ model HabitLog {
 
   @@unique([habitId, date])
   @@index([userId, date])
-}
-
-// ---------- F. Reflection ----------
-
-model JournalEntry {
-  id                  String   @id @default(cuid())
-  userId              String
-  date                DateTime @db.Date
-  mood                Int? // 1–5
-  wins                String?
-  lessons             String?
-  gratitude           String?
-  tomorrow            String? // một cải thiện cho ngày mai
-  // Nguyên nhân trì hoãn (mã: unclear, too_big, distraction, fatigue, fear, perfectionism, low_energy, other)
-  procrastination     String[] @default([])
-  procrastinationNote String?
-  // Người viết tự bật để chia sẻ ẩn danh cho người dùng khác đọc (tab "Ngẫu nhiên")
-  isPublic            Boolean  @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, date])
-  @@index([isPublic])
 }
 
 // ---------- G. Không gian "Công việc" (demo CRM khách hàng) ----------
@@ -413,6 +344,7 @@ model WorkCard {
   assigneeUserId String? // khớp với User.email nếu có tài khoản tương ứng
   checklist      Json      @default("[]")
   dueDate        DateTime?
+  completedAt    DateTime? // mốc chuyển vào cột "Hoàn thành" — dùng cho báo cáo trước/đúng/trễ hạn
   sortOrder      Int       @default(0)
   createdAt      DateTime  @default(now())
 
@@ -438,25 +370,6 @@ model Notification {
   actor User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([userId, read])
-}
-
-model WeeklyReview {
-  id         String   @id @default(cuid())
-  userId     String
-  weekStart  DateTime @db.Date
-  rating     Int? // 1–10
-  highlights String?
-  obstacles  String?
-  rootCause  String?
-  experiment String? // thử nghiệm cải thiện tuần tới
-  nextFocus  String? // 3 trọng tâm tuần tới
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, weekStart])
 }
 
 // ---------- G. Payment ----------
@@ -498,231 +411,6 @@ model Order {
   @@index([userId])
 }
 
-// ---------- H. Cộng đồng ----------
-
-enum PostCategory {
-  READING
-  WORKOUT
-  STUDY
-  FOCUS
-  GOAL
-  OTHER
-}
-
-enum PostKind {
-  POST
-  CHECKIN // check-in thử thách
-  SUMMARY // tổng kết tuần trong nhóm
-  ACHIEVEMENT // thành tích tự động (chuỗi cá nhân / nhóm)
-}
-
-model Post {
-  id           String       @id @default(cuid())
-  userId       String
-  kind         PostKind     @default(POST)
-  category     PostCategory @default(OTHER)
-  content      String
-  imageKey     String?
-  imageUrl     String?
-  groupId      String? // null = bảng tin công khai; có giá trị = chỉ thành viên nhóm thấy
-  challengeId  String?
-  hiddenAt     DateTime? // bị ẩn bởi kiểm duyệt
-  cheerCount   Int          @default(0)
-  commentCount Int          @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group     Group?     @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  challenge Challenge? @relation(fields: [challengeId], references: [id], onDelete: SetNull)
-  cheers    Cheer[]
-  comments  Comment[]
-
-  @@index([groupId, createdAt])
-  @@index([challengeId, createdAt])
-  @@index([userId, createdAt])
-  @@index([createdAt])
-}
-
-model Cheer {
-  postId    String
-  userId    String
-  createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([postId, userId])
-}
-
-model Comment {
-  id        String    @id @default(cuid())
-  postId    String
-  userId    String
-  content   String
-  hiddenAt  DateTime?
-  createdAt DateTime  @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([postId, createdAt])
-}
-
-enum ReportStatus {
-  OPEN
-  RESOLVED
-  DISMISSED
-}
-
-model Report {
-  id         String       @id @default(cuid())
-  reporterId String
-  postId     String?
-  commentId  String?
-  reason     String
-  status     ReportStatus @default(OPEN)
-  resolvedBy String?
-  createdAt  DateTime     @default(now())
-  resolvedAt DateTime?
-
-  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-
-  @@index([status, createdAt])
-}
-
-model Challenge {
-  id           String       @id @default(cuid())
-  creatorId    String
-  title        String
-  description  String?
-  category     PostCategory @default(OTHER)
-  durationDays Int // 7 | 21 | 30
-  startDate    DateTime     @db.Date
-  official     Boolean      @default(false)
-  badgeName    String?
-  archivedAt   DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  creator  User               @relation("ChallengeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  members  ChallengeMember[]
-  invites  ChallengeInvite[]
-  checkins ChallengeCheckin[]
-  posts    Post[]
-
-  @@index([startDate])
-}
-
-model ChallengeMember {
-  challengeId String
-  userId      String
-  joinedAt    DateTime  @default(now())
-  completedAt DateTime?
-
-  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([challengeId, userId])
-  @@index([userId])
-}
-
-model ChallengeCheckin {
-  id          String   @id @default(cuid())
-  challengeId String
-  userId      String
-  date        DateTime @db.Date
-  note        String?
-  createdAt   DateTime @default(now())
-
-  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([challengeId, userId, date])
-  @@index([userId, date])
-}
-
-enum GroupRole {
-  OWNER
-  MEMBER
-}
-
-model Group {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  ownerId     String
-  inviteCode  String  @unique
-  maxMembers  Int     @default(10)
-
-  // Nhóm công khai: hiện trong tìm kiếm/gợi ý, thành viên Pro được xin tham gia
-  isPublic Boolean       @default(false)
-  category PostCategory?
-  city     String?
-  // Toạ độ làm tròn ~1km (2 chữ số thập phân) để bảo vệ quyền riêng tư
-  lat      Float?
-  lng      Float?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  members      GroupMember[]
-  posts        Post[]
-  joinRequests GroupJoinRequest[]
-
-  @@index([isPublic])
-}
-
-enum JoinRequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-model GroupJoinRequest {
-  id         String            @id @default(cuid())
-  groupId    String
-  userId     String
-  message    String?
-  status     JoinRequestStatus @default(PENDING)
-  reviewedBy String?
-  createdAt  DateTime          @default(now())
-  reviewedAt DateTime?
-
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([groupId, status])
-  @@index([userId, status])
-}
-
-/**
- * Chống đăng trùng thành tích tự động. key VD: streak:<habitId>:<mốc>:<ngày bắt đầu chuỗi>
- */
-model Achievement {
-  key       String   @id
-  userId    String?
-  groupId   String?
-  createdAt DateTime @default(now())
-}
-
-model GroupMember {
-  groupId        String
-  userId         String
-  role           GroupRole @default(MEMBER)
-  commitment     String? // cam kết tuần này
-  commitmentWeek DateTime? @db.Date
-  joinedAt       DateTime  @default(now())
-
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([groupId, userId])
-  @@index([userId])
-}
-
 model UserBadge {
   userId    String
   code      String
@@ -732,40 +420,4 @@ model UserBadge {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, code])
-}
-
-// ---------- Theo dõi hồ sơ ----------
-
-model Follow {
-  followerId  String
-  followingId String
-  createdAt   DateTime @default(now())
-
-  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
-  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
-
-  @@id([followerId, followingId])
-  @@index([followingId])
-}
-
-enum InviteStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-}
-
-model ChallengeInvite {
-  id          String       @id @default(cuid())
-  challengeId String
-  inviterId   String
-  inviteeId   String
-  status      InviteStatus @default(PENDING)
-  createdAt   DateTime     @default(now())
-
-  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  inviter   User      @relation("Inviter", fields: [inviterId], references: [id], onDelete: Cascade)
-  invitee   User      @relation("Invitee", fields: [inviteeId], references: [id], onDelete: Cascade)
-
-  @@unique([challengeId, inviteeId])
-  @@index([inviteeId, status])
 }

@@ -79,3 +79,69 @@ export async function getWorkBoards(userId: string) {
 }
 
 export type WorkBoardWithLists = Awaited<ReturnType<typeof getWorkBoards>>[number];
+
+// ---------- Báo cáo hoàn thành công việc ----------
+
+export type CompletionBucket = "early" | "onTime" | "late" | "noDeadline";
+
+function completionBucket(dueDate: Date | null, completedAt: Date): CompletionBucket {
+  if (!dueDate) return "noDeadline";
+  const due = dueDate.toISOString().slice(0, 10);
+  const done = completedAt.toISOString().slice(0, 10);
+  if (done < due) return "early";
+  if (done === due) return "onTime";
+  return "late";
+}
+
+const DAY_MS = 86_400_000;
+
+export async function getWorkCompletionReport(userId: string, opts: { days?: number } = {}) {
+  const { days = 30 } = opts;
+  const since = new Date(Date.now() - days * DAY_MS);
+
+  const [cards, openCount] = await Promise.all([
+    db.workCard.findMany({
+      where: { completedAt: { gte: since }, list: { board: { userId } } },
+      select: { id: true, title: true, dueDate: true, completedAt: true, list: { select: { board: { select: { id: true, name: true } } } } },
+      orderBy: { completedAt: "desc" },
+    }),
+    db.workCard.count({ where: { completedAt: null, list: { board: { userId } } } }),
+  ]);
+
+  const buckets: Record<CompletionBucket, number> = { early: 0, onTime: 0, late: 0, noDeadline: 0 };
+  const byBoard = new Map<string, { name: string; scheduled: number; onTime: number }>();
+  const rows = cards.map((c) => {
+    const bucket = completionBucket(c.dueDate, c.completedAt!);
+    buckets[bucket]++;
+    const boardId = c.list.board.id;
+    const entry = byBoard.get(boardId) ?? { name: c.list.board.name, scheduled: 0, onTime: 0 };
+    if (bucket !== "noDeadline") {
+      entry.scheduled++;
+      if (bucket !== "late") entry.onTime++;
+    }
+    byBoard.set(boardId, entry);
+    return { id: c.id, title: c.title, board: c.list.board.name, dueDate: c.dueDate, completedAt: c.completedAt!, bucket };
+  });
+
+  const scheduled = buckets.early + buckets.onTime + buckets.late;
+  const onTimeRate = scheduled ? (buckets.early + buckets.onTime) / scheduled : 0;
+
+  const dayBuckets = new Map<string, number>();
+  for (let i = days - 1; i >= 0; i--) dayBuckets.set(new Date(Date.now() - i * DAY_MS).toISOString().slice(0, 10), 0);
+  for (const c of cards) {
+    const key = c.completedAt!.toISOString().slice(0, 10);
+    if (dayBuckets.has(key)) dayBuckets.set(key, dayBuckets.get(key)! + 1);
+  }
+  const dailyCompletions = [...dayBuckets.entries()].map(([key, value]) => ({
+    key,
+    label: new Date(key).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+    value,
+  }));
+
+  const byBoardRate = [...byBoard.values()]
+    .filter((b) => b.scheduled > 0)
+    .map((b) => ({ id: b.name, label: b.name, value: b.onTime / b.scheduled, note: `${b.onTime}/${b.scheduled}` }))
+    .sort((a, b) => b.value - a.value);
+
+  return { total: cards.length, buckets, onTimeRate, openCount, rows: rows.slice(0, 30), dailyCompletions, byBoardRate };
+}

@@ -10,7 +10,7 @@ function buildHref(filter: WorkFilter, q: string, sort: WorkSort) {
   if (filter !== "all") params.set("filter", filter);
   if (sort !== "spend") params.set("sort", sort);
   const qs = params.toString();
-  return `/work/customers${qs ? `?${qs}` : ""}`;
+  return `/customers${qs ? `?${qs}` : ""}`;
 }
 
 export function CustomerToolbar({

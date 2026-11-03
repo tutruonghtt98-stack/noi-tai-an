@@ -117,7 +117,7 @@ export function AlertsCenter() {
               kind: "task",
               title: left > 0 ? fmt(t.alerts.taskSoon, { m: left, t: task.title }) : fmt(t.alerts.taskNow, { t: task.title }),
               body: fmt(t.alerts.taskBody, { time: task.startTime, est: task.estimateMin ? ` · ${task.estimateMin}′` : "" }),
-              href: "/today",
+              href: "/dashboard",
             },
             playReminder,
             true,
@@ -141,7 +141,7 @@ export function AlertsCenter() {
             kind: isFocus ? "focus" : "break",
             title: isFocus ? t.alerts.focusDone : t.alerts.breakDone,
             body: isFocus ? fmt(t.alerts.focusDoneBody, { n: ended.plannedMin }) : t.alerts.breakDoneBody,
-            href: "/today",
+            href: "/dashboard",
           },
           isFocus ? playComplete : playBreakOver,
         );

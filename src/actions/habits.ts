@@ -2,7 +2,6 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { syncBadges } from "@/lib/badges";
-import { checkAchievements } from "@/lib/achievements";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -36,7 +35,6 @@ export type HabitInput = z.input<typeof habitSchema>;
 function touch() {
   revalidatePath("/habits");
   revalidatePath("/dashboard");
-  revalidatePath("/today");
 }
 
 async function assertGoal(userId: string, goalId: string | null) {
@@ -111,10 +109,7 @@ export async function toggleHabit(habitId: string, date: ISODate) {
       await db.habitLog.create({ data: { habitId, userId: user.id, date: toDbDate(date), count: 1 } });
     }
     touch();
-    after(async () => {
-      await syncBadges(user.id);
-      await checkAchievements(user.id);
-    });
+    after(() => syncBadges(user.id));
     return { count: next > habit.targetPerDay ? 0 : next };
   });
 }
