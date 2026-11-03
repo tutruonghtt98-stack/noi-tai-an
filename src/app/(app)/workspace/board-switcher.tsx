@@ -8,10 +8,21 @@ import { Modal } from "@/components/ui/modal";
 import { SegmentLinks } from "@/components/ui/segment-links";
 import { createWorkBoard, deleteWorkBoard } from "@/actions/work";
 
-export function BoardSwitcher({ boards, active }: { boards: { id: string; name: string; cards: number }[]; active?: string }) {
+export function BoardSwitcher({ boards, active }: { boards: { id: string; name: string; inProgress: number }[]; active?: string }) {
   const { t } = useI18n();
   const w = t.work.workspace;
-  const items = boards.map((b) => ({ value: b.id, href: `/workspace?b=${b.id}`, label: b.cards > 0 ? `${b.name} ${b.cards}` : b.name }));
+  const items = boards.map((b) => ({
+    value: b.id,
+    href: `/workspace?b=${b.id}`,
+    label:
+      b.inProgress > 0 ? (
+        <>
+          {b.name} <span className="text-mist-ink">({b.inProgress})</span>
+        </>
+      ) : (
+        b.name
+      ),
+  }));
   if (!items.length) return null;
   return <SegmentLinks ariaLabel={w.title} active={active ?? items[0]!.value} items={items} />;
 }

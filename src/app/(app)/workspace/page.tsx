@@ -20,6 +20,10 @@ function totalCards(lists: { cards: unknown[] }[]): number {
   return n;
 }
 
+function inProgressCount(lists: { name: string; cards: unknown[] }[]): number {
+  return lists.find((l) => l.name === "listInProgress")?.cards.length ?? 0;
+}
+
 export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ b?: string }> }) {
   const user = await requireUser();
   const { t } = await getI18n();
@@ -48,7 +52,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <BoardSwitcher boards={boards.map((b) => ({ id: b.id, name: b.name, cards: totalCards(b.lists) }))} active={active?.id} />
+        <BoardSwitcher boards={boards.map((b) => ({ id: b.id, name: b.name, inProgress: inProgressCount(b.lists) }))} active={active?.id} />
         <NewBoardButton teams={teamOptions} />
       </div>
 
