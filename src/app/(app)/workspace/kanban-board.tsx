@@ -14,7 +14,7 @@ export type SerializedList = { id: string; name: string; color: string; cards: S
 
 const DOT: Record<string, string> = { muted: "bg-muted", mist: "bg-mist", ochre: "bg-ochre", jade: "bg-jade" };
 
-function dueLabel(w: Dict["work"]["workspace"], due: string | null) {
+export function dueLabel(w: Dict["work"]["workspace"], due: string | null) {
   if (!due) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -24,7 +24,7 @@ function dueLabel(w: Dict["work"]["workspace"], due: string | null) {
   return fmt(w.overdue, { n: Math.abs(diffDays) });
 }
 
-function CardBody({ w, card }: { w: Dict["work"]["workspace"]; card: SerializedCard }) {
+export function CardBody({ w, card }: { w: Dict["work"]["workspace"]; card: SerializedCard }) {
   const total = card.checklist.length;
   const done = card.checklist.filter((c) => c.done).length;
   const pct = total ? Math.round((done / total) * 100) : 0;

@@ -456,6 +456,10 @@ const vi = {
     },
     workspace: {
       title: "Workspace",
+      myBoards: "Bảng của tôi",
+      assignedToMe: "Được giao cho tôi",
+      assignedEmpty: "Chưa có việc nào được giao cho bạn.",
+      assignedBy: "trên bảng của {name}",
       newBoard: "+ Bảng mới",
       newBoardTitle: "Tạo bảng mới",
       boardName: "Tên bảng",

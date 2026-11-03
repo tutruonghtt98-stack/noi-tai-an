@@ -23,12 +23,14 @@ export function CardModal({
   listId,
   lists,
   onClose,
+  canDelete = true,
 }: {
   open: boolean;
   card: SerializedCard | null;
   listId: string;
   lists: { id: string; name: string }[];
   onClose: () => void;
+  canDelete?: boolean;
 }) {
   const { t } = useI18n();
   const w = t.work.workspace;
@@ -152,17 +154,21 @@ export function CardModal({
         </div>
 
         <div className="mt-2 flex items-center justify-between gap-3 border-t border-line pt-4">
-          <button
-            type="button"
-            className="text-sm font-medium text-danger"
-            disabled={pending}
-            onClick={() => {
-              if (!window.confirm(w.deleteCard)) return;
-              exec(() => deleteWorkCard(card.id), { success: w.cardDeleted, onSuccess: onClose });
-            }}
-          >
-            {w.deleteCardBtn}
-          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              className="text-sm font-medium text-danger"
+              disabled={pending}
+              onClick={() => {
+                if (!window.confirm(w.deleteCard)) return;
+                exec(() => deleteWorkCard(card.id), { success: w.cardDeleted, onSuccess: onClose });
+              }}
+            >
+              {w.deleteCardBtn}
+            </button>
+          ) : (
+            <span />
+          )}
           <button type="button" className="btn btn-primary" disabled={pending} onClick={saveInfo}>
             {w.save}
           </button>

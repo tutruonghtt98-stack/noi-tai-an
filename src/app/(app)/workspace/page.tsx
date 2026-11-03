@@ -3,11 +3,12 @@ import { Kanban } from "lucide-react";
 import { requireUser } from "@/lib/session";
 import { getI18n } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/format";
-import { getWorkBoards } from "@/lib/work-queries";
+import { getWorkBoards, getAssignedCardsCount } from "@/lib/work-queries";
 import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
 import { BoardSwitcher, NewBoardButton, DeleteBoardButton } from "./board-switcher";
 import { KanbanBoard, type SerializedList } from "./kanban-board";
+import { ViewSwitcher } from "./view-switcher";
 import type { ChecklistItem } from "@/lib/work-types";
 
 export const metadata: Metadata = { title: "Workspace" };
@@ -18,7 +19,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
   const w = t.work.workspace;
   const sp = await searchParams;
 
-  const boards = await getWorkBoards(user.id);
+  const [boards, assignedCount] = await Promise.all([getWorkBoards(user.id), getAssignedCardsCount(user.id)]);
   const active = boards.find((b) => b.id === sp.b) ?? boards[0];
 
   const today = new Date();
@@ -35,6 +36,10 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
     <>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <SplitHeading text={w.title} className="text-2xl font-semibold sm:text-[2rem]" />
+      </div>
+
+      <div className="mb-4">
+        <ViewSwitcher active="boards" assignedCount={assignedCount} w={w} />
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">

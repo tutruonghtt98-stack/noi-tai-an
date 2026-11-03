@@ -80,6 +80,36 @@ export async function getWorkBoards(userId: string) {
 
 export type WorkBoardWithLists = Awaited<ReturnType<typeof getWorkBoards>>[number];
 
+/** Thẻ được gắn cho userId làm người phụ trách, trên bảng của người khác (chủ bảng ≠ userId). */
+export async function getAssignedCards(userId: string) {
+  return db.workCard.findMany({
+    where: { assigneeUserId: userId, list: { board: { userId: { not: userId } } } },
+    orderBy: { dueDate: { sort: "asc", nulls: "last" } },
+    include: {
+      list: {
+        select: {
+          id: true,
+          name: true,
+          boardId: true,
+          board: {
+            select: {
+              id: true,
+              name: true,
+              user: { select: { name: true, image: true } },
+              lists: { orderBy: { sortOrder: "asc" }, select: { id: true, name: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+}
+export type AssignedCard = Awaited<ReturnType<typeof getAssignedCards>>[number];
+
+export async function getAssignedCardsCount(userId: string) {
+  return db.workCard.count({ where: { assigneeUserId: userId, list: { board: { userId: { not: userId } } } } });
+}
+
 // ---------- Báo cáo hoàn thành công việc ----------
 
 export type CompletionBucket = "early" | "onTime" | "late" | "noDeadline";

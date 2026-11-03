@@ -458,6 +458,10 @@ const en: Dict = {
     },
     workspace: {
       title: "Workspace",
+      myBoards: "My boards",
+      assignedToMe: "Assigned to me",
+      assignedEmpty: "No tasks assigned to you yet.",
+      assignedBy: "on {name}'s board",
       newBoard: "+ New board",
       newBoardTitle: "Create a new board",
       boardName: "Board name",
