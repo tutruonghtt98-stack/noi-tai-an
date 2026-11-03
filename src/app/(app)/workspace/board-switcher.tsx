@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
 import { useAction } from "@/lib/use-action";
@@ -66,7 +66,7 @@ export function NewBoardButton({ primary = false, teams = [] }: { primary?: bool
   return (
     <>
       <button type="button" className={primary ? "btn btn-primary" : "btn btn-soft"} onClick={() => setOpen(true)}>
-        <Plus className="size-4" aria-hidden /> {w.newBoard}
+        {w.newBoard}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={w.newBoardTitle}>
         <form
