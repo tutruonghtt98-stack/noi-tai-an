@@ -125,3 +125,21 @@ export async function getTeamDetail(teamId: string) {
     },
   });
 }
+
+/** Team để chọn làm "team phụ trách" một bảng Workspace — mọi team trong các workspace mà user sở hữu/tham gia. */
+export async function getUserTeams(userId: string) {
+  return db.team.findMany({
+    where: {
+      archivedAt: null,
+      department: { workspace: { archivedAt: null, OR: [{ ownerId: userId }, { members: { some: { userId } } }] } },
+    },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, name: true, department: { select: { name: true } } },
+  });
+}
+
+/** Danh sách teamId mà user là thành viên — dùng để xác định quyền xem/thao tác thẻ được cấp cho team. */
+export async function getUserTeamIds(userId: string) {
+  const rows = await db.teamMember.findMany({ where: { userId }, select: { teamId: true } });
+  return rows.map((r) => r.teamId);
+}

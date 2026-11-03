@@ -12,7 +12,7 @@ import type { Dict } from "@/lib/i18n/vi";
 
 export type SerializedList = { id: string; name: string; color: string; cards: SerializedCard[] };
 
-const DOT: Record<string, string> = { muted: "bg-muted", mist: "bg-mist", ochre: "bg-ochre", jade: "bg-jade" };
+const DOT: Record<string, string> = { muted: "bg-muted", mist: "bg-mist", ochre: "bg-ochre", jade: "bg-jade", danger: "bg-danger" };
 
 export function dueLabel(w: Dict["work"]["workspace"], due: string | null) {
   if (!due) return null;
@@ -54,7 +54,15 @@ export function CardBody({ w, card }: { w: Dict["work"]["workspace"]; card: Seri
 type PendingDrag = { card: SerializedCard; fromListId: string; startX: number; startY: number; offsetX: number; offsetY: number; width: number };
 type ActiveDrag = { card: SerializedCard; x: number; y: number; width: number };
 
-export function KanbanBoard({ lists }: { lists: SerializedList[] }) {
+export function KanbanBoard({
+  lists,
+  canManage = true,
+  teams = [],
+}: {
+  lists: SerializedList[];
+  canManage?: boolean;
+  teams?: { id: string; name: string }[];
+}) {
   const { t } = useI18n();
   const w = t.work.workspace;
   const { exec } = useAction();
@@ -107,23 +115,24 @@ export function KanbanBoard({ lists }: { lists: SerializedList[] }) {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {lists.map((list) => (
           <div
             key={list.id}
             data-list-id={list.id}
             className={cn(
-              "flex min-w-0 flex-col gap-3 rounded-[1.5rem] bg-surface-3 p-3 transition-colors",
+              "flex min-w-0 flex-col gap-3 rounded-[1.5rem] p-3 transition-colors",
+              list.color === "danger" ? "bg-danger/10" : "bg-surface-3",
               overListId === list.id && drag && "ring-2 ring-inset ring-ink/20",
             )}
           >
             <div className="flex items-center justify-between gap-2 px-1">
-              <span className="inline-flex items-center gap-2 font-medium">
+              <span className={cn("inline-flex items-center gap-2 font-medium", list.color === "danger" && "text-danger")}>
                 <span className={`size-2 shrink-0 rounded-full ${DOT[list.color] ?? "bg-muted"}`} aria-hidden />
                 {w[list.name as keyof typeof w] ?? list.name}
                 <span className="tabular text-sm text-muted">{list.cards.length}</span>
               </span>
-              <AddCardButton listId={list.id} />
+              {canManage && <AddCardButton listId={list.id} teams={teams} />}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -169,7 +178,15 @@ export function KanbanBoard({ lists }: { lists: SerializedList[] }) {
         </div>
       )}
 
-      <CardModal open={!!openCard} card={openCard?.card ?? null} listId={openCard?.listId ?? ""} lists={listOptions} onClose={() => setOpenCard(null)} />
+      <CardModal
+        open={!!openCard}
+        card={openCard?.card ?? null}
+        listId={openCard?.listId ?? ""}
+        lists={listOptions}
+        teams={teams}
+        onClose={() => setOpenCard(null)}
+        canDelete={canManage}
+      />
     </>
   );
 }

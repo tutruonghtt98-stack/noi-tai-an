@@ -5,14 +5,18 @@ import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/cn";
 import { Modal } from "@/components/ui/modal";
-import { deleteWorkCard, updateWorkCard, updateWorkCardChecklist } from "@/actions/work";
+import { addWorkCardComment, deleteWorkCard, listWorkCardComments, updateWorkCard, updateWorkCardChecklist } from "@/actions/work";
+import { Avatar } from "@/components/ui/avatar";
 import type { ChecklistItem } from "@/lib/work-types";
+
+type CardComment = { id: string; content: string; createdAt: string; userName: string | null; userImage: string | null };
 
 export type SerializedCard = {
   id: string;
   label: string | null;
   title: string;
   assignee: string | null;
+  teamId: string | null;
   dueDate: string | null;
   checklist: ChecklistItem[];
 };
@@ -22,6 +26,7 @@ export function CardModal({
   card,
   listId,
   lists,
+  teams = [],
   onClose,
   canDelete = true,
 }: {
@@ -29,6 +34,7 @@ export function CardModal({
   card: SerializedCard | null;
   listId: string;
   lists: { id: string; name: string }[];
+  teams?: { id: string; name: string }[];
   onClose: () => void;
   canDelete?: boolean;
 }) {
@@ -38,20 +44,42 @@ export function CardModal({
   const [title, setTitle] = useState("");
   const [label, setLabel] = useState("");
   const [assignee, setAssignee] = useState("");
+  const [teamId, setTeamId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [column, setColumn] = useState("");
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [newItem, setNewItem] = useState("");
+  const [comments, setComments] = useState<CardComment[]>([]);
+  const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
     if (!card) return;
     setTitle(card.title);
     setLabel(card.label ?? "");
     setAssignee(card.assignee ?? "");
+    setTeamId(card.teamId ?? "");
     setDueDate(card.dueDate ? card.dueDate.slice(0, 10) : "");
     setColumn(listId);
     setChecklist(card.checklist);
+    setComments([]);
+    listWorkCardComments(card.id).then((res) => {
+      if (res.ok) setComments(res.data);
+    });
   }, [card, listId]);
+
+  const postComment = () => {
+    if (!card) return;
+    const text = newComment.trim();
+    if (!text) return;
+    exec(() => addWorkCardComment(card.id, text), {
+      onSuccess: () => {
+        setNewComment("");
+        listWorkCardComments(card.id).then((res) => {
+          if (res.ok) setComments(res.data);
+        });
+      },
+    });
+  };
 
   if (!card) return null;
 
@@ -77,6 +105,7 @@ export function CardModal({
           label: label || undefined,
           title,
           assignee: assignee || undefined,
+          teamId: teamId || undefined,
           dueDate: dueDate || undefined,
         }),
       { success: w.cardUpdated, onSuccess: onClose },
@@ -108,9 +137,31 @@ export function CardModal({
         </div>
         <label className="field">
           <span className="label">{w.cardAssignee}</span>
-          <input className="input" type="email" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder={w.cardAssigneePh} maxLength={160} />
+          <input
+            className="input"
+            type="email"
+            value={assignee}
+            onChange={(e) => setAssignee(e.target.value)}
+            placeholder={w.cardAssigneePh}
+            maxLength={160}
+            disabled={!canDelete}
+          />
           <span className="mt-1 block text-xs text-muted">{w.cardAssigneeHint}</span>
         </label>
+        {canDelete && teams.length > 0 && (
+          <label className="field">
+            <span className="label">{w.cardTeam}</span>
+            <select className="input" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+              <option value="">{w.cardTeamNone}</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs text-muted">{w.cardTeamHint}</span>
+          </label>
+        )}
         <label className="field">
           <span className="label">{w.cardDue}</span>
           <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
@@ -149,6 +200,43 @@ export function CardModal({
             />
             <button type="button" className="btn btn-soft" onClick={addItem}>
               {w.checklistAdd}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <p className="label mb-2">{w.commentsTitle}</p>
+          {comments.length === 0 ? (
+            <p className="text-sm text-muted">{w.commentsEmpty}</p>
+          ) : (
+            <ul className="space-y-3">
+              {comments.map((c) => (
+                <li key={c.id} className="flex items-start gap-2">
+                  <Avatar name={c.userName ?? "?"} image={c.userImage} size={24} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-muted">{c.userName ?? "?"}</p>
+                    <p className="text-sm">{c.content}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-2 flex gap-2">
+            <input
+              className="input flex-1"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder={w.commentPh}
+              maxLength={1000}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  postComment();
+                }
+              }}
+            />
+            <button type="button" className="btn btn-soft" disabled={pending} onClick={postComment}>
+              {w.commentSend}
             </button>
           </div>
         </div>

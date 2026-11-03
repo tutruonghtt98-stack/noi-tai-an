@@ -48,7 +48,7 @@ function buildConfig(): NextAuthConfig {
   return {
     // @auth/prisma-adapter còn khai kiểu cứng theo gói "@prisma/client" cũ; generator
     // mới (output tuỳ chỉnh) không khớp generic dù API runtime giống hệt.
-    adapter: PrismaAdapter(db as Parameters<typeof PrismaAdapter>[0]),
+    adapter: PrismaAdapter(db as unknown as Parameters<typeof PrismaAdapter>[0]),
     secret: process.env.AUTH_SECRET,
     // AUTH_TRUST_HOST/AUTH_SECRET đọc qua process.env — trên Cloudflare Workers
     // biến môi trường runtime chỉ chắc chắn có trong request context, không phải

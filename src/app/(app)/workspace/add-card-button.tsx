@@ -6,7 +6,7 @@ import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
 import { createWorkCard } from "@/actions/work";
 
-export function AddCardButton({ listId }: { listId: string }) {
+export function AddCardButton({ listId, teams = [] }: { listId: string; teams?: { id: string; name: string }[] }) {
   const { t } = useI18n();
   const w = t.work.workspace;
   const { exec, pending } = useAction();
@@ -14,12 +14,14 @@ export function AddCardButton({ listId }: { listId: string }) {
   const [label, setLabel] = useState("");
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState("");
+  const [teamId, setTeamId] = useState("");
   const [dueDate, setDueDate] = useState("");
 
   const reset = () => {
     setLabel("");
     setTitle("");
     setAssignee("");
+    setTeamId("");
     setDueDate("");
   };
 
@@ -40,6 +42,7 @@ export function AddCardButton({ listId }: { listId: string }) {
                   label: label || undefined,
                   title,
                   assignee: assignee || undefined,
+                  teamId: teamId || undefined,
                   dueDate: dueDate || undefined,
                 }),
               {
@@ -65,6 +68,20 @@ export function AddCardButton({ listId }: { listId: string }) {
             <input className="input" type="email" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder={w.cardAssigneePh} maxLength={160} />
             <span className="mt-1 block text-xs text-muted">{w.cardAssigneeHint}</span>
           </label>
+          {teams.length > 0 && (
+            <label className="field">
+              <span className="label">{w.cardTeam}</span>
+              <select className="input" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+                <option value="">{w.cardTeamNone}</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-xs text-muted">{w.cardTeamHint}</span>
+            </label>
+          )}
           <label className="field">
             <span className="label">{w.cardDue}</span>
             <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />

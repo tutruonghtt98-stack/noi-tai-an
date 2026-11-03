@@ -4,7 +4,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
-import { DEFAULT_LISTS } from "@/lib/work-queries";
+import { DEFAULT_LISTS, getCardComments } from "@/lib/work-queries";
+import { getUserTeamIds } from "@/lib/department-queries";
 import type { Prisma } from "@/generated/prisma/client";
 
 const customerSchema = z.object({
@@ -55,17 +56,50 @@ const boardSchema = z.object({
     .trim()
     .optional()
     .transform((v) => (v ? new Date(v) : null)),
+  assignee: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email()
+    .max(160)
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => v || null),
+  teamId: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => v || null),
 });
 export type BoardInput = z.input<typeof boardSchema>;
+
+/** Team phải thuộc workspace mà user sở hữu/tham gia — tránh gắn team của người khác vào bảng/thẻ của mình. */
+async function resolveTeam(userId: string, teamId: string | null) {
+  if (!teamId) return null;
+  const team = await db.team.findFirst({ where: { id: teamId, department: { workspace: { OR: [{ ownerId: userId }, { members: { some: { userId } } }] } } }, select: { id: true } });
+  if (!team) throw new UserError("VALIDATION");
+  return teamId;
+}
+
+async function notifyTeamShared(teamId: string, actor: { id: string; name: string | null; email: string | null }, title: string, body: string) {
+  const members = await db.teamMember.findMany({ where: { teamId, userId: { not: actor.id } }, select: { userId: true } });
+  for (const m of members) {
+    await db.notification.create({ data: { userId: m.userId, actorId: actor.id, type: "WORK_BOARD_SHARED", title, body, href: "/workspace" } });
+  }
+}
 
 export async function createWorkBoard(input: BoardInput) {
   return run(async () => {
     const user = await requireUser();
-    const data = boardSchema.parse(input);
+    const { teamId: rawTeamId, ...data } = boardSchema.parse(input);
+    const teamId = await resolveTeam(user.id, rawTeamId);
+    const assigneeUserId = await resolveAssigneeId(data.assignee);
     const count = await db.workBoard.count({ where: { userId: user.id } });
     const board = await db.workBoard.create({
       data: {
         ...data,
+        assigneeUserId,
+        teamId,
         userId: user.id,
         sortOrder: count,
         lists: {
@@ -73,6 +107,21 @@ export async function createWorkBoard(input: BoardInput) {
         },
       },
     });
+    if (assigneeUserId && assigneeUserId !== user.id) {
+      await db.notification.create({
+        data: {
+          userId: assigneeUserId,
+          actorId: user.id,
+          type: "WORK_BOARD_SHARED",
+          title: `${user.name ?? user.email ?? "Ai đó"} đã gắn bạn làm người phụ trách một bảng công việc`,
+          body: data.name,
+          href: "/workspace",
+        },
+      });
+    }
+    if (teamId) {
+      await notifyTeamShared(teamId, user, `${user.name ?? user.email ?? "Ai đó"} đã chia sẻ bảng công việc với team của bạn`, data.name);
+    }
     revalidatePath("/workspace");
     return board.id;
   });
@@ -111,6 +160,11 @@ const cardSchema = z.object({
     .trim()
     .optional()
     .transform((v) => (v ? new Date(v) : null)),
+  teamId: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => v || null),
 });
 export type CardInput = z.input<typeof cardSchema>;
 
@@ -140,23 +194,35 @@ async function resolveAssigneeId(email: string | null) {
 /** Cột "Hoàn thành" (listDone) quyết định mốc completedAt cho báo cáo trước/đúng/trễ hạn. */
 const isDoneList = (name: string) => name === "listDone";
 
-/** Chủ bảng xem/sửa mọi thẻ; người được gắn làm phụ trách (assigneeUserId) chỉ xem/thao tác được đúng thẻ của mình. */
-function canActOnCard(card: { assigneeUserId: string | null; list: { board: { userId: string } } }, userId: string) {
-  return card.list.board.userId === userId || card.assigneeUserId === userId;
+/** Chỉ chủ bảng mới được tạo/xoá thẻ và cấp quyền (gắn người phụ trách hoặc team phụ trách) cho thẻ. */
+function isBoardOwner(board: { userId: string }, userId: string) {
+  return board.userId === userId;
+}
+
+/** Chủ bảng toàn quyền; người/team được cấp quyền trực tiếp trên thẻ (card.assigneeUserId / card.teamId)
+ * chỉ xem/thao tác được đúng thẻ đó, không có quyền trên các thẻ khác của bảng. */
+function canActOnCard(
+  card: { assigneeUserId: string | null; teamId: string | null; list: { board: { userId: string } } },
+  userId: string,
+  userTeamIds: string[],
+) {
+  return isBoardOwner(card.list.board, userId) || card.assigneeUserId === userId || (!!card.teamId && userTeamIds.includes(card.teamId));
 }
 
 export async function createWorkCard(input: CardInput) {
   return run(async () => {
     const user = await requireUser();
-    const data = cardSchema.parse(input);
+    const { teamId: rawTeamId, ...data } = cardSchema.parse(input);
     const list = await db.workList.findUnique({ where: { id: data.listId }, select: { name: true, board: { select: { userId: true } } } });
-    if (!list || list.board.userId !== user.id) throw new UserError("VALIDATION");
+    if (!list || !isBoardOwner(list.board, user.id)) throw new UserError("VALIDATION");
+    const teamId = await resolveTeam(user.id, rawTeamId);
     const count = await db.workCard.count({ where: { listId: data.listId } });
     const assigneeUserId = await resolveAssigneeId(data.assignee);
     await db.workCard.create({
-      data: { ...data, assigneeUserId, sortOrder: count, checklist: [], completedAt: isDoneList(list.name) ? new Date() : null },
+      data: { ...data, teamId, assigneeUserId, sortOrder: count, checklist: [], completedAt: isDoneList(list.name) ? new Date() : null },
     });
     await notifyAssignee(data.assignee, user, data.title);
+    if (teamId) await notifyTeamShared(teamId, user, `${user.name ?? user.email ?? "Ai đó"} đã cấp quyền thẻ cho team của bạn`, data.title);
     revalidatePath("/workspace");
   });
 }
@@ -167,24 +233,39 @@ export type CardUpdateInput = z.input<typeof cardUpdateSchema>;
 export async function updateWorkCard(id: string, input: CardUpdateInput) {
   return run(async () => {
     const user = await requireUser();
-    const data = cardUpdateSchema.parse(input);
+    const { teamId: rawTeamId, ...data } = cardUpdateSchema.parse(input);
     const card = await db.workCard.findUnique({
       where: { id },
-      select: { listId: true, assignee: true, assigneeUserId: true, completedAt: true, list: { select: { boardId: true, name: true, board: { select: { userId: true } } } } },
+      select: {
+        listId: true,
+        assignee: true,
+        assigneeUserId: true,
+        teamId: true,
+        completedAt: true,
+        list: { select: { boardId: true, name: true, board: { select: { userId: true } } } },
+      },
     });
-    if (!card || !canActOnCard(card, user.id)) throw new UserError("VALIDATION");
+    if (!card) throw new UserError("VALIDATION");
+    const userTeamIds = await getUserTeamIds(user.id);
+    if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
+    const isOwner = isBoardOwner(card.list.board, user.id);
     const targetList = await db.workList.findUnique({ where: { id: data.listId }, select: { name: true, boardId: true } });
     if (!targetList || targetList.boardId !== card.list.boardId) throw new UserError("VALIDATION");
     const changingList = data.listId !== card.listId;
     const sortOrder = changingList ? await db.workCard.count({ where: { listId: data.listId } }) : undefined;
-    const assigneeChanged = data.assignee !== card.assignee;
-    const assigneeUserId = await resolveAssigneeId(data.assignee);
+    // Chỉ chủ bảng mới được đổi người/team phụ trách của thẻ — người được cấp quyền chỉ cập nhật nội dung/tiến độ.
+    const assignee = isOwner ? data.assignee : card.assignee;
+    const assigneeChanged = isOwner && data.assignee !== card.assignee;
+    const assigneeUserId = isOwner ? await resolveAssigneeId(data.assignee) : card.assigneeUserId;
+    const teamId = isOwner ? await resolveTeam(user.id, rawTeamId) : card.teamId;
+    const teamChanged = isOwner && teamId !== card.teamId;
     const completedAt = changingList ? (isDoneList(targetList.name) ? (card.completedAt ?? new Date()) : null) : undefined;
     await db.workCard.update({
       where: { id },
-      data: { ...data, assigneeUserId, ...(sortOrder != null ? { sortOrder } : {}), ...(completedAt !== undefined ? { completedAt } : {}) },
+      data: { ...data, assignee, assigneeUserId, teamId, ...(sortOrder != null ? { sortOrder } : {}), ...(completedAt !== undefined ? { completedAt } : {}) },
     });
     if (assigneeChanged) await notifyAssignee(data.assignee, user, data.title);
+    if (teamChanged && teamId) await notifyTeamShared(teamId, user, `${user.name ?? user.email ?? "Ai đó"} đã cấp quyền thẻ cho team của bạn`, data.title);
     revalidatePath("/workspace");
     revalidatePath("/analytics");
   });
@@ -195,8 +276,13 @@ const checklistItemSchema = z.object({ id: z.string().min(1), text: z.string().t
 export async function updateWorkCardChecklist(id: string, checklist: { id: string; text: string; done: boolean }[]) {
   return run(async () => {
     const user = await requireUser();
-    const card = await db.workCard.findUnique({ where: { id }, select: { assigneeUserId: true, list: { select: { board: { select: { userId: true } } } } } });
-    if (!card || !canActOnCard(card, user.id)) throw new UserError("VALIDATION");
+    const card = await db.workCard.findUnique({
+      where: { id },
+      select: { assigneeUserId: true, teamId: true, list: { select: { board: { select: { userId: true } } } } },
+    });
+    if (!card) throw new UserError("VALIDATION");
+    const userTeamIds = await getUserTeamIds(user.id);
+    if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
     const parsed = z.array(checklistItemSchema).max(50).parse(checklist);
     await db.workCard.update({ where: { id }, data: { checklist: parsed as Prisma.InputJsonValue } });
     revalidatePath("/workspace");
@@ -208,9 +294,11 @@ export async function moveWorkCard(id: string, toListId: string) {
     const user = await requireUser();
     const card = await db.workCard.findUnique({
       where: { id },
-      select: { assigneeUserId: true, completedAt: true, list: { select: { boardId: true, board: { select: { userId: true } } } } },
+      select: { assigneeUserId: true, teamId: true, completedAt: true, list: { select: { boardId: true, board: { select: { userId: true } } } } },
     });
-    if (!card || !canActOnCard(card, user.id)) throw new UserError("VALIDATION");
+    if (!card) throw new UserError("VALIDATION");
+    const userTeamIds = await getUserTeamIds(user.id);
+    if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
     const toList = await db.workList.findUnique({ where: { id: toListId }, select: { name: true, boardId: true } });
     if (!toList || toList.boardId !== card.list.boardId) throw new UserError("VALIDATION");
     const count = await db.workCard.count({ where: { listId: toListId } });
@@ -225,8 +313,68 @@ export async function deleteWorkCard(id: string) {
   return run(async () => {
     const user = await requireUser();
     const card = await db.workCard.findUnique({ where: { id }, select: { list: { select: { board: { select: { userId: true } } } } } });
-    if (!card || card.list.board.userId !== user.id) throw new UserError("VALIDATION");
+    if (!card || !isBoardOwner(card.list.board, user.id)) throw new UserError("VALIDATION");
     await db.workCard.delete({ where: { id } });
+    revalidatePath("/workspace");
+  });
+}
+
+// ---------- Bình luận thẻ ----------
+
+export async function listWorkCardComments(cardId: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const card = await db.workCard.findUnique({
+      where: { id: cardId },
+      select: { assigneeUserId: true, teamId: true, list: { select: { board: { select: { userId: true } } } } },
+    });
+    if (!card) throw new UserError("VALIDATION");
+    const userTeamIds = await getUserTeamIds(user.id);
+    if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
+    const comments = await getCardComments(cardId);
+    return comments.map((c) => ({
+      id: c.id,
+      content: c.content,
+      createdAt: c.createdAt.toISOString(),
+      userName: c.user.name,
+      userImage: c.user.image,
+    }));
+  });
+}
+
+export async function addWorkCardComment(cardId: string, content: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const card = await db.workCard.findUnique({
+      where: { id: cardId },
+      select: { title: true, assigneeUserId: true, teamId: true, list: { select: { board: { select: { userId: true } } } } },
+    });
+    if (!card) throw new UserError("VALIDATION");
+    const userTeamIds = await getUserTeamIds(user.id);
+    if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
+    const text = z.string().trim().min(1).max(1000).parse(content);
+    await db.workCardComment.create({ data: { cardId, userId: user.id, content: text } });
+
+    const notifyIds = new Set<string>();
+    const board = card.list.board;
+    if (board.userId !== user.id) notifyIds.add(board.userId);
+    if (card.assigneeUserId && card.assigneeUserId !== user.id) notifyIds.add(card.assigneeUserId);
+    if (card.teamId) {
+      const members = await db.teamMember.findMany({ where: { teamId: card.teamId, userId: { not: user.id } }, select: { userId: true } });
+      for (const m of members) notifyIds.add(m.userId);
+    }
+    for (const id of notifyIds) {
+      await db.notification.create({
+        data: {
+          userId: id,
+          actorId: user.id,
+          type: "WORK_CARD_COMMENT",
+          title: `${user.name ?? user.email ?? "Ai đó"} đã bình luận`,
+          body: `${card.title}: ${text}`,
+          href: "/workspace",
+        },
+      });
+    }
     revalidatePath("/workspace");
   });
 }

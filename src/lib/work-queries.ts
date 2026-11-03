@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { getUserTeamIds } from "@/lib/department-queries";
 
 export type WorkFilter = "all" | "vip" | "wholesale" | "new" | "subscribers";
 export type WorkSort = "spend" | "orders" | "recent";
@@ -63,52 +64,47 @@ export const DEFAULT_LISTS: { name: string; color: string }[] = [
   { name: "listInProgress", color: "mist" },
   { name: "listReview", color: "ochre" },
   { name: "listDone", color: "jade" },
+  { name: "listOverdue", color: "danger" },
 ];
 
-export async function getWorkBoards(userId: string) {
-  return db.workBoard.findMany({
-    where: { userId },
+export type BoardAccess = "owner" | "member";
+
+/** Bảng mà user sở hữu, được gắn làm người phụ trách bảng, thuộc team phụ trách bảng, hoặc có ít nhất
+ * một thẻ được cấp quyền riêng (card.assigneeUserId / card.teamId) — để thẻ được giao luôn hiện ra ngay
+ * dưới đúng tên bảng của người tạo, không cần một mục "Được giao cho tôi" riêng.
+ * Chủ bảng xem/thao tác toàn quyền; người phụ trách và thành viên team phụ trách chỉ xem/thao tác được
+ * đúng những thẻ mà chủ bảng đã cấp quyền trực tiếp (card.assigneeUserId) hoặc cấp cho team của họ (card.teamId). */
+export async function getAccessibleBoards(userId: string) {
+  const teamIds = await getUserTeamIds(userId);
+  const cardGrant = { OR: [{ assigneeUserId: userId }, ...(teamIds.length ? [{ teamId: { in: teamIds } }] : [])] };
+  const boards = await db.workBoard.findMany({
+    where: {
+      OR: [{ userId }, { assigneeUserId: userId }, ...(teamIds.length ? [{ teamId: { in: teamIds } }] : []), { lists: { some: { cards: { some: cardGrant } } } }],
+    },
     orderBy: { sortOrder: "asc" },
     include: {
+      user: { select: { id: true, name: true, image: true } },
       lists: {
         orderBy: { sortOrder: "asc" },
         include: { cards: { orderBy: { sortOrder: "asc" } } },
       },
     },
   });
-}
-
-export type WorkBoardWithLists = Awaited<ReturnType<typeof getWorkBoards>>[number];
-
-/** Thẻ được gắn cho userId làm người phụ trách, trên bảng của người khác (chủ bảng ≠ userId). */
-export async function getAssignedCards(userId: string) {
-  return db.workCard.findMany({
-    where: { assigneeUserId: userId, list: { board: { userId: { not: userId } } } },
-    orderBy: { dueDate: { sort: "asc", nulls: "last" } },
-    include: {
-      list: {
-        select: {
-          id: true,
-          name: true,
-          boardId: true,
-          board: {
-            select: {
-              id: true,
-              name: true,
-              user: { select: { name: true, image: true } },
-              lists: { orderBy: { sortOrder: "asc" }, select: { id: true, name: true } },
-            },
-          },
-        },
-      },
-    },
+  return boards.map((b) => {
+    const access: BoardAccess = b.userId === userId ? "owner" : "member";
+    if (access === "owner") return { ...b, access };
+    return {
+      ...b,
+      access,
+      lists: b.lists.map((l) => ({
+        ...l,
+        cards: l.cards.filter((c) => c.assigneeUserId === userId || (c.teamId && teamIds.includes(c.teamId))),
+      })),
+    };
   });
 }
-export type AssignedCard = Awaited<ReturnType<typeof getAssignedCards>>[number];
 
-export async function getAssignedCardsCount(userId: string) {
-  return db.workCard.count({ where: { assigneeUserId: userId, list: { board: { userId: { not: userId } } } } });
-}
+export type WorkBoardWithLists = Awaited<ReturnType<typeof getAccessibleBoards>>[number];
 
 // ---------- Báo cáo hoàn thành công việc ----------
 
@@ -174,4 +170,14 @@ export async function getWorkCompletionReport(userId: string, opts: { days?: num
     .sort((a, b) => b.value - a.value);
 
   return { total: cards.length, buckets, onTimeRate, openCount, rows: rows.slice(0, 30), dailyCompletions, byBoardRate };
+}
+
+// ---------- Bình luận thẻ ----------
+
+export async function getCardComments(cardId: string) {
+  return db.workCardComment.findMany({
+    where: { cardId },
+    orderBy: { createdAt: "asc" },
+    include: { user: { select: { name: true, image: true } } },
+  });
 }
