@@ -503,6 +503,7 @@ const vi = {
       cardDeleted: "Đã xoá thẻ",
       approveCard: "Duyệt",
       cardApproved: "Đã duyệt, chuyển sang Hoàn thành",
+      cardLocked: "Thẻ đã được duyệt — chỉ chủ bảng mới có thể chỉnh sửa, bạn chỉ có thể xem.",
       moveTo: "Chuyển sang",
       listToDo: "Cần làm",
       listInProgress: "Đang làm",

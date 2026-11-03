@@ -505,6 +505,7 @@ const en: Dict = {
       cardDeleted: "Card deleted",
       approveCard: "Approve",
       cardApproved: "Approved, moved to Done",
+      cardLocked: "This card has been approved — only the board owner can edit it. You can only view it.",
       moveTo: "Move to",
       listToDo: "To do",
       listInProgress: "In progress",

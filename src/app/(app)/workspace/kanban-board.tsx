@@ -152,18 +152,20 @@ export function KanbanBoard({
                 list.cards.map((card) => {
                   const isDraggingThis = drag?.card.id === card.id;
                   const showApprove = canManage && list.name === "listReview" && !!doneListId;
+                  const locked = list.name === "listDone" && !canManage;
                   return (
                     <div
                       key={card.id}
                       role="button"
                       tabIndex={0}
-                      onPointerDown={(e) => onCardPointerDown(e, card, list.id)}
+                      onPointerDown={(e) => !locked && onCardPointerDown(e, card, list.id)}
                       onPointerMove={onCardPointerMove}
                       onPointerUp={(e) => onCardPointerUp(e, card, list.id)}
                       onPointerCancel={resetDrag}
                       style={{ touchAction: "none" }}
                       className={cn(
-                        "group w-full cursor-grab rounded-2xl p-3 text-left transition-colors active:cursor-grabbing",
+                        "group w-full rounded-2xl p-3 text-left transition-colors",
+                        locked ? "cursor-pointer" : "cursor-grab active:cursor-grabbing",
                         isDraggingThis ? "border-2 border-dashed border-ink/25 bg-surface-2/70 shadow-none" : "bg-surface shadow-card",
                       )}
                     >

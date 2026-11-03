@@ -249,6 +249,8 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
     const userTeamIds = await getUserTeamIds(user.id);
     if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
     const isOwner = isBoardOwner(card.list.board, user.id);
+    // Thẻ đã được duyệt (ở cột Hoàn thành) — chỉ chủ bảng mới được sửa, người được cấp quyền chỉ xem.
+    if (isDoneList(card.list.name) && !isOwner) throw new UserError("VALIDATION");
     const targetList = await db.workList.findUnique({ where: { id: data.listId }, select: { name: true, boardId: true } });
     if (!targetList || targetList.boardId !== card.list.boardId) throw new UserError("VALIDATION");
     const changingList = data.listId !== card.listId;
@@ -278,11 +280,12 @@ export async function updateWorkCardChecklist(id: string, checklist: { id: strin
     const user = await requireUser();
     const card = await db.workCard.findUnique({
       where: { id },
-      select: { assigneeUserId: true, teamId: true, list: { select: { board: { select: { userId: true } } } } },
+      select: { assigneeUserId: true, teamId: true, list: { select: { name: true, board: { select: { userId: true } } } } },
     });
     if (!card) throw new UserError("VALIDATION");
     const userTeamIds = await getUserTeamIds(user.id);
     if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
+    if (isDoneList(card.list.name) && !isBoardOwner(card.list.board, user.id)) throw new UserError("VALIDATION");
     const parsed = z.array(checklistItemSchema).max(50).parse(checklist);
     await db.workCard.update({ where: { id }, data: { checklist: parsed as Prisma.InputJsonValue } });
     revalidatePath("/workspace");
@@ -294,13 +297,17 @@ export async function moveWorkCard(id: string, toListId: string) {
     const user = await requireUser();
     const card = await db.workCard.findUnique({
       where: { id },
-      select: { assigneeUserId: true, teamId: true, completedAt: true, list: { select: { boardId: true, board: { select: { userId: true } } } } },
+      select: { assigneeUserId: true, teamId: true, completedAt: true, list: { select: { name: true, boardId: true, board: { select: { userId: true } } } } },
     });
     if (!card) throw new UserError("VALIDATION");
     const userTeamIds = await getUserTeamIds(user.id);
     if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
+    const isOwner = isBoardOwner(card.list.board, user.id);
+    // Thẻ đã duyệt chỉ chủ bảng mới được di chuyển tiếp; và chỉ chủ bảng mới được duyệt (chuyển vào Hoàn thành).
+    if (isDoneList(card.list.name) && !isOwner) throw new UserError("VALIDATION");
     const toList = await db.workList.findUnique({ where: { id: toListId }, select: { name: true, boardId: true } });
     if (!toList || toList.boardId !== card.list.boardId) throw new UserError("VALIDATION");
+    if (isDoneList(toList.name) && !isOwner) throw new UserError("VALIDATION");
     const count = await db.workCard.count({ where: { listId: toListId } });
     const completedAt = isDoneList(toList.name) ? (card.completedAt ?? new Date()) : null;
     await db.workCard.update({ where: { id }, data: { listId: toListId, sortOrder: count, completedAt } });

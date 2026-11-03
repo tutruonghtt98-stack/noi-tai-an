@@ -122,18 +122,21 @@ export function CardModal({
   };
 
   const showApprove = canDelete && !!reviewListId && !!doneListId && column === reviewListId;
+  // Thẻ đã được duyệt (nằm ở cột Hoàn thành) — chỉ chủ bảng mới được sửa, người khác chỉ xem.
+  const locked = !canDelete && !!doneListId && column === doneListId;
 
   return (
     <Modal open={open} onClose={onClose} title={w.cardDetailTitle}>
       <div className="grid gap-4">
+        {locked && <p className="rounded-xl bg-surface-3 px-3 py-2 text-sm text-muted">{w.cardLocked}</p>}
         <label className="field">
           <span className="label">{w.cardTitle}</span>
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} autoFocus />
+          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} autoFocus disabled={locked} />
         </label>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="field">
             <span className="label">{w.fieldColumn}</span>
-            <select className="input" value={column} onChange={(e) => setColumn(e.target.value)}>
+            <select className="input" value={column} onChange={(e) => setColumn(e.target.value)} disabled={locked}>
               {lists.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
@@ -143,7 +146,7 @@ export function CardModal({
           </label>
           <label className="field">
             <span className="label">{w.cardLabel}</span>
-            <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={w.cardLabelPh} maxLength={30} />
+            <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={w.cardLabelPh} maxLength={30} disabled={locked} />
           </label>
         </div>
         <label className="field">
@@ -155,14 +158,14 @@ export function CardModal({
             onChange={(e) => setAssignee(e.target.value)}
             placeholder={w.cardAssigneePh}
             maxLength={160}
-            disabled={!canDelete}
+            disabled={!canDelete || locked}
           />
           <span className="mt-1 block text-xs text-muted">{w.cardAssigneeHint}</span>
         </label>
         {canDelete && teams.length > 0 && (
           <label className="field">
             <span className="label">{w.cardTeam}</span>
-            <select className="input" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+            <select className="input" value={teamId} onChange={(e) => setTeamId(e.target.value)} disabled={locked}>
               <option value="">{w.cardTeamNone}</option>
               {teams.map((team) => (
                 <option key={team.id} value={team.id}>
@@ -175,7 +178,7 @@ export function CardModal({
         )}
         <label className="field">
           <span className="label">{w.cardDue}</span>
-          <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={locked} />
         </label>
 
         <div>
@@ -186,33 +189,43 @@ export function CardModal({
             <ul className="space-y-1.5">
               {checklist.map((item) => (
                 <li key={item.id} className="flex items-center gap-2">
-                  <input type="checkbox" className="size-4 shrink-0 accent-[var(--ink)]" checked={item.done} onChange={() => toggleItem(item.id)} />
+                  <input
+                    type="checkbox"
+                    className="size-4 shrink-0 accent-[var(--ink)]"
+                    checked={item.done}
+                    onChange={() => toggleItem(item.id)}
+                    disabled={locked}
+                  />
                   <span className={cn("flex-1 text-sm", item.done && "text-muted line-through")}>{item.text}</span>
-                  <button type="button" className="icon-btn icon-btn-plain size-6 shrink-0" onClick={() => removeItem(item.id)} aria-label={w.deleteCardBtn}>
-                    <X className="size-3.5" aria-hidden />
-                  </button>
+                  {!locked && (
+                    <button type="button" className="icon-btn icon-btn-plain size-6 shrink-0" onClick={() => removeItem(item.id)} aria-label={w.deleteCardBtn}>
+                      <X className="size-3.5" aria-hidden />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
           )}
-          <div className="mt-2 flex gap-2">
-            <input
-              className="input flex-1"
-              value={newItem}
-              onChange={(e) => setNewItem(e.target.value)}
-              placeholder={w.checklistAddPh}
-              maxLength={200}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addItem();
-                }
-              }}
-            />
-            <button type="button" className="btn btn-soft" onClick={addItem}>
-              {w.checklistAdd}
-            </button>
-          </div>
+          {!locked && (
+            <div className="mt-2 flex gap-2">
+              <input
+                className="input flex-1"
+                value={newItem}
+                onChange={(e) => setNewItem(e.target.value)}
+                placeholder={w.checklistAddPh}
+                maxLength={200}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addItem();
+                  }
+                }}
+              />
+              <button type="button" className="btn btn-soft" onClick={addItem}>
+                {w.checklistAdd}
+              </button>
+            </div>
+          )}
         </div>
 
         <div>
@@ -274,9 +287,15 @@ export function CardModal({
                 {w.approveCard}
               </button>
             )}
-            <button type="button" className="btn btn-primary" disabled={pending} onClick={saveInfo}>
-              {w.save}
-            </button>
+            {locked ? (
+              <button type="button" className="btn btn-soft" onClick={onClose}>
+                {t.common.close}
+              </button>
+            ) : (
+              <button type="button" className="btn btn-primary" disabled={pending} onClick={saveInfo}>
+                {w.save}
+              </button>
+            )}
           </div>
         </div>
       </div>
