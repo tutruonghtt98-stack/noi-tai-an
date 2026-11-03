@@ -17,6 +17,8 @@ export function useAction() {
       if (code === "PLAN_LIMIT:activeGoals") return fmt(t.common.planLimitGoals, { n: PLAN_LIMITS.FREE.activeGoals });
       if (code === "PLAN_LIMIT:habits") return fmt(t.common.planLimitHabits, { n: PLAN_LIMITS.FREE.habits });
       if (code === "PRIORITY_FULL") return t.today.priorityFull;
+      if (code === "USER_NOT_FOUND") return t.departments.userNotFound;
+      if (code === "FORBIDDEN") return t.departments.forbidden;
       return t.common.error;
     },
     [t],

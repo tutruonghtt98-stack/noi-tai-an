@@ -98,6 +98,13 @@ model User {
   notifications     Notification[] @relation("NotificationUser")
   sentNotifications Notification[] @relation("NotificationActor")
   badges            UserBadge[]
+
+  ownedWorkspaces       Workspace[]        @relation("WorkspaceOwner")
+  workspaceMemberships  WorkspaceMember[]  @relation("WorkspaceMembership")
+  managedDepartments    Department[]       @relation("DepartmentManager")
+  departmentMemberships DepartmentMember[] @relation("DepartmentMembership")
+  ledTeams              Team[]             @relation("TeamLeader")
+  teamMemberships       TeamMember[]       @relation("TeamMembership")
 }
 
 model Account {
@@ -420,4 +427,103 @@ model UserBadge {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, code])
+}
+
+// ---------- Phòng ban (Workspace / Department / Team) — Phase 1 ----------
+// RBAC chi tiết và AI Reports là các giai đoạn sau (xem spec).
+
+model Workspace {
+  id          String    @id @default(cuid())
+  ownerId     String
+  name        String
+  description String?
+  logo        String?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner       User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     WorkspaceMember[]
+  departments Department[]
+
+  @@index([ownerId])
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        String // OWNER | ADMIN | MEMBER
+  joinedAt    DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation("WorkspaceMembership", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+model Department {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  code        String?
+  description String?
+  icon        String?
+  color       String    @default("ochre")
+  managerId   String?
+  modules     String[]  @default(["overview", "goals", "projects", "tasks", "calendar", "members", "reports"])
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  manager   User?              @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull)
+  members   DepartmentMember[]
+  teams     Team[]
+
+  @@index([workspaceId])
+}
+
+model DepartmentMember {
+  id           String   @id @default(cuid())
+  departmentId String
+  userId       String
+  role         String // MANAGER | MEMBER | VIEWER
+  joinedAt     DateTime @default(now())
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user       User       @relation("DepartmentMembership", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, userId])
+  @@index([userId])
+}
+
+model Team {
+  id           String    @id @default(cuid())
+  departmentId String
+  name         String
+  leaderId     String?
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  department Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  leader     User?        @relation("TeamLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  members    TeamMember[]
+
+  @@index([departmentId])
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation("TeamMembership", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
 }

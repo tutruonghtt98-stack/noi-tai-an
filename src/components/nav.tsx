@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type CSSProperties } from "react";
-import { LayoutGrid, Target, Repeat, Users, Kanban, ChartColumn, Settings, Ellipsis, type LucideIcon } from "lucide-react";
+import { LayoutGrid, Target, Repeat, Users, Kanban, Building2, ChartColumn, Settings, Ellipsis, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/client";
 import { Modal } from "@/components/ui/modal";
@@ -18,6 +18,7 @@ export const NAV: Item[] = [
   { href: "/habits", key: "habits", icon: Repeat },
   { href: "/customers", key: "customers", icon: Users },
   { href: "/workspace", key: "workspace", icon: Kanban },
+  { href: "/departments", key: "departments", icon: Building2 },
   { href: "/analytics", key: "analytics", icon: ChartColumn },
   { href: "/settings", key: "settings", icon: Settings },
 ];
