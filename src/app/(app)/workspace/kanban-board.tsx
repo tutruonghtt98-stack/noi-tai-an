@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { fmt } from "@/lib/i18n/format";
@@ -72,6 +73,8 @@ export function KanbanBoard({
   const [openCard, setOpenCard] = useState<{ card: SerializedCard; listId: string } | null>(null);
 
   const listOptions = lists.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name }));
+  const doneListId = lists.find((l) => l.name === "listDone")?.id;
+  const reviewListId = lists.find((l) => l.name === "listReview")?.id;
 
   const resetDrag = () => {
     pending.current = null;
@@ -79,14 +82,14 @@ export function KanbanBoard({
     setOverListId(null);
   };
 
-  const onCardPointerDown = (e: React.PointerEvent<HTMLButtonElement>, card: SerializedCard, listId: string) => {
+  const onCardPointerDown = (e: React.PointerEvent<HTMLDivElement>, card: SerializedCard, listId: string) => {
     if (e.button !== 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     e.currentTarget.setPointerCapture(e.pointerId);
     pending.current = { card, fromListId: listId, startX: e.clientX, startY: e.clientY, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top, width: rect.width };
   };
 
-  const onCardPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const onCardPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const p = pending.current;
     if (!p) return;
     const dx = e.clientX - p.startX;
@@ -102,7 +105,7 @@ export function KanbanBoard({
     setOverListId(listEl?.dataset.listId ?? null);
   };
 
-  const onCardPointerUp = (e: React.PointerEvent<HTMLButtonElement>, card: SerializedCard, listId: string) => {
+  const onCardPointerUp = (e: React.PointerEvent<HTMLDivElement>, card: SerializedCard, listId: string) => {
     const p = pending.current;
     const wasDragging = !!drag;
     if (wasDragging && overListId && overListId !== p?.fromListId) {
@@ -111,6 +114,11 @@ export function KanbanBoard({
       setOpenCard({ card, listId });
     }
     resetDrag();
+  };
+
+  const approveCard = (card: SerializedCard) => {
+    if (!doneListId) return;
+    exec(() => moveWorkCard(card.id, doneListId), { success: w.cardApproved });
   };
 
   return (
@@ -143,10 +151,12 @@ export function KanbanBoard({
               ) : (
                 list.cards.map((card) => {
                   const isDraggingThis = drag?.card.id === card.id;
+                  const showApprove = canManage && list.name === "listReview" && !!doneListId;
                   return (
-                    <button
-                      type="button"
+                    <div
                       key={card.id}
+                      role="button"
+                      tabIndex={0}
                       onPointerDown={(e) => onCardPointerDown(e, card, list.id)}
                       onPointerMove={onCardPointerMove}
                       onPointerUp={(e) => onCardPointerUp(e, card, list.id)}
@@ -159,8 +169,21 @@ export function KanbanBoard({
                     >
                       <div className={isDraggingThis ? "invisible" : undefined}>
                         <CardBody w={w} card={card} />
+                        {showApprove && (
+                          <button
+                            type="button"
+                            className="btn btn-soft mt-2.5 w-full !py-1.5 text-xs text-jade-ink"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              approveCard(card);
+                            }}
+                          >
+                            <Check className="size-3.5" aria-hidden /> {w.approveCard}
+                          </button>
+                        )}
                       </div>
-                    </button>
+                    </div>
                   );
                 })
               )}
@@ -184,6 +207,8 @@ export function KanbanBoard({
         listId={openCard?.listId ?? ""}
         lists={listOptions}
         teams={teams}
+        reviewListId={reviewListId}
+        doneListId={doneListId}
         onClose={() => setOpenCard(null)}
         canDelete={canManage}
       />

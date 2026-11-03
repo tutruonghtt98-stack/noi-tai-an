@@ -501,6 +501,8 @@ const vi = {
       deleteCard: "Xoá thẻ này?",
       deleteCardBtn: "Xoá thẻ",
       cardDeleted: "Đã xoá thẻ",
+      approveCard: "Duyệt",
+      cardApproved: "Đã duyệt, chuyển sang Hoàn thành",
       moveTo: "Chuyển sang",
       listToDo: "Cần làm",
       listInProgress: "Đang làm",

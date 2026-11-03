@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/cn";
 import { Modal } from "@/components/ui/modal";
-import { addWorkCardComment, deleteWorkCard, listWorkCardComments, updateWorkCard, updateWorkCardChecklist } from "@/actions/work";
+import { addWorkCardComment, deleteWorkCard, listWorkCardComments, moveWorkCard, updateWorkCard, updateWorkCardChecklist } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
 import type { ChecklistItem } from "@/lib/work-types";
 
@@ -27,6 +27,8 @@ export function CardModal({
   listId,
   lists,
   teams = [],
+  reviewListId,
+  doneListId,
   onClose,
   canDelete = true,
 }: {
@@ -35,6 +37,8 @@ export function CardModal({
   listId: string;
   lists: { id: string; name: string }[];
   teams?: { id: string; name: string }[];
+  reviewListId?: string;
+  doneListId?: string;
   onClose: () => void;
   canDelete?: boolean;
 }) {
@@ -111,6 +115,13 @@ export function CardModal({
       { success: w.cardUpdated, onSuccess: onClose },
     );
   };
+
+  const approveCard = () => {
+    if (!doneListId) return;
+    exec(() => moveWorkCard(card.id, doneListId), { success: w.cardApproved, onSuccess: onClose });
+  };
+
+  const showApprove = canDelete && !!reviewListId && !!doneListId && column === reviewListId;
 
   return (
     <Modal open={open} onClose={onClose} title={w.cardDetailTitle}>
@@ -257,9 +268,16 @@ export function CardModal({
           ) : (
             <span />
           )}
-          <button type="button" className="btn btn-primary" disabled={pending} onClick={saveInfo}>
-            {w.save}
-          </button>
+          <div className="flex items-center gap-2">
+            {showApprove && (
+              <button type="button" className="btn btn-soft text-jade-ink" disabled={pending} onClick={approveCard}>
+                {w.approveCard}
+              </button>
+            )}
+            <button type="button" className="btn btn-primary" disabled={pending} onClick={saveInfo}>
+              {w.save}
+            </button>
+          </div>
         </div>
       </div>
     </Modal>

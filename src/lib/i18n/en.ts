@@ -503,6 +503,8 @@ const en: Dict = {
       deleteCard: "Delete this card?",
       deleteCardBtn: "Delete card",
       cardDeleted: "Card deleted",
+      approveCard: "Approve",
+      cardApproved: "Approved, moved to Done",
       moveTo: "Move to",
       listToDo: "To do",
       listInProgress: "In progress",
