@@ -8,16 +8,31 @@ import { Modal } from "@/components/ui/modal";
 import { SegmentLinks } from "@/components/ui/segment-links";
 import { createWorkBoard, deleteWorkBoard } from "@/actions/work";
 
-export function BoardSwitcher({ boards, active }: { boards: { id: string; name: string; inProgress: number }[]; active?: string }) {
+export function BoardSwitcher({
+  boards,
+  active,
+}: {
+  boards: { id: string; name: string; inProgress: number; overdue: number }[];
+  active?: string;
+}) {
   const { t } = useI18n();
   const w = t.work.workspace;
   const items = boards.map((b) => ({
     value: b.id,
     href: `/workspace?b=${b.id}`,
     label:
-      b.inProgress > 0 ? (
+      b.inProgress > 0 || b.overdue > 0 ? (
         <>
-          {b.name} <span className="text-mist-ink">({b.inProgress})</span>
+          {b.name}{" "}
+          <span>
+            (<span className="text-mist-ink">{b.inProgress}</span>
+            {b.overdue > 0 && (
+              <>
+                ,<span className="text-danger">{b.overdue}</span>
+              </>
+            )}
+            )
+          </span>
         </>
       ) : (
         b.name
