@@ -102,7 +102,9 @@ export function KanbanBoard({
     }
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const listEl = (el as HTMLElement | null)?.closest<HTMLElement>("[data-list-id]");
-    setOverListId(listEl?.dataset.listId ?? null);
+    const hoveredId = listEl?.dataset.listId ?? null;
+    // Người/team được cấp quyền không được kéo thẻ thẳng vào Hoàn thành — phải qua Xem lại rồi chủ bảng duyệt.
+    setOverListId(hoveredId && hoveredId === doneListId && !canManage ? null : hoveredId);
   };
 
   const onCardPointerUp = (e: React.PointerEvent<HTMLDivElement>, card: SerializedCard, listId: string) => {
