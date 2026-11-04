@@ -69,12 +69,36 @@ export const DEFAULT_LISTS: { name: string; color: string }[] = [
 
 export type BoardAccess = "owner" | "member";
 
+/** Không có cron nền, nên "quét" ngay trước khi đọc dữ liệu: thẻ đã quá hạn (dueDate đã qua) mà chưa ở
+ * cột "Hoàn thành" (và chưa ở sẵn "Quá hạn") thì tự động chuyển sang cột "Quá hạn" của đúng bảng đó. */
+async function sweepOverdueCards() {
+  const overdueLists = await db.workList.findMany({ where: { name: "listOverdue" }, select: { id: true, boardId: true } });
+  if (!overdueLists.length) return;
+  const doneLists = await db.workList.findMany({ where: { name: "listDone", boardId: { in: overdueLists.map((l) => l.boardId) } }, select: { id: true, boardId: true } });
+  const doneByBoard = new Map(doneLists.map((l) => [l.boardId, l.id]));
+  const now = new Date();
+  await Promise.all(
+    overdueLists.map((ol) => {
+      const doneId = doneByBoard.get(ol.boardId);
+      return db.workCard.updateMany({
+        where: {
+          list: { boardId: ol.boardId },
+          dueDate: { lt: now },
+          listId: { notIn: doneId ? [ol.id, doneId] : [ol.id] },
+        },
+        data: { listId: ol.id },
+      });
+    }),
+  );
+}
+
 /** Bảng mà user sở hữu, được gắn làm người phụ trách bảng, thuộc team phụ trách bảng, hoặc có ít nhất
  * một thẻ được cấp quyền riêng (card.assigneeUserId / card.teamId) — để thẻ được giao luôn hiện ra ngay
  * dưới đúng tên bảng của người tạo, không cần một mục "Được giao cho tôi" riêng.
  * Chủ bảng xem/thao tác toàn quyền; người phụ trách và thành viên team phụ trách chỉ xem/thao tác được
  * đúng những thẻ mà chủ bảng đã cấp quyền trực tiếp (card.assigneeUserId) hoặc cấp cho team của họ (card.teamId). */
 export async function getAccessibleBoards(userId: string) {
+  await sweepOverdueCards();
   const teamIds = await getUserTeamIds(userId);
   const cardGrant = { OR: [{ assigneeUserId: userId }, ...(teamIds.length ? [{ teamId: { in: teamIds } }] : [])] };
   const boards = await db.workBoard.findMany({
