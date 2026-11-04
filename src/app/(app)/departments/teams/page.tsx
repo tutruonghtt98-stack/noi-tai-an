@@ -59,7 +59,11 @@ export default async function TeamsPage({ searchParams }: { searchParams: Promis
               <tbody>
                 {teams.map((team) => (
                   <tr key={team.id} className="border-b border-line last:border-0 hover:bg-surface-2">
-                    <td className="py-3 pr-4 font-medium">{team.name}</td>
+                    <td className="py-3 pr-4 font-medium">
+                      <Link href={`/departments/teams/${team.id}?w=${active.id}`} className="hover:underline">
+                        {team.name}
+                      </Link>
+                    </td>
                     <td className="py-3 pr-4">
                       <Link href={`/departments/${team.department.id}?w=${active.id}`} className="inline-flex items-center gap-2 text-ink-2 hover:underline">
                         <span className={`size-2 shrink-0 rounded-full ${DEPT_DOT[team.department.color] ?? "bg-muted"}`} aria-hidden />

@@ -315,6 +315,7 @@ export async function addTeamMember(teamId: string, email: string) {
     await db.teamMember.upsert({ where: { teamId_userId: { teamId, userId: target.id } }, update: {}, create: { teamId, userId: target.id } });
     await notifyMember(target.id, user, `${user.name ?? user.email ?? "Ai đó"} đã thêm bạn vào nhóm`, team.department.name, "/departments");
     revalidatePath("/departments");
+    revalidatePath(`/departments/teams/${teamId}`);
   });
 }
 
@@ -326,5 +327,6 @@ export async function removeTeamMember(teamId: string, userId: string) {
     await requireDepartmentManage(team.departmentId, user.id);
     await db.teamMember.deleteMany({ where: { teamId, userId } });
     revalidatePath("/departments");
+    revalidatePath(`/departments/teams/${teamId}`);
   });
 }

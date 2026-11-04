@@ -100,7 +100,9 @@ export default async function DepartmentDetailPage({ params }: { params: Promise
             {dept.teams.map((team) => (
               <div key={team.id} className="group rounded-[1.25rem] border border-line p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="truncate font-medium">{team.name}</p>
+                  <Link href={`/departments/teams/${team.id}?w=${dept.workspace.id}`} className="truncate font-medium hover:underline">
+                    {team.name}
+                  </Link>
                   <TeamRowControls teamId={team.id} />
                 </div>
                 <p className="tabular mt-2 text-sm text-muted">{w.colMembers}: {team._count.members}</p>
