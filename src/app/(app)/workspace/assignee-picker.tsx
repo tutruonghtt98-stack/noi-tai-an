@@ -12,11 +12,13 @@ export function AssigneePicker({
   onChange,
   members,
   placeholder,
+  disabled = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   members: MemberOption[];
   placeholder?: string;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -39,6 +41,7 @@ export function AssigneePicker({
         className="input"
         type="email"
         value={value}
+        disabled={disabled}
         onChange={(e) => {
           onChange(e.target.value);
           setOpen(true);

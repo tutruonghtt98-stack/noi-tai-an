@@ -109,6 +109,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
                   )}
                   canManage={canManage}
                   teams={teamOptions}
+                  members={members}
                   openCardId={sp.card}
                 />
               </div>

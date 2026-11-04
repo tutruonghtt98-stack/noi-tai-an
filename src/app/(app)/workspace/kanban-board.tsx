@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { AddCardButton } from "./add-card-button";
 import { CardModal, type SerializedCard } from "./card-modal";
+import type { MemberOption } from "./assignee-picker";
 import type { Dict } from "@/lib/i18n/vi";
 
 export type SerializedList = { id: string; name: string; color: string; cards: SerializedCard[] };
@@ -61,11 +62,13 @@ export function KanbanBoard({
   lists,
   canManage = true,
   teams = [],
+  members = [],
   openCardId,
 }: {
   lists: SerializedList[];
   canManage?: boolean;
   teams?: { id: string; name: string }[];
+  members?: MemberOption[];
   /** Id thẻ cần tự mở popup ngay khi vào trang (vd: bấm "Mở" từ thông báo bình luận). */
   openCardId?: string;
 }) {
@@ -164,7 +167,7 @@ export function KanbanBoard({
                 {w[list.name as keyof typeof w] ?? list.name}
                 <span className="tabular text-sm text-muted">{list.cards.length}</span>
               </span>
-              {canManage && <AddCardButton listId={list.id} teams={teams} />}
+              {canManage && <AddCardButton listId={list.id} teams={teams} members={members} />}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -234,6 +237,7 @@ export function KanbanBoard({
         listId={openCard?.listId ?? ""}
         lists={listOptions}
         teams={teams}
+        members={members}
         reviewListId={reviewListId}
         doneListId={doneListId}
         onClose={() => setOpenCard(null)}

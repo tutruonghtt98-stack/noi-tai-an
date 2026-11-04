@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { Modal } from "@/components/ui/modal";
 import { addWorkCardComment, deleteWorkCard, listWorkCardComments, moveWorkCard, updateWorkCard, updateWorkCardChecklist } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
+import { AssigneePicker, type MemberOption } from "./assignee-picker";
 import type { ChecklistItem } from "@/lib/work-types";
 
 type CardComment = { id: string; content: string; createdAt: string; userName: string | null; userImage: string | null };
@@ -27,6 +28,7 @@ export function CardModal({
   listId,
   lists,
   teams = [],
+  members = [],
   reviewListId,
   doneListId,
   onClose,
@@ -37,6 +39,7 @@ export function CardModal({
   listId: string;
   lists: { id: string; name: string }[];
   teams?: { id: string; name: string }[];
+  members?: MemberOption[];
   reviewListId?: string;
   doneListId?: string;
   onClose: () => void;
@@ -152,15 +155,7 @@ export function CardModal({
         </div>
         <label className="field">
           <span className="label">{w.cardAssignee}</span>
-          <input
-            className="input"
-            type="email"
-            value={assignee}
-            onChange={(e) => setAssignee(e.target.value)}
-            placeholder={w.cardAssigneePh}
-            maxLength={160}
-            disabled={!canDelete || locked}
-          />
+          <AssigneePicker value={assignee} onChange={setAssignee} members={members} placeholder={w.cardAssigneePh} disabled={!canDelete || locked} />
           <span className="mt-1 block text-xs text-muted">{w.cardAssigneeHint}</span>
         </label>
         {canDelete && teams.length > 0 && (

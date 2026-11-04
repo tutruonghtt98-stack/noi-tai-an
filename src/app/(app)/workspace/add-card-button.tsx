@@ -5,8 +5,17 @@ import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
 import { createWorkCard } from "@/actions/work";
+import { AssigneePicker, type MemberOption } from "./assignee-picker";
 
-export function AddCardButton({ listId, teams = [] }: { listId: string; teams?: { id: string; name: string }[] }) {
+export function AddCardButton({
+  listId,
+  teams = [],
+  members = [],
+}: {
+  listId: string;
+  teams?: { id: string; name: string }[];
+  members?: MemberOption[];
+}) {
   const { t } = useI18n();
   const w = t.work.workspace;
   const { exec, pending } = useAction();
@@ -65,7 +74,7 @@ export function AddCardButton({ listId, teams = [] }: { listId: string; teams?: 
           </label>
           <label className="field">
             <span className="label">{w.cardAssignee}</span>
-            <input className="input" type="email" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder={w.cardAssigneePh} maxLength={160} />
+            <AssigneePicker value={assignee} onChange={setAssignee} members={members} placeholder={w.cardAssigneePh} />
             <span className="mt-1 block text-xs text-muted">{w.cardAssigneeHint}</span>
           </label>
           {teams.length > 0 && (
