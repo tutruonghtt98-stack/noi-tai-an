@@ -143,3 +143,20 @@ export async function getUserTeamIds(userId: string) {
   const rows = await db.teamMember.findMany({ where: { userId }, select: { teamId: true } });
   return rows.map((r) => r.teamId);
 }
+
+/** Mọi người trong các workspace mà user sở hữu/tham gia — gợi ý nhanh khi gán "người phụ trách" cho bảng/thẻ. */
+export async function getUserWorkspaceMembers(userId: string) {
+  const workspaces = await db.workspace.findMany({
+    where: { archivedAt: null, OR: [{ ownerId: userId }, { members: { some: { userId } } }] },
+    select: {
+      owner: { select: { id: true, name: true, email: true } },
+      members: { select: { user: { select: { id: true, name: true, email: true } } } },
+    },
+  });
+  const map = new Map<string, { id: string; name: string | null; email: string | null }>();
+  for (const w of workspaces) {
+    map.set(w.owner.id, w.owner);
+    for (const m of w.members) map.set(m.user.id, m.user);
+  }
+  return [...map.values()].filter((u) => u.id !== userId && u.email);
+}

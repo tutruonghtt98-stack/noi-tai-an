@@ -7,6 +7,7 @@ import { fmt } from "@/lib/i18n/format";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
 import { createWorkBoard, deleteWorkBoard, reorderWorkBoard, updateWorkBoard } from "@/actions/work";
+import { AssigneePicker, type MemberOption } from "./assignee-picker";
 
 /** Ô nhập số thứ tự hiển thị của bảng — chỉ chủ bảng chỉnh được. Số nhỏ hơn hiện lên trên. */
 export function BoardOrderInput({ boardId, sortOrder }: { boardId: string; sortOrder: number }) {
@@ -39,7 +40,15 @@ export function BoardOrderInput({ boardId, sortOrder }: { boardId: string; sortO
   );
 }
 
-export function NewBoardButton({ primary = false, teams = [] }: { primary?: boolean; teams?: { id: string; name: string }[] }) {
+export function NewBoardButton({
+  primary = false,
+  teams = [],
+  members = [],
+}: {
+  primary?: boolean;
+  teams?: { id: string; name: string }[];
+  members?: MemberOption[];
+}) {
   const { t } = useI18n();
   const w = t.work.workspace;
   const router = useRouter();
@@ -103,7 +112,7 @@ export function NewBoardButton({ primary = false, teams = [] }: { primary?: bool
           </label>
           <label className="field">
             <span className="label">{w.boardAssignee}</span>
-            <input className="input" type="email" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder={w.boardAssigneePh} maxLength={160} />
+            <AssigneePicker value={assignee} onChange={setAssignee} members={members} placeholder={w.boardAssigneePh} />
             <span className="mt-1 block text-xs text-muted">{w.boardAssigneeHint}</span>
           </label>
           {teams.length > 0 && (
@@ -154,6 +163,7 @@ export function BoardHeaderCard({
   progressText,
   canManage,
   teams = [],
+  members = [],
 }: {
   board: BoardInfo;
   title: string;
@@ -165,6 +175,7 @@ export function BoardHeaderCard({
   progressText: string;
   canManage: boolean;
   teams?: { id: string; name: string }[];
+  members?: MemberOption[];
 }) {
   const { t } = useI18n();
   const w = t.work.workspace;
@@ -253,7 +264,7 @@ export function BoardHeaderCard({
           </label>
           <label className="field">
             <span className="label">{w.boardAssignee}</span>
-            <input className="input" type="email" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder={w.boardAssigneePh} maxLength={160} />
+            <AssigneePicker value={assignee} onChange={setAssignee} members={members} placeholder={w.boardAssigneePh} />
             <span className="mt-1 block text-xs text-muted">{w.boardAssigneeHint}</span>
           </label>
           {teams.length > 0 && (

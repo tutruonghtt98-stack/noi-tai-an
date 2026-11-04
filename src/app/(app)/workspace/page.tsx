@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/session";
 import { getI18n } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/format";
 import { getAccessibleBoards } from "@/lib/work-queries";
-import { getUserTeams } from "@/lib/department-queries";
+import { getUserTeams, getUserWorkspaceMembers } from "@/lib/department-queries";
 import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
@@ -27,7 +27,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
   const w = t.work.workspace;
   const sp = await searchParams;
 
-  const [boards, teams] = await Promise.all([getAccessibleBoards(user.id), getUserTeams(user.id)]);
+  const [boards, teams, members] = await Promise.all([getAccessibleBoards(user.id), getUserTeams(user.id), getUserWorkspaceMembers(user.id)]);
   const teamOptions = teams.map((t) => ({ id: t.id, name: t.department ? `${t.department.name} / ${t.name}` : t.name }));
 
   const today = new Date();
@@ -48,13 +48,13 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <NewBoardButton teams={teamOptions} />
+        <NewBoardButton teams={teamOptions} members={members} />
       </div>
 
       {boards.length === 0 ? (
         <div className="card">
           <Empty icon={Kanban} text={w.emptyBoards}>
-            <NewBoardButton primary teams={teamOptions} />
+            <NewBoardButton primary teams={teamOptions} members={members} />
           </Empty>
         </div>
       ) : (
@@ -86,6 +86,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
                     progressText={fmt(w.progressDone, { done, total })}
                     canManage={canManage}
                     teams={teamOptions}
+                    members={members}
                   />
                 </StaggerReveal>
 
