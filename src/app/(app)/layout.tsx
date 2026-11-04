@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { requireUser } from "@/lib/session";
 import { effectivePlan } from "@/lib/plan";
 import { getI18n } from "@/lib/i18n";
@@ -8,15 +9,17 @@ import { MobileNav } from "@/components/nav";
 import { ThemeToggle, UserMenu } from "@/components/user-menu";
 import { AlertsCenter } from "@/components/alerts-center";
 import { Sidebar } from "@/components/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { NotificationBellSlot, NotificationBellFallback } from "@/components/notification-bell-slot";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const [user] = await Promise.all([requireUser(), getI18n()]);
+  const [user, , cookieStore] = await Promise.all([requireUser(), getI18n(), cookies()]);
   const name = user.name ?? user.email ?? "Bạn";
   const plan = effectivePlan(user);
+  const sidebarOpen = cookieStore.get("sidebar_state")?.value !== "false";
 
   return (
-    <div className="flex min-h-dvh">
+    <SidebarProvider defaultOpen={sidebarOpen}>
       <Sidebar
         name={name}
         image={user.image}
@@ -49,6 +52,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
       <MobileNav />
       <AlertsCenter />
-    </div>
+    </SidebarProvider>
   );
 }
