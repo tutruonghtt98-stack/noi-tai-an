@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { LayoutGrid, Target, Repeat, Users, Kanban, Building2, ChartColumn, Settings, Plus, type LucideIcon } from "lucide-react";
 import {
   BottomNavigation,
@@ -35,15 +35,32 @@ export const isActive = (path: string, href: string) => path === href || path.st
 /** Mục menu chính dùng cho Sidebar — Cài đặt tách riêng xuống khu vực dưới cùng của sidebar. */
 export const TOP_NAV = NAV.filter((i) => i.key !== "settings");
 
+const MOBILE_QUERY = "(max-width: 767px)";
+
+function subscribeMobile(onChange: () => void) {
+  const mq = window.matchMedia(MOBILE_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+/** Theo dõi breakpoint mobile (md của Tailwind) — dùng để KHÔNG mount BottomNavigation trên desktop,
+ * vì logic theo dõi cuộn trang của nó lỗi khi phần tử bị ẩn bằng CSS (md:hidden) trên trang rất dài. */
+function useIsMobile() {
+  return useSyncExternalStore(subscribeMobile, () => window.matchMedia(MOBILE_QUERY).matches, () => false);
+}
+
 /** Điều hướng dưới cùng cho mobile: thanh nổi bo tròn với 4 mục chính + nút "+" tròn tách riêng
  * mở các mục còn lại. Vệt sáng trượt theo mục active, icon nhấn nhẹ khi chạm, tự ẩn khi cuộn trang. */
 export function MobileNav() {
   const path = usePathname();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
   const primary = NAV.slice(0, 4);
   const rest = NAV.slice(4);
   const activeValue = primary.find((i) => isActive(path, i.href))?.href;
+
+  if (!isMobile) return null;
 
   return (
     <>

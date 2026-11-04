@@ -155,6 +155,18 @@ export async function updateWorkBoard(id: string, input: BoardInput) {
   });
 }
 
+/** Đổi thứ tự hiển thị của bảng (chỉ chủ bảng) — các bảng xếp từ trên xuống theo sortOrder tăng dần. */
+export async function reorderWorkBoard(id: string, sortOrder: number) {
+  return run(async () => {
+    const user = await requireUser();
+    const row = await db.workBoard.findUnique({ where: { id }, select: { userId: true } });
+    if (!row || row.userId !== user.id) throw new UserError("VALIDATION");
+    const order = Math.trunc(Number.isFinite(sortOrder) ? sortOrder : 0);
+    await db.workBoard.update({ where: { id }, data: { sortOrder: order } });
+    revalidatePath("/workspace");
+  });
+}
+
 export async function deleteWorkBoard(id: string) {
   return run(async () => {
     const user = await requireUser();

@@ -478,6 +478,7 @@ const en: Dict = {
       boardCreated: "Board created",
       editBoardTitle: "Edit board",
       boardUpdated: "Board updated",
+      boardOrder: "Order",
       deleteBoard: "Delete this board?",
       sharedBoardBadge: "Shared",
       ownerLabel: "Board owner: {name}",

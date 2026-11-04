@@ -6,41 +6,37 @@ import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
-import { SegmentLinks } from "@/components/ui/segment-links";
-import { createWorkBoard, deleteWorkBoard, updateWorkBoard } from "@/actions/work";
+import { createWorkBoard, deleteWorkBoard, reorderWorkBoard, updateWorkBoard } from "@/actions/work";
 
-export function BoardSwitcher({
-  boards,
-  active,
-}: {
-  boards: { id: string; name: string; inProgress: number; overdue: number }[];
-  active?: string;
-}) {
+/** Ô nhập số thứ tự hiển thị của bảng — chỉ chủ bảng chỉnh được. Số nhỏ hơn hiện lên trên. */
+export function BoardOrderInput({ boardId, sortOrder }: { boardId: string; sortOrder: number }) {
   const { t } = useI18n();
   const w = t.work.workspace;
-  const items = boards.map((b) => ({
-    value: b.id,
-    href: `/workspace?b=${b.id}`,
-    label:
-      b.inProgress > 0 || b.overdue > 0 ? (
-        <>
-          {b.name}{" "}
-          <span>
-            (<span className="text-mist-ink">{b.inProgress}</span>
-            {b.overdue > 0 && (
-              <>
-                ,<span className="text-danger">{b.overdue}</span>
-              </>
-            )}
-            )
-          </span>
-        </>
-      ) : (
-        b.name
-      ),
-  }));
-  if (!items.length) return null;
-  return <SegmentLinks ariaLabel={w.title} active={active ?? items[0]!.value} items={items} />;
+  const { exec } = useAction();
+  const [value, setValue] = useState(String(sortOrder));
+
+  const commit = () => {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === sortOrder) {
+      setValue(String(sortOrder));
+      return;
+    }
+    exec(() => reorderWorkBoard(boardId, n));
+  };
+
+  return (
+    <input
+      type="number"
+      className="input w-16 shrink-0 text-center"
+      value={value}
+      aria-label={w.boardOrder}
+      title={w.boardOrder}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      onClick={(e) => e.stopPropagation()}
+    />
+  );
 }
 
 export function NewBoardButton({ primary = false, teams = [] }: { primary?: boolean; teams?: { id: string; name: string }[] }) {
@@ -142,9 +138,11 @@ type BoardInfo = {
   dueDate: string | null;
   assignee: string | null;
   teamId: string | null;
+  sortOrder: number;
 };
 
-/** Thanh thông tin bảng ở đầu trang Workspace — bấm vào (khi là chủ bảng) để mở popup chỉnh sửa tên/mô tả/hạn/người-team phụ trách. */
+/** Thanh thông tin bảng ở đầu mỗi bảng trong trang Workspace — bấm vào (khi là chủ bảng) để mở popup chỉnh sửa
+ * tên/mô tả/hạn/người-team phụ trách. Các bảng xếp từ trên xuống dưới, ô "Thứ tự" cho chủ bảng tự sắp xếp. */
 export function BoardHeaderCard({
   board,
   title,
@@ -224,6 +222,7 @@ export function BoardHeaderCard({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {canManage && <BoardOrderInput boardId={board.id} sortOrder={board.sortOrder} />}
           <div className="progress w-32">
             <span style={{ width: `${progressPct}%` }} />
           </div>

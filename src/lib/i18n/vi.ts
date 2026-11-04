@@ -476,6 +476,7 @@ const vi = {
       boardCreated: "Đã tạo bảng",
       editBoardTitle: "Chỉnh sửa bảng",
       boardUpdated: "Đã cập nhật bảng",
+      boardOrder: "Thứ tự",
       deleteBoard: "Xoá bảng này?",
       sharedBoardBadge: "Được chia sẻ",
       ownerLabel: "Chủ bảng: {name}",
