@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { moveWorkCard } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
+import { daysBetween, isoInZone, todayISO } from "@/lib/dates";
 import { AddCardButton } from "./add-card-button";
 import { CardModal, type SerializedCard } from "./card-modal";
 import type { MemberOption } from "./assignee-picker";
@@ -18,21 +19,19 @@ export type SerializedList = { id: string; name: string; color: string; cards: S
 
 const DOT: Record<string, string> = { muted: "bg-muted", mist: "bg-mist", ochre: "bg-ochre", jade: "bg-jade", danger: "bg-danger" };
 
-export function dueLabel(w: Dict["work"]["workspace"], due: string | null) {
+export function dueLabel(w: Dict["work"]["workspace"], due: string | null, timezone: string) {
   if (!due) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diffDays = Math.round((new Date(due).getTime() - today.getTime()) / 86_400_000);
+  const diffDays = daysBetween(todayISO(timezone), isoInZone(new Date(due), timezone));
   if (diffDays === 0) return w.dueToday;
   if (diffDays > 0) return fmt(w.dueIn, { n: diffDays });
   return fmt(w.overdue, { n: Math.abs(diffDays) });
 }
 
-export function CardBody({ w, card }: { w: Dict["work"]["workspace"]; card: SerializedCard }) {
+export function CardBody({ w, card, timezone }: { w: Dict["work"]["workspace"]; card: SerializedCard; timezone: string }) {
   const total = card.checklist.length;
   const done = card.checklist.filter((c) => c.done).length;
   const pct = total ? Math.round((done / total) * 100) : 0;
-  const due = dueLabel(w, card.dueDate);
+  const due = dueLabel(w, card.dueDate, timezone);
   return (
     <>
       {card.label && <span className="badge mb-2">{card.label}</span>}
@@ -64,6 +63,7 @@ export function KanbanBoard({
   teams = [],
   members = [],
   openCardId,
+  timezone,
 }: {
   lists: SerializedList[];
   canManage?: boolean;
@@ -71,6 +71,7 @@ export function KanbanBoard({
   members?: MemberOption[];
   /** Id thẻ cần tự mở popup ngay khi vào trang (vd: bấm "Mở" từ thông báo bình luận). */
   openCardId?: string;
+  timezone: string;
 }) {
   const { t } = useI18n();
   const w = t.work.workspace;
@@ -197,7 +198,7 @@ export function KanbanBoard({
                       )}
                     >
                       <div className={isDraggingThis ? "invisible" : undefined}>
-                        <CardBody w={w} card={card} />
+                        <CardBody w={w} card={card} timezone={timezone} />
                         {showApprove && (
                           <button
                             type="button"
@@ -227,7 +228,7 @@ export function KanbanBoard({
           className="pointer-events-none fixed z-[60] rounded-2xl bg-surface p-3 shadow-pop"
           style={{ left: drag.x, top: drag.y, width: drag.width, transform: "rotate(-3deg) scale(1.03)" }}
         >
-          <CardBody w={w} card={drag.card} />
+          <CardBody w={w} card={drag.card} timezone={timezone} />
         </div>
       )}
 
@@ -242,6 +243,7 @@ export function KanbanBoard({
         doneListId={doneListId}
         onClose={() => setOpenCard(null)}
         canDelete={canManage}
+        timezone={timezone}
       />
     </>
   );

@@ -7,6 +7,7 @@ import { fmt } from "@/lib/i18n/format";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
 import { SegmentLinks } from "@/components/ui/segment-links";
+import { utcToZonedDateTimeInput } from "@/lib/dates";
 import { createWorkBoard, deleteWorkBoard, reorderWorkBoard, updateWorkBoard } from "@/actions/work";
 import { AssigneePicker, type MemberOption } from "./assignee-picker";
 
@@ -200,6 +201,7 @@ export function BoardHeaderCard({
   canManage,
   teams = [],
   members = [],
+  timezone,
 }: {
   board: BoardInfo;
   title: string;
@@ -212,6 +214,7 @@ export function BoardHeaderCard({
   canManage: boolean;
   teams?: { id: string; name: string }[];
   members?: MemberOption[];
+  timezone: string;
 }) {
   const { t } = useI18n();
   const w = t.work.workspace;
@@ -219,7 +222,7 @@ export function BoardHeaderCard({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(board.name);
   const [description, setDescription] = useState(board.description ?? "");
-  const [dueDate, setDueDate] = useState(board.dueDate ? board.dueDate.slice(0, 16) : "");
+  const [dueDate, setDueDate] = useState(board.dueDate ? utcToZonedDateTimeInput(new Date(board.dueDate), timezone) : "");
   const [assignee, setAssignee] = useState(board.assignee ?? "");
   const [teamId, setTeamId] = useState(board.teamId ?? "");
 
@@ -227,7 +230,7 @@ export function BoardHeaderCard({
     if (!canManage) return;
     setName(board.name);
     setDescription(board.description ?? "");
-    setDueDate(board.dueDate ? board.dueDate.slice(0, 16) : "");
+    setDueDate(board.dueDate ? utcToZonedDateTimeInput(new Date(board.dueDate), timezone) : "");
     setAssignee(board.assignee ?? "");
     setTeamId(board.teamId ?? "");
     setOpen(true);

@@ -5,6 +5,7 @@ import { getI18n } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/format";
 import { getAccessibleBoards } from "@/lib/work-queries";
 import { getUserTeams, getUserWorkspaceMembers } from "@/lib/department-queries";
+import { daysBetween, isoInZone, todayISO } from "@/lib/dates";
 import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
@@ -39,11 +40,10 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
   const active = boards.find((b) => b.id === sp.b) ?? boards[0];
   const teamOptions = teams.map((t) => ({ id: t.id, name: t.department ? `${t.department.name} / ${t.name}` : t.name }));
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = todayISO(user.timezone);
   const dueLabel = (due: Date | null) => {
     if (!due) return null;
-    const diffDays = Math.round((due.getTime() - today.getTime()) / 86400000);
+    const diffDays = daysBetween(today, isoInZone(due, user.timezone));
     if (diffDays === 0) return w.dueToday;
     if (diffDays > 0) return fmt(w.dueIn, { n: diffDays });
     return fmt(w.overdue, { n: Math.abs(diffDays) });
@@ -98,6 +98,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
                   canManage={active.access === "owner"}
                   teams={teamOptions}
                   members={members}
+                  timezone={user.timezone}
                 />
               </StaggerReveal>
             );
@@ -124,6 +125,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
             teams={teamOptions}
             members={members}
             openCardId={sp.card}
+            timezone={user.timezone}
           />
         </>
       )}

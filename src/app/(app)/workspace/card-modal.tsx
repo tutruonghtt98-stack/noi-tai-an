@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import { addWorkCardComment, deleteWorkCard, listWorkCardComments, moveWorkCard, updateWorkCard, updateWorkCardChecklist } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
 import { AssigneePicker, type MemberOption } from "./assignee-picker";
+import { utcToZonedDateTimeInput } from "@/lib/dates";
 import type { ChecklistItem } from "@/lib/work-types";
 
 type CardComment = { id: string; content: string; createdAt: string; userName: string | null; userImage: string | null };
@@ -33,6 +34,7 @@ export function CardModal({
   doneListId,
   onClose,
   canDelete = true,
+  timezone,
 }: {
   open: boolean;
   card: SerializedCard | null;
@@ -44,6 +46,7 @@ export function CardModal({
   doneListId?: string;
   onClose: () => void;
   canDelete?: boolean;
+  timezone: string;
 }) {
   const { t } = useI18n();
   const w = t.work.workspace;
@@ -65,7 +68,7 @@ export function CardModal({
     setLabel(card.label ?? "");
     setAssignee(card.assignee ?? "");
     setTeamId(card.teamId ?? "");
-    setDueDate(card.dueDate ? card.dueDate.slice(0, 16) : "");
+    setDueDate(card.dueDate ? utcToZonedDateTimeInput(new Date(card.dueDate), timezone) : "");
     setColumn(listId);
     setChecklist(card.checklist);
     setComments([]);

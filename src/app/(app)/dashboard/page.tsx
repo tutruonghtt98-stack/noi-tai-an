@@ -4,7 +4,7 @@ import { ArrowUpRight, Star, Target } from "lucide-react";
 import { requireUser } from "@/lib/session";
 import { getI18n } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/format";
-import { addDays, dayOfWeek, fromDbDate, hourInZone, startOfWeek, toDbDate, todayISO } from "@/lib/dates";
+import { addDays, dayOfWeek, fromDbDate, hourInZone, isoInZone, startOfWeek, timeInZone, toDbDate, todayISO } from "@/lib/dates";
 import { getDashboard } from "@/lib/queries";
 import { getAccessibleBoards } from "@/lib/work-queries";
 import { scoreBand } from "@/lib/stats";
@@ -61,7 +61,7 @@ export default async function DashboardPage() {
   const weekStartDate = weekDays[0]!;
   const weekEndDate = weekDays[6]!;
   const inWeek = (due: Date) => {
-    const iso = due.toISOString().slice(0, 10);
+    const iso = isoInZone(due, user.timezone);
     return iso >= weekStartDate && iso <= weekEndDate;
   };
   const boardDeadlines = boards
@@ -224,8 +224,8 @@ export default async function DashboardPage() {
             ...boardDeadlines.map((b) => ({
               id: b.id,
               title: b.name,
-              date: b.dueDate.toISOString().slice(0, 10),
-              startTime: b.dueDate.toISOString().slice(11, 16),
+              date: isoInZone(b.dueDate, user.timezone),
+              startTime: timeInZone(b.dueDate, user.timezone),
               estimateMin: 90,
               done: false,
               color: "rose",
@@ -234,8 +234,8 @@ export default async function DashboardPage() {
             ...cardDeadlines.map((c) => ({
               id: c.id,
               title: c.name,
-              date: c.dueDate.toISOString().slice(0, 10),
-              startTime: c.dueDate.toISOString().slice(11, 16),
+              date: isoInZone(c.dueDate, user.timezone),
+              startTime: timeInZone(c.dueDate, user.timezone),
               estimateMin: 90,
               done: false,
               color: "mist",

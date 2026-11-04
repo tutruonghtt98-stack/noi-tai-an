@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
 import { DEFAULT_LISTS, getCardComments } from "@/lib/work-queries";
 import { getUserTeamIds } from "@/lib/department-queries";
+import { zonedDateTimeToUTC } from "@/lib/dates";
 import type { Prisma } from "@/generated/prisma/client";
 
 const customerSchema = z.object({
@@ -55,7 +56,7 @@ const boardSchema = z.object({
     .string()
     .trim()
     .optional()
-    .transform((v) => (v ? new Date(v) : null)),
+    .transform((v) => v || null),
   assignee: z
     .string()
     .trim()
@@ -98,6 +99,7 @@ export async function createWorkBoard(input: BoardInput) {
     const board = await db.workBoard.create({
       data: {
         ...data,
+        dueDate: data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null,
         assigneeUserId,
         teamId,
         userId: user.id,
@@ -135,7 +137,10 @@ export async function updateWorkBoard(id: string, input: BoardInput) {
     const { teamId: rawTeamId, ...data } = boardSchema.parse(input);
     const teamId = await resolveTeam(user.id, rawTeamId);
     const assigneeUserId = await resolveAssigneeId(data.assignee);
-    await db.workBoard.update({ where: { id }, data: { ...data, assigneeUserId, teamId } });
+    await db.workBoard.update({
+      where: { id },
+      data: { ...data, dueDate: data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null, assigneeUserId, teamId },
+    });
     if (assigneeUserId && assigneeUserId !== user.id && assigneeUserId !== row.assigneeUserId) {
       await db.notification.create({
         data: {
@@ -199,7 +204,7 @@ const cardSchema = z.object({
     .string()
     .trim()
     .optional()
-    .transform((v) => (v ? new Date(v) : null)),
+    .transform((v) => v || null),
   teamId: z
     .string()
     .trim()
@@ -259,7 +264,15 @@ export async function createWorkCard(input: CardInput) {
     const count = await db.workCard.count({ where: { listId: data.listId } });
     const assigneeUserId = await resolveAssigneeId(data.assignee);
     await db.workCard.create({
-      data: { ...data, teamId, assigneeUserId, sortOrder: count, checklist: [], completedAt: isDoneList(list.name) ? new Date() : null },
+      data: {
+        ...data,
+        dueDate: data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null,
+        teamId,
+        assigneeUserId,
+        sortOrder: count,
+        checklist: [],
+        completedAt: isDoneList(list.name) ? new Date() : null,
+      },
     });
     await notifyAssignee(data.assignee, user, data.title);
     if (teamId) await notifyTeamShared(teamId, user, `${user.name ?? user.email ?? "Ai đó"} đã cấp quyền thẻ cho team của bạn`, data.title);
@@ -304,7 +317,15 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
     const completedAt = changingList ? (isDoneList(targetList.name) ? (card.completedAt ?? new Date()) : null) : undefined;
     await db.workCard.update({
       where: { id },
-      data: { ...data, assignee, assigneeUserId, teamId, ...(sortOrder != null ? { sortOrder } : {}), ...(completedAt !== undefined ? { completedAt } : {}) },
+      data: {
+        ...data,
+        dueDate: data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null,
+        assignee,
+        assigneeUserId,
+        teamId,
+        ...(sortOrder != null ? { sortOrder } : {}),
+        ...(completedAt !== undefined ? { completedAt } : {}),
+      },
     });
     if (assigneeChanged) await notifyAssignee(data.assignee, user, data.title);
     if (teamChanged && teamId) await notifyTeamShared(teamId, user, `${user.name ?? user.email ?? "Ai đó"} đã cấp quyền thẻ cho team của bạn`, data.title);
