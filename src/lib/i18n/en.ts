@@ -529,6 +529,7 @@ const en: Dict = {
       commentsEmpty: "No comments yet.",
       commentPh: "Write a comment…",
       commentSend: "Send",
+      commentSent: "Comment sent",
     },
   },
   departments: {

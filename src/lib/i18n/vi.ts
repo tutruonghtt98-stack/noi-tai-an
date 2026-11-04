@@ -527,6 +527,7 @@ const vi = {
       commentsEmpty: "Chưa có bình luận nào.",
       commentPh: "Viết bình luận…",
       commentSend: "Gửi",
+      commentSent: "Đã gửi bình luận",
     },
   },
   departments: {

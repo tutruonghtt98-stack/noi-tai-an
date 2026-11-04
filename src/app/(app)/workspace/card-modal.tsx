@@ -76,6 +76,7 @@ export function CardModal({
     const text = newComment.trim();
     if (!text) return;
     exec(() => addWorkCardComment(card.id, text), {
+      success: w.commentSent,
       onSuccess: () => {
         setNewComment("");
         listWorkCardComments(card.id).then((res) => {
