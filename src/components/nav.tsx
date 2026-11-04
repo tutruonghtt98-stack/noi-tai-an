@@ -54,7 +54,7 @@ export function MobileNav() {
         style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       >
         <BottomNavigationHighlight className="absolute inset-x-1 inset-y-1.5 rounded-full bg-accent-soft">
-          <ul className="relative mx-auto flex items-stretch rounded-full bg-surface px-3 shadow-pop ring-1 ring-line">
+          <ul className="relative mx-auto flex items-stretch rounded-full bg-surface px-2.5 shadow-pop ring-1 ring-line">
             {primary.map(({ href, key, icon: Icon }) => {
               const active = isActive(path, href);
               return (
@@ -64,7 +64,7 @@ export function MobileNav() {
                       asChild
                       value={href}
                       className={cn(
-                        "relative z-10 flex h-16 flex-col items-center justify-center gap-1 whitespace-nowrap px-1 text-[0.625rem] font-medium data-[minimized]:size-12 data-[minimized]:px-0",
+                        "relative z-10 flex h-16 flex-col items-center justify-center gap-1 whitespace-nowrap px-3.5 text-[0.625rem] font-medium data-[minimized]:size-12 data-[minimized]:px-0",
                         active ? "text-ink" : "text-muted",
                       )}
                     >
