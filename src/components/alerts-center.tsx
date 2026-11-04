@@ -1,16 +1,17 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BellRing, PartyPopper, Coffee, X } from "lucide-react";
+import { BellRing, PartyPopper, Coffee, MessageCircle, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
 import { claimOnce, loadPrefs, systemNotify, type AlertPrefs } from "@/lib/notify";
-import { playBreakOver, playComplete, playReminder, unlockAudio } from "@/lib/sound";
+import { playBreakOver, playComplete, playNotify, playReminder, unlockAudio } from "@/lib/sound";
 import { cn } from "@/lib/cn";
 
 type Task = { id: string; title: string; startTime: string; estimateMin: number | null };
 type FocusState = { mode: "focus" | "break"; plannedMin: number; running: boolean; endsAt: number | null };
-type Alert = { id: string; kind: "task" | "focus" | "break"; title: string; body: string; href: string };
+type Alert = { id: string; kind: "task" | "focus" | "break" | "notify"; title: string; body: string; href: string };
+type NotifItem = { id: string; title: string; body: string | null; href: string | null; createdAt: string };
 
 const FOCUS_KEY = "nta:focus";
 const minutesOf = (hhmm: string) => {
@@ -96,6 +97,37 @@ export function AlertsCenter() {
     };
   }, []);
 
+  // Thông báo mới (bình luận, được giao thẻ...) — hỏi định kỳ, phát âm thanh khi có mục chưa từng thấy.
+  // Lần tải đầu chỉ ghi nhận các thông báo tồn đọng, không dội âm thanh cho chúng.
+  useEffect(() => {
+    let alive = true;
+    const seen = new Set<string>();
+    let first = true;
+    const load = async () => {
+      try {
+        const r = await fetch("/api/notifications", { cache: "no-store" });
+        if (!r.ok || !alive) return;
+        const j: { items: NotifItem[] } = await r.json();
+        const fresh = first ? [] : j.items.filter((n) => !seen.has(n.id));
+        for (const n of j.items) seen.add(n.id);
+        first = false;
+        for (const n of fresh.reverse()) {
+          if (!prefs.current.enabled) continue;
+          fire({ id: `notify:${n.id}`, kind: "notify", title: n.title, body: n.body ?? "", href: n.href ?? "/workspace" }, playNotify);
+        }
+      } catch {}
+    };
+    void load();
+    const id = setInterval(load, 20_000);
+    const onVis = () => document.visibilityState === "visible" && load();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      alive = false;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [fire]);
+
   // Vòng kiểm tra mỗi giây
   useEffect(() => {
     const tick = () => {
@@ -158,14 +190,20 @@ export function AlertsCenter() {
   return (
     <div className="fixed inset-x-4 bottom-24 z-[70] flex flex-col items-end gap-3 sm:inset-x-auto sm:right-6 md:bottom-6" aria-live="assertive">
       {alerts.map((a) => {
-        const Icon = a.kind === "task" ? BellRing : a.kind === "focus" ? PartyPopper : Coffee;
+        const Icon = a.kind === "task" ? BellRing : a.kind === "focus" ? PartyPopper : a.kind === "break" ? Coffee : MessageCircle;
         return (
           <div key={a.id} role="alertdialog" aria-labelledby={`${a.id}-t`} aria-describedby={`${a.id}-b`} className="rise w-full max-w-sm rounded-3xl border border-line bg-surface p-4 shadow-pop">
             <div className="flex items-start gap-3">
               <span
                 className={cn(
                   "grid size-11 shrink-0 place-items-center rounded-2xl",
-                  a.kind === "task" ? "bg-ochre-soft text-ochre-ink" : a.kind === "focus" ? "bg-jade-soft text-jade-ink" : "bg-mist-soft text-mist-ink",
+                  a.kind === "task"
+                    ? "bg-ochre-soft text-ochre-ink"
+                    : a.kind === "focus"
+                      ? "bg-jade-soft text-jade-ink"
+                      : a.kind === "break"
+                        ? "bg-mist-soft text-mist-ink"
+                        : "bg-accent-soft text-accent-ink",
                 )}
               >
                 <Icon className="size-5 motion-safe:animate-[pulse_1.2s_ease-in-out_3]" aria-hidden />

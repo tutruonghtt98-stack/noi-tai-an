@@ -73,3 +73,12 @@ export function playBreakOver() {
   bell(c, 783.99, t, 1);
   bell(c, 587.33, t + 0.3, 1.3);
 }
+
+/** Có thông báo mới (bình luận, được giao thẻ...): một tiếng "pling" ngắn gọn. */
+export function playNotify() {
+  const c = getCtx();
+  if (!c) return;
+  const t = c.currentTime + 0.05;
+  bell(c, 987.77, t, 0.5, 0.18);
+  bell(c, 1318.51, t + 0.09, 0.55, 0.14);
+}
