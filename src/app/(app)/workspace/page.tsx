@@ -66,7 +66,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
             const canManage = board.access === "owner";
             return (
               <div key={board.id}>
-                <StaggerReveal slide={{ direction: "up", offset: 16 }}>
+                <StaggerReveal asChild={false} slide={{ direction: "up", offset: 16 }}>
                   <BoardHeaderCard
                     board={{
                       id: board.id,
