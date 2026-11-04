@@ -93,7 +93,7 @@ export function AddCardButton({
           )}
           <label className="field">
             <span className="label">{w.cardDue}</span>
-            <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <input className="input" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </label>
           <div className="flex justify-end">
             <button className="btn btn-primary" disabled={pending}>

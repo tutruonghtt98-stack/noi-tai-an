@@ -57,16 +57,22 @@ export default async function DashboardPage() {
     getAccessibleBoards(user.id),
   ]);
 
-  // Hạn chót bảng Workspace rơi trong tuần hiện tại — hiện chung với lịch trình như một "việc" của ngày đó.
+  // Hạn chót bảng/thẻ Workspace rơi trong tuần hiện tại — hiện chung với lịch trình như một "việc" của ngày đó.
   const weekStartDate = weekDays[0]!;
   const weekEndDate = weekDays[6]!;
+  const inWeek = (due: Date) => {
+    const iso = due.toISOString().slice(0, 10);
+    return iso >= weekStartDate && iso <= weekEndDate;
+  };
   const boardDeadlines = boards
     .filter((b) => b.dueDate)
     .map((b) => ({ id: `board:${b.id}`, name: b.name, dueDate: b.dueDate! }))
-    .filter((b) => {
-      const iso = b.dueDate.toISOString().slice(0, 10);
-      return iso >= weekStartDate && iso <= weekEndDate;
-    });
+    .filter((b) => inWeek(b.dueDate));
+  const cardDeadlines = boards
+    .flatMap((b) => b.lists.flatMap((l) => l.cards))
+    .filter((c) => c.dueDate)
+    .map((c) => ({ id: `card:${c.id}`, name: c.title, dueDate: c.dueDate! }))
+    .filter((c) => inWeek(c.dueDate));
 
   const hour = hourInZone(user.timezone);
   const greet = hour < 11 ? t.greet.morning : hour < 18 ? t.greet.afternoon : t.greet.evening;
@@ -223,6 +229,15 @@ export default async function DashboardPage() {
               estimateMin: null,
               done: false,
               color: "rose",
+            })),
+            ...cardDeadlines.map((c) => ({
+              id: c.id,
+              title: `${t.dashboard.cardDeadlinePrefix}${c.name}`,
+              date: c.dueDate.toISOString().slice(0, 10),
+              startTime: c.dueDate.toISOString().slice(11, 16),
+              estimateMin: null,
+              done: false,
+              color: "mist",
             })),
           ]}
         />

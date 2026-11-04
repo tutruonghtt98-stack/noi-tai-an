@@ -104,6 +104,7 @@ const en: Dict = {
     planner: "Daily planner",
     plannerEmpty: "Nothing scheduled yet. Add a start time to tasks on the Execute page.",
     boardDeadlinePrefix: "Board due: ",
+    cardDeadlinePrefix: "Card due: ",
     top3: "Today's Top 3",
     top3Empty: "No priorities yet. Pick the 3 things that matter most.",
     habitsToday: "Today's habits",

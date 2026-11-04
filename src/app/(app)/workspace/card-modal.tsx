@@ -65,7 +65,7 @@ export function CardModal({
     setLabel(card.label ?? "");
     setAssignee(card.assignee ?? "");
     setTeamId(card.teamId ?? "");
-    setDueDate(card.dueDate ? card.dueDate.slice(0, 10) : "");
+    setDueDate(card.dueDate ? card.dueDate.slice(0, 16) : "");
     setColumn(listId);
     setChecklist(card.checklist);
     setComments([]);
@@ -174,7 +174,7 @@ export function CardModal({
         )}
         <label className="field">
           <span className="label">{w.cardDue}</span>
-          <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={locked} />
+          <input className="input" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={locked} />
         </label>
 
         <div>
