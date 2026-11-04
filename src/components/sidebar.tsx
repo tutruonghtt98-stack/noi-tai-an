@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode } from "react";
 import { ChevronsLeft, ChevronsRight, Sparkles, Settings } from "lucide-react";
+import { Effects } from "@animate-ui/react/primitives/effects/effect";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/client";
 import { LogoMark } from "@/components/logo";
@@ -66,19 +67,21 @@ export function Sidebar({
       <SidebarContent>
         <nav aria-label={t.nav.mainNav}>
           <SidebarMenu>
-            {TOP_NAV.map(({ href, key, icon: Icon }) => {
-              const active = isActive(path, href);
-              return (
-                <SidebarMenuItem key={href}>
-                  <SidebarMenuButton asChild active={active} tooltip={t.nav[key]}>
-                    <Link href={href} aria-current={active ? "page" : undefined}>
-                      <Icon aria-hidden />
-                      <span>{t.nav[key]}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
+            <Effects asChild fade blur slide={{ direction: "left", offset: 16 }} holdDelay={40}>
+              {TOP_NAV.map(({ href, key, icon: Icon }) => {
+                const active = isActive(path, href);
+                return (
+                  <SidebarMenuItem key={href}>
+                    <SidebarMenuButton asChild active={active} tooltip={t.nav[key]}>
+                      <Link href={href} aria-current={active ? "page" : undefined}>
+                        <Icon aria-hidden />
+                        <span>{t.nav[key]}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </Effects>
           </SidebarMenu>
         </nav>
       </SidebarContent>

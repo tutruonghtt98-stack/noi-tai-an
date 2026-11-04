@@ -11,6 +11,7 @@ import {
   BottomNavigationItem,
   BottomNavigationLabel,
 } from "@animate-ui/react/primitives/bottom-navigation";
+import { Effects } from "@animate-ui/react/primitives/effects/effect";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/client";
 import { Modal } from "@/components/ui/modal";
@@ -55,28 +56,30 @@ export function MobileNav() {
       >
         <BottomNavigationHighlight className="absolute inset-x-1 inset-y-1.5 rounded-full bg-accent-soft">
           <ul className="relative mx-auto flex items-stretch rounded-full bg-surface px-2.5 shadow-pop ring-1 ring-line">
-            {primary.map(({ href, key, icon: Icon }) => {
-              const active = isActive(path, href);
-              return (
-                <li key={href}>
-                  <BottomNavigationHighlightItem value={href}>
-                    <BottomNavigationItem
-                      asChild
-                      value={href}
-                      className={cn(
-                        "relative z-10 flex h-16 flex-col items-center justify-center gap-1 whitespace-nowrap px-3.5 text-[0.625rem] font-medium data-[minimized]:size-12 data-[minimized]:px-0",
-                        active ? "text-ink" : "text-muted",
-                      )}
-                    >
-                      <Link href={href} aria-current={active ? "page" : undefined}>
-                        <Icon className="size-5" aria-hidden />
-                        <BottomNavigationLabel className="whitespace-nowrap">{t.nav[key]}</BottomNavigationLabel>
-                      </Link>
-                    </BottomNavigationItem>
-                  </BottomNavigationHighlightItem>
-                </li>
-              );
-            })}
+            <Effects asChild fade blur slide={{ direction: "up", offset: 10 }} holdDelay={40}>
+              {primary.map(({ href, key, icon: Icon }) => {
+                const active = isActive(path, href);
+                return (
+                  <li key={href}>
+                    <BottomNavigationHighlightItem value={href}>
+                      <BottomNavigationItem
+                        asChild
+                        value={href}
+                        className={cn(
+                          "relative z-10 flex h-16 flex-col items-center justify-center gap-1 whitespace-nowrap px-3.5 text-[0.625rem] font-medium data-[minimized]:size-12 data-[minimized]:px-0",
+                          active ? "text-ink" : "text-muted",
+                        )}
+                      >
+                        <Link href={href} aria-current={active ? "page" : undefined}>
+                          <Icon className="size-5" aria-hidden />
+                          <BottomNavigationLabel className="whitespace-nowrap">{t.nav[key]}</BottomNavigationLabel>
+                        </Link>
+                      </BottomNavigationItem>
+                    </BottomNavigationHighlightItem>
+                  </li>
+                );
+              })}
+            </Effects>
           </ul>
         </BottomNavigationHighlight>
         <BottomNavigationAccessory className="size-16 shrink-0 rounded-full bg-ink shadow-pop data-[minimized]:size-12">
