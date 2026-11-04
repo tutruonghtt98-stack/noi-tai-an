@@ -7,6 +7,7 @@ import { fmt } from "@/lib/i18n/format";
 import { cn } from "@/lib/cn";
 import { moveWorkCard } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
+import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { AddCardButton } from "./add-card-button";
 import { CardModal, type SerializedCard } from "./card-modal";
 import type { Dict } from "@/lib/i18n/vi";
@@ -126,6 +127,7 @@ export function KanbanBoard({
   return (
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={70}>
         {lists.map((list) => (
           <div
             key={list.id}
@@ -194,6 +196,7 @@ export function KanbanBoard({
             </div>
           </div>
         ))}
+        </StaggerReveal>
       </div>
 
       {drag && (

@@ -19,6 +19,7 @@ import { SplitChars } from "@/components/ui/split-chars";
 import { Empty } from "@/components/ui/empty";
 import { EnableAlertsButton } from "@/components/alert-settings";
 import { QuoteRotator } from "@/components/quote-rotator";
+import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { colorVar } from "@/lib/colors";
 import { cn } from "@/lib/cn";
 
@@ -68,6 +69,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="grid grid-cols-1 gap-[var(--gap)] md:grid-cols-2 xl:grid-cols-12">
+      <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
       <div className="flex flex-wrap items-end justify-between gap-4 xl:col-span-12">
         <div>
           <SplitHeading text={t.nav.dashboard} className="text-2xl font-semibold sm:text-[2rem]" />
@@ -81,7 +83,7 @@ export default async function DashboardPage() {
         </div>
       </div>
       {/* Lời chào + điểm kỷ luật */}
-      <section className="card hero-glow rise flex flex-col md:col-span-2 xl:col-span-4" aria-label={t.greet.hello}>
+      <section className="card hero-glow flex flex-col md:col-span-2 xl:col-span-4" aria-label={t.greet.hello}>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[1.75rem] font-semibold leading-tight">
@@ -114,7 +116,7 @@ export default async function DashboardPage() {
       </section>
 
       {/* Lịch kỷ luật */}
-      <section className="card rise xl:col-span-4" style={{ animationDelay: "60ms" }} aria-labelledby="cal">
+      <section className="card xl:col-span-4" aria-labelledby="cal">
         <div className="mb-4 flex items-center justify-between border-b border-line pb-4">
           <h2 id="cal" className="card-title text-[1.375rem]">
             <SplitChars text={t.dashboard.calendar} />
@@ -135,7 +137,7 @@ export default async function DashboardPage() {
       </section>
 
       {/* 4 chỉ số */}
-      <section className="card rise grid grid-cols-2 gap-3 p-3 sm:gap-4 sm:p-4 xl:col-span-4" style={{ animationDelay: "120ms" }} aria-label="Stats">
+      <section className="card grid grid-cols-2 gap-3 p-3 sm:gap-4 sm:p-4 xl:col-span-4" aria-label="Stats">
         <StatCard
           href="/goals"
           label={t.dashboard.activeGoals}
@@ -176,7 +178,7 @@ export default async function DashboardPage() {
       </section>
 
       {/* Timeline */}
-      <section className="card rise min-w-0 md:col-span-2 xl:col-span-12" style={{ animationDelay: "180ms" }} aria-labelledby="planner">
+      <section className="card min-w-0 md:col-span-2 xl:col-span-12" aria-labelledby="planner">
         <div className="mb-5 flex items-center justify-between gap-3 border-b border-line pb-4">
           <h2 id="planner" className="card-title text-[1.375rem]">
             <SplitChars text={t.dashboard.planner} />
@@ -203,7 +205,7 @@ export default async function DashboardPage() {
       </section>
 
       {/* Phiên tập trung */}
-      <section className="card rise flex flex-col xl:col-span-4" style={{ animationDelay: "240ms" }} aria-label={t.focus.title}>
+      <section className="card flex flex-col xl:col-span-4" aria-label={t.focus.title}>
         <CardHead title={t.focus.title} />
         <div className="flex flex-1 items-center justify-center">
           <FocusTimer
@@ -217,7 +219,7 @@ export default async function DashboardPage() {
       </section>
 
       {/* Top 3 */}
-      <section className="card rise xl:col-span-4" style={{ animationDelay: "300ms" }} aria-labelledby="top3">
+      <section className="card xl:col-span-4" aria-labelledby="top3">
         <CardHead title={t.dashboard.top3} />
         {d.priorities.length === 0 ? (
           <Empty icon={Star} text={t.dashboard.top3Empty} />
@@ -236,13 +238,13 @@ export default async function DashboardPage() {
       </section>
 
       {/* Thói quen */}
-      <section className="card rise xl:col-span-4" style={{ animationDelay: "360ms" }} aria-labelledby="habits-today">
+      <section className="card xl:col-span-4" aria-labelledby="habits-today">
         <CardHead title={t.dashboard.habitsToday} href="/habits" />
         <HabitQuickList habits={d.dueHabits} today={today} />
       </section>
 
       {/* Tiến độ mục tiêu */}
-      <section className="card rise md:col-span-2 xl:col-span-12" style={{ animationDelay: "420ms" }} aria-labelledby="goals-progress">
+      <section className="card md:col-span-2 xl:col-span-12" aria-labelledby="goals-progress">
         <CardHead title={t.dashboard.goalsProgress} href="/goals" />
         {d.activeGoals.length === 0 ? (
           <Empty icon={Target} text={t.dashboard.goalsEmpty}>
@@ -267,6 +269,7 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
+      </StaggerReveal>
     </div>
   );
 }
