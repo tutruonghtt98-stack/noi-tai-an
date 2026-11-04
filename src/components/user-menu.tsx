@@ -5,9 +5,22 @@ import { LogOut, Settings, Sun, Moon, CreditCard, ShieldCheck } from "lucide-rea
 import { useI18n } from "@/lib/i18n/client";
 import { signOutAction } from "@/actions/auth";
 import { setTheme } from "@/actions/settings";
+import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/avatar";
 
-export function UserMenu({ name, image, plan, isAdmin }: { name: string; image: string | null; plan: string; isAdmin?: boolean }) {
+export function UserMenu({
+  name,
+  image,
+  plan,
+  isAdmin,
+  placement = "below",
+}: {
+  name: string;
+  image: string | null;
+  plan: string;
+  isAdmin?: boolean;
+  placement?: "below" | "above";
+}) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -39,7 +52,13 @@ export function UserMenu({ name, image, plan, isAdmin }: { name: string; image: 
         <Avatar name={name} image={image} size={44} />
       </button>
       {open && (
-        <div role="menu" className="rise absolute right-0 top-14 z-50 w-64 rounded-3xl border border-line bg-surface p-2 shadow-pop">
+        <div
+          role="menu"
+          className={cn(
+            "rise absolute z-50 w-64 rounded-3xl border border-line bg-surface p-2 shadow-pop",
+            placement === "above" ? "bottom-14 left-0" : "right-0 top-14",
+          )}
+        >
           <div className="px-3 py-2">
             <p className="truncate font-semibold">{name}</p>
             <span className="badge mt-1 bg-accent-soft text-accent-ink">{plan}</span>

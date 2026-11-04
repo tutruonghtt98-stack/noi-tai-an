@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 import { markAllNotificationsRead } from "@/actions/notifications";
 import { Avatar } from "@/components/ui/avatar";
 
-type NotificationItem = {
+export type NotificationItem = {
   id: string;
   title: string;
   body: string | null;
@@ -27,7 +27,15 @@ function timeAgo(date: Date, t: ReturnType<typeof useI18n>["t"]) {
   return fmt(t.notificationsCenter.daysAgo, { n: Math.floor(hr / 24) });
 }
 
-export function NotificationBell({ notifications, unreadCount }: { notifications: NotificationItem[]; unreadCount: number }) {
+export function NotificationBell({
+  notifications,
+  unreadCount,
+  placement = "below",
+}: {
+  notifications: NotificationItem[];
+  unreadCount: number;
+  placement?: "below" | "above";
+}) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(unreadCount);
@@ -70,7 +78,13 @@ export function NotificationBell({ notifications, unreadCount }: { notifications
         )}
       </button>
       {open && (
-        <div role="menu" className="rise absolute right-0 top-14 z-50 w-80 max-w-[90vw] rounded-3xl border border-line bg-surface p-2 shadow-pop">
+        <div
+          role="menu"
+          className={cn(
+            "rise absolute z-50 w-80 max-w-[90vw] rounded-3xl border border-line bg-surface p-2 shadow-pop",
+            placement === "above" ? "bottom-14 left-0" : "right-0 top-14",
+          )}
+        >
           <div className="flex items-center justify-between px-3 py-2">
             <p className="font-semibold">{t.notificationsCenter.title}</p>
             <Link href="/settings#alerts" onClick={() => setOpen(false)} className="text-xs text-muted hover:text-ink">

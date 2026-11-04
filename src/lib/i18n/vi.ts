@@ -56,6 +56,8 @@ const vi = {
     admin: "Quản trị",
     signOut: "Đăng xuất",
     mainNav: "Điều hướng chính",
+    collapseSidebar: "Thu gọn",
+    expandSidebar: "Mở rộng",
   },
   auth: {
     signIn: "Đăng nhập",

@@ -1,13 +1,11 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState, type CSSProperties } from "react";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { LayoutGrid, Target, Repeat, Users, Kanban, Building2, ChartColumn, Settings, Ellipsis, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/client";
 import { Modal } from "@/components/ui/modal";
-import { GooeyNav } from "@/components/ui/gooey-nav";
-import { useAppTheme } from "@/lib/use-app-theme";
 import type { Dict } from "@/lib/i18n/vi";
 
 type Item = { href: string; key: keyof Dict["nav"]; icon: LucideIcon };
@@ -23,59 +21,10 @@ export const NAV: Item[] = [
   { href: "/settings", key: "settings", icon: Settings },
 ];
 
-const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
+export const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
 
-/** Khớp theo href dài nhất (cụ thể nhất). */
-const bestMatchIndex = (list: { href: string }[], path: string) => {
-  let best = -1;
-  let bestLen = -1;
-  list.forEach((item, i) => {
-    if (isActive(path, item.href) && item.href.length > bestLen) {
-      best = i;
-      bestLen = item.href.length;
-    }
-  });
-  return Math.max(0, best);
-};
-
-/** Cài đặt chuyển sang thanh dọc bên trái (SideDock) nên bỏ khỏi thanh ngang. */
-const TOP_NAV = NAV.filter((i) => i.key !== "settings");
-
-/** Thanh điều hướng dạng "pill" ở giữa header: hiệu ứng "giọt keo" lỏng chảy sang mục đang chọn (tablet/desktop). */
-export function DesktopNav() {
-  const path = usePathname();
-  const router = useRouter();
-  const { t } = useI18n();
-  const theme = useAppTheme();
-  const items = TOP_NAV.map(({ href, key, icon: Icon }) => ({ href, label: t.nav[key], icon: <Icon aria-hidden strokeWidth={1.9} /> }));
-  const activeIndex = bestMatchIndex(TOP_NAV, path);
-
-  return (
-    <nav aria-label={t.nav.mainNav} className="hidden md:block">
-      <GooeyNav
-        items={items}
-        activeIndex={activeIndex}
-        onNavigate={(href) => router.push(href)}
-        onChange={() => {}}
-        theme={theme}
-        // Không truyền color: dùng màu mặc định đen/trắng trung tính theo theme (giống Corbel) có sẵn trong GooeyNav
-        size="md"
-        pillShadow={0}
-        animationTime={550}
-        gooeyness={0.55}
-        style={
-          {
-            "--gn-gap": "2px",
-            "--gn-x": "18px",
-            "--gn-y": "11px",
-            "--gn-pad": "6px",
-            "--gn-frame": "var(--surface)",
-          } as CSSProperties
-        }
-      />
-    </nav>
-  );
-}
+/** Mục menu chính dùng cho Sidebar — Cài đặt tách riêng xuống khu vực dưới cùng của sidebar. */
+export const TOP_NAV = NAV.filter((i) => i.key !== "settings");
 
 /** Điều hướng dưới cùng cho mobile: 4 mục chính + "Thêm". */
 export function MobileNav() {

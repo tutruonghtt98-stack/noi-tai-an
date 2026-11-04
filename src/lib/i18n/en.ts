@@ -58,6 +58,8 @@ const en: Dict = {
     admin: "Admin",
     signOut: "Sign out",
     mainNav: "Main navigation",
+    collapseSidebar: "Collapse",
+    expandSidebar: "Expand",
   },
   auth: {
     signIn: "Sign in",
