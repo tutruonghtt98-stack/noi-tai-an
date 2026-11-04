@@ -8,7 +8,7 @@ import { getUserTeams, getUserWorkspaceMembers } from "@/lib/department-queries"
 import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
-import { BoardHeaderCard, NewBoardButton } from "./board-switcher";
+import { BoardHeaderCard, BoardSwitcher, NewBoardButton } from "./board-switcher";
 import { KanbanBoard, type SerializedList } from "./kanban-board";
 import { WorkspaceLiveSync } from "./live-sync";
 import type { ChecklistItem } from "@/lib/work-types";
@@ -21,13 +21,22 @@ function totalCards(lists: { cards: unknown[] }[]): number {
   return n;
 }
 
-export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ card?: string }> }) {
+function inProgressCount(lists: { name: string; cards: unknown[] }[]): number {
+  return lists.find((l) => l.name === "listInProgress")?.cards.length ?? 0;
+}
+
+function overdueCount(lists: { name: string; cards: unknown[] }[]): number {
+  return lists.find((l) => l.name === "listOverdue")?.cards.length ?? 0;
+}
+
+export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ b?: string; card?: string }> }) {
   const user = await requireUser();
   const { t } = await getI18n();
   const w = t.work.workspace;
   const sp = await searchParams;
 
   const [boards, teams, members] = await Promise.all([getAccessibleBoards(user.id), getUserTeams(user.id), getUserWorkspaceMembers(user.id)]);
+  const active = boards.find((b) => b.id === sp.b) ?? boards[0];
   const teamOptions = teams.map((t) => ({ id: t.id, name: t.department ? `${t.department.name} / ${t.name}` : t.name }));
 
   const today = new Date();
@@ -48,74 +57,75 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
+        <BoardSwitcher
+          boards={boards.map((b) => ({ id: b.id, name: b.name, inProgress: inProgressCount(b.lists), overdue: overdueCount(b.lists) }))}
+          active={active?.id}
+        />
         <NewBoardButton teams={teamOptions} members={members} />
       </div>
 
-      {boards.length === 0 ? (
+      {!active ? (
         <div className="card">
           <Empty icon={Kanban} text={w.emptyBoards}>
             <NewBoardButton primary teams={teamOptions} members={members} />
           </Empty>
         </div>
       ) : (
-        <div className="flex flex-col gap-10">
-          {boards.map((board) => {
-            const total = totalCards(board.lists);
-            const done = board.lists.find((l) => l.name === "listDone")?.cards.length ?? 0;
+        <>
+          {(() => {
+            const total = totalCards(active.lists);
+            const done = active.lists.find((l) => l.name === "listDone")?.cards.length ?? 0;
             const pct = total ? Math.round((done / total) * 100) : 0;
-            const canManage = board.access === "owner";
             return (
-              <div key={board.id}>
-                <StaggerReveal asChild={false} slide={{ direction: "up", offset: 16 }}>
-                  <BoardHeaderCard
-                    board={{
-                      id: board.id,
-                      name: board.name,
-                      description: board.description,
-                      dueDate: board.dueDate ? board.dueDate.toISOString() : null,
-                      assignee: board.assignee,
-                      teamId: board.teamId,
-                      sortOrder: board.sortOrder,
-                    }}
-                    title={board.description || board.name}
-                    shared={!canManage}
-                    ownerName={!canManage ? board.user.name : null}
-                    dueText={dueLabel(board.dueDate) ?? w.noDue}
-                    cardsText={fmt(w.cardsCount, { n: total })}
-                    progressPct={pct}
-                    progressText={fmt(w.progressDone, { done, total })}
-                    canManage={canManage}
-                    teams={teamOptions}
-                    members={members}
-                  />
-                </StaggerReveal>
-
-                <KanbanBoard
-                  lists={board.lists.map(
-                    (list): SerializedList => ({
-                      id: list.id,
-                      name: list.name,
-                      color: list.color,
-                      cards: list.cards.map((card) => ({
-                        id: card.id,
-                        label: card.label,
-                        title: card.title,
-                        assignee: card.assignee,
-                        teamId: card.teamId,
-                        dueDate: card.dueDate ? card.dueDate.toISOString() : null,
-                        checklist: Array.isArray(card.checklist) ? (card.checklist as unknown as ChecklistItem[]) : [],
-                      })),
-                    }),
-                  )}
-                  canManage={canManage}
+              <StaggerReveal asChild={false} slide={{ direction: "up", offset: 16 }}>
+                <BoardHeaderCard
+                  board={{
+                    id: active.id,
+                    name: active.name,
+                    description: active.description,
+                    dueDate: active.dueDate ? active.dueDate.toISOString() : null,
+                    assignee: active.assignee,
+                    teamId: active.teamId,
+                    sortOrder: active.sortOrder,
+                  }}
+                  title={active.description || active.name}
+                  shared={active.access !== "owner"}
+                  ownerName={active.access !== "owner" ? active.user.name : null}
+                  dueText={dueLabel(active.dueDate) ?? w.noDue}
+                  cardsText={fmt(w.cardsCount, { n: total })}
+                  progressPct={pct}
+                  progressText={fmt(w.progressDone, { done, total })}
+                  canManage={active.access === "owner"}
                   teams={teamOptions}
                   members={members}
-                  openCardId={sp.card}
                 />
-              </div>
+              </StaggerReveal>
             );
-          })}
-        </div>
+          })()}
+
+          <KanbanBoard
+            lists={active.lists.map(
+              (list): SerializedList => ({
+                id: list.id,
+                name: list.name,
+                color: list.color,
+                cards: list.cards.map((card) => ({
+                  id: card.id,
+                  label: card.label,
+                  title: card.title,
+                  assignee: card.assignee,
+                  teamId: card.teamId,
+                  dueDate: card.dueDate ? card.dueDate.toISOString() : null,
+                  checklist: Array.isArray(card.checklist) ? (card.checklist as unknown as ChecklistItem[]) : [],
+                })),
+              }),
+            )}
+            canManage={active.access === "owner"}
+            teams={teamOptions}
+            members={members}
+            openCardId={sp.card}
+          />
+        </>
       )}
     </>
   );

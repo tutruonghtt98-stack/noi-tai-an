@@ -6,10 +6,46 @@ import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
+import { SegmentLinks } from "@/components/ui/segment-links";
 import { createWorkBoard, deleteWorkBoard, reorderWorkBoard, updateWorkBoard } from "@/actions/work";
 import { AssigneePicker, type MemberOption } from "./assignee-picker";
 
-/** Ô nhập số thứ tự hiển thị của bảng — chỉ chủ bảng chỉnh được. Số nhỏ hơn hiện lên trên. */
+/** Thanh tab chọn bảng đang xem — tên bảng kèm số (đang làm[,quá hạn]) tô màu nếu có. Bảng sắp theo "Thứ tự". */
+export function BoardSwitcher({
+  boards,
+  active,
+}: {
+  boards: { id: string; name: string; inProgress: number; overdue: number }[];
+  active?: string;
+}) {
+  const { t } = useI18n();
+  const w = t.work.workspace;
+  const items = boards.map((b) => ({
+    value: b.id,
+    href: `/workspace?b=${b.id}`,
+    label:
+      b.inProgress > 0 || b.overdue > 0 ? (
+        <>
+          {b.name}{" "}
+          <span>
+            (<span className="text-mist-ink">{b.inProgress}</span>
+            {b.overdue > 0 && (
+              <>
+                ,<span className="text-danger">{b.overdue}</span>
+              </>
+            )}
+            )
+          </span>
+        </>
+      ) : (
+        b.name
+      ),
+  }));
+  if (!items.length) return null;
+  return <SegmentLinks ariaLabel={w.title} active={active ?? items[0]!.value} items={items} />;
+}
+
+/** Ô nhập số thứ tự hiển thị của bảng (trong thanh tab) — chỉ chủ bảng chỉnh được. Số nhỏ hơn hiện trước. */
 export function BoardOrderInput({ boardId, sortOrder }: { boardId: string; sortOrder: number }) {
   const { t } = useI18n();
   const w = t.work.workspace;
