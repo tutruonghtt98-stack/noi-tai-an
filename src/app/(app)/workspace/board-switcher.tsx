@@ -144,7 +144,7 @@ export function NewBoardButton({
           </label>
           <label className="field">
             <span className="label">{w.boardDue}</span>
-            <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <input className="input" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </label>
           <label className="field">
             <span className="label">{w.boardAssignee}</span>
@@ -219,7 +219,7 @@ export function BoardHeaderCard({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(board.name);
   const [description, setDescription] = useState(board.description ?? "");
-  const [dueDate, setDueDate] = useState(board.dueDate ? board.dueDate.slice(0, 10) : "");
+  const [dueDate, setDueDate] = useState(board.dueDate ? board.dueDate.slice(0, 16) : "");
   const [assignee, setAssignee] = useState(board.assignee ?? "");
   const [teamId, setTeamId] = useState(board.teamId ?? "");
 
@@ -227,7 +227,7 @@ export function BoardHeaderCard({
     if (!canManage) return;
     setName(board.name);
     setDescription(board.description ?? "");
-    setDueDate(board.dueDate ? board.dueDate.slice(0, 10) : "");
+    setDueDate(board.dueDate ? board.dueDate.slice(0, 16) : "");
     setAssignee(board.assignee ?? "");
     setTeamId(board.teamId ?? "");
     setOpen(true);
@@ -296,7 +296,7 @@ export function BoardHeaderCard({
           </label>
           <label className="field">
             <span className="label">{w.boardDue}</span>
-            <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <input className="input" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </label>
           <label className="field">
             <span className="label">{w.boardAssignee}</span>

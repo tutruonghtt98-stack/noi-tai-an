@@ -6,6 +6,7 @@ import { getI18n } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/format";
 import { addDays, dayOfWeek, fromDbDate, hourInZone, startOfWeek, toDbDate, todayISO } from "@/lib/dates";
 import { getDashboard } from "@/lib/queries";
+import { getAccessibleBoards } from "@/lib/work-queries";
 import { scoreBand } from "@/lib/stats";
 import { FocusTimer } from "@/components/focus-timer";
 import { HabitQuickList } from "@/components/habits";
@@ -46,14 +47,26 @@ export default async function DashboardPage() {
   const today = todayISO(user.timezone);
   const weekStart = startOfWeek(today, user.weekStartsOn);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const [d, weekTasks] = await Promise.all([
+  const [d, weekTasks, boards] = await Promise.all([
     getDashboard(user, today),
     db.task.findMany({
       where: { userId: user.id, date: { gte: toDbDate(weekStart), lte: toDbDate(weekDays[6]!) } },
       select: { id: true, title: true, date: true, startTime: true, estimateMin: true, status: true, goal: { select: { color: true } } },
       orderBy: { startTime: "asc" },
     }),
+    getAccessibleBoards(user.id),
   ]);
+
+  // Hạn chót bảng Workspace rơi trong tuần hiện tại — hiện chung với lịch trình như một "việc" của ngày đó.
+  const weekStartDate = weekDays[0]!;
+  const weekEndDate = weekDays[6]!;
+  const boardDeadlines = boards
+    .filter((b) => b.dueDate)
+    .map((b) => ({ id: `board:${b.id}`, name: b.name, dueDate: b.dueDate! }))
+    .filter((b) => {
+      const iso = b.dueDate.toISOString().slice(0, 10);
+      return iso >= weekStartDate && iso <= weekEndDate;
+    });
 
   const hour = hourInZone(user.timezone);
   const greet = hour < 11 ? t.greet.morning : hour < 18 ? t.greet.afternoon : t.greet.evening;
@@ -192,15 +205,26 @@ export default async function DashboardPage() {
           timezone={user.timezone}
           weekDays={weekDays}
           weekdayLabels={weekDays.map((x) => t.habits.weekdays[dayOfWeek(x)]!)}
-          tasks={weekTasks.map((x) => ({
-            id: x.id,
-            title: x.title,
-            date: fromDbDate(x.date!),
-            startTime: x.startTime,
-            estimateMin: x.estimateMin,
-            done: x.status === "DONE",
-            color: x.goal?.color ?? null,
-          }))}
+          tasks={[
+            ...weekTasks.map((x) => ({
+              id: x.id,
+              title: x.title,
+              date: fromDbDate(x.date!),
+              startTime: x.startTime,
+              estimateMin: x.estimateMin,
+              done: x.status === "DONE",
+              color: x.goal?.color ?? null,
+            })),
+            ...boardDeadlines.map((b) => ({
+              id: b.id,
+              title: `${t.dashboard.boardDeadlinePrefix}${b.name}`,
+              date: b.dueDate.toISOString().slice(0, 10),
+              startTime: b.dueDate.toISOString().slice(11, 16),
+              estimateMin: null,
+              done: false,
+              color: "rose",
+            })),
+          ]}
         />
       </section>
 

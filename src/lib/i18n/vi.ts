@@ -101,6 +101,7 @@ const vi = {
     calendarPartial: "Một phần",
     planner: "Lịch trình trong ngày",
     plannerEmpty: "Chưa có việc nào được xếp giờ. Thêm giờ bắt đầu cho nhiệm vụ trong trang Thực thi.",
+    boardDeadlinePrefix: "Hạn bảng: ",
     top3: "Top 3 hôm nay",
     top3Empty: "Chưa chọn ưu tiên. Hãy chọn 3 việc quan trọng nhất.",
     habitsToday: "Thói quen hôm nay",
