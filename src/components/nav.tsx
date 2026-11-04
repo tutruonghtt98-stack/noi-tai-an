@@ -48,7 +48,7 @@ export function MobileNav() {
     <>
       <BottomNavigation
         value={activeValue}
-        scrollBehavior="hide"
+        scrollBehavior="minimize"
         aria-label={t.nav.mainNav}
         className="fixed inset-x-4 z-40 flex items-center justify-center gap-2.5 md:hidden"
         style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
@@ -64,7 +64,7 @@ export function MobileNav() {
                       asChild
                       value={href}
                       className={cn(
-                        "relative z-10 flex h-16 flex-col items-center justify-center gap-1 whitespace-nowrap px-3 text-[0.625rem] font-medium",
+                        "relative z-10 flex h-16 flex-col items-center justify-center gap-1 whitespace-nowrap px-3 text-[0.625rem] font-medium data-[minimized]:size-12 data-[minimized]:px-0",
                         active ? "text-ink" : "text-muted",
                       )}
                     >
@@ -79,7 +79,7 @@ export function MobileNav() {
             })}
           </ul>
         </BottomNavigationHighlight>
-        <BottomNavigationAccessory className="size-16 shrink-0 rounded-full bg-ink shadow-pop">
+        <BottomNavigationAccessory className="size-16 shrink-0 rounded-full bg-ink shadow-pop data-[minimized]:size-12">
           <button
             type="button"
             onClick={() => setOpen(true)}
