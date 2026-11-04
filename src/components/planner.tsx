@@ -257,24 +257,42 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                   </span>
                 ))}
               </div>
-              {days.map((d) => (
-                <div key={d} className={cn("relative rounded-xl", d === today ? "bg-accent-soft/40" : "bg-surface-2/50")}>
-                  {hours.map((h) => (
-                    <span key={h} className="absolute inset-x-0 border-t border-dashed border-line" style={{ top: h * HOUR_PX }} aria-hidden />
-                  ))}
-                  {scheduled
-                    .filter((x) => x.date === d)
-                    .map((x, i) => {
-                      const s = toH(x.startTime!);
-                      const dur = Math.max(0.5, (x.estimateMin ?? 60) / 60);
+              {days.map((d) => {
+                // Việc trùng giờ trong cùng ngày được chia thành các "làn" đứng cạnh nhau thay vì chồng lên nhau
+                // (chồng lên thì khối render sau sẽ che mất khối trước, không bấm được).
+                const dayTasks = scheduled
+                  .filter((x) => x.date === d)
+                  .map((x) => ({ ...x, start: toH(x.startTime!), dur: Math.max(0.5, (x.estimateMin ?? 60) / 60) }))
+                  .sort((a, b) => a.start - b.start);
+                const laneEnds: number[] = [];
+                const laned = dayTasks.map((x) => {
+                  let lane = laneEnds.findIndex((e) => e <= x.start);
+                  if (lane === -1) lane = laneEnds.length;
+                  laneEnds[lane] = x.start + x.dur;
+                  return { ...x, lane };
+                });
+                const totalLanes = Math.max(1, laneEnds.length);
+                return (
+                  <div key={d} className={cn("relative rounded-xl", d === today ? "bg-accent-soft/40" : "bg-surface-2/50")}>
+                    {hours.map((h) => (
+                      <span key={h} className="absolute inset-x-0 border-t border-dashed border-line" style={{ top: h * HOUR_PX }} aria-hidden />
+                    ))}
+                    {laned.map((x, i) => {
                       const c = x.color ?? PALETTE[i % PALETTE.length]!;
-                      const past = now != null && (d < today || (d === today && s + dur < now));
+                      const past = now != null && (d < today || (d === today && x.start + x.dur < now));
                       const boxClassName = cn(
-                        "absolute inset-x-1 overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-[0.6875rem] leading-tight",
+                        "absolute overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-[0.6875rem] leading-tight",
                         (x.done || past) && "opacity-55",
                         x.href && "hover:brightness-95",
                       );
-                      const boxStyle = { top: s * HOUR_PX + 1, height: dur * HOUR_PX - 2, background: softVar(c), borderColor: colorVar(c) };
+                      const boxStyle = {
+                        top: x.start * HOUR_PX + 1,
+                        height: x.dur * HOUR_PX - 2,
+                        left: `calc(${(x.lane / totalLanes) * 100}% + 2px)`,
+                        width: `calc(${(1 / totalLanes) * 100}% - 4px)`,
+                        background: softVar(c),
+                        borderColor: colorVar(c),
+                      };
                       const content = (
                         <>
                           <span className={cn("block truncate font-semibold", x.done && "line-through")}>{x.title}</span>
@@ -291,8 +309,9 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                         </div>
                       );
                     })}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Vạch thời gian cố định ở giữa, chạy ngang qua cả tuần */}
