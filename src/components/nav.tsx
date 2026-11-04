@@ -54,7 +54,7 @@ export function MobileNav() {
         style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       >
         <BottomNavigationHighlight className="absolute inset-x-1 inset-y-1.5 rounded-full bg-accent-soft">
-          <ul className="relative mx-auto flex items-stretch rounded-full bg-surface px-3 shadow-pop ring-1 ring-line">
+          <ul className="relative mx-auto flex items-stretch rounded-full bg-surface px-5 shadow-pop ring-1 ring-line">
             {primary.map(({ href, key, icon: Icon }) => {
               const active = isActive(path, href);
               return (
