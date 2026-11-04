@@ -101,6 +101,7 @@ export default async function WorkCustomersPage({ searchParams }: { searchParams
         }))}
       />
 
+      <StaggerReveal slide={{ direction: "up", offset: 20 }} holdDelay={100}>
       <section className="card grid grid-cols-2 gap-3 p-3 sm:p-4 lg:grid-cols-4" aria-label={c.tableTitle}>
         <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={70}>
           <div className="rounded-[1.5rem] bg-ink p-5 text-bg">
@@ -196,6 +197,7 @@ export default async function WorkCustomersPage({ searchParams }: { searchParams
           </div>
         )}
       </section>
+      </StaggerReveal>
     </>
   );
 }
