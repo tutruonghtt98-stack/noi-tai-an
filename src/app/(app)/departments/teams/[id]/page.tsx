@@ -10,6 +10,7 @@ import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
 import { AddTeamMemberButton } from "./add-team-member-form";
 import { RemoveTeamMemberButton } from "./remove-team-member-button";
+import { EditTeamButton } from "./edit-team-form";
 
 export const metadata: Metadata = { title: "Nhóm" };
 
@@ -32,7 +33,10 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <SplitHeading text={team.name} className="text-2xl font-semibold sm:text-[2rem]" />
+          <div className="flex items-center gap-2">
+            <SplitHeading text={team.name} className="text-2xl font-semibold sm:text-[2rem]" />
+            <EditTeamButton teamId={team.id} name={team.name} leaderEmail={team.leader?.email ?? null} />
+          </div>
           <Link href={`/departments/${team.department.id}?w=${team.department.workspaceId}`} className="mt-2 inline-flex items-center gap-2 text-ink-2 hover:underline">
             {team.department.name}
           </Link>

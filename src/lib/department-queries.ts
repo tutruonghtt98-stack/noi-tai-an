@@ -120,7 +120,7 @@ export async function getTeamDetail(teamId: string) {
     where: { id: teamId },
     include: {
       department: { select: { id: true, name: true, workspaceId: true } },
-      leader: { select: { id: true, name: true, image: true } },
+      leader: { select: { id: true, name: true, email: true, image: true } },
       members: { orderBy: { joinedAt: "asc" }, include: { user: { select: { id: true, name: true, email: true, image: true } } } },
     },
   });

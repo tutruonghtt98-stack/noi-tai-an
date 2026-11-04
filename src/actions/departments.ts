@@ -280,6 +280,7 @@ export async function updateTeam(id: string, input: TeamInput) {
     await db.team.update({ where: { id }, data: { ...data, leaderId: leader?.id ?? null } });
     if (leader) await db.teamMember.upsert({ where: { teamId_userId: { teamId: id, userId: leader.id } }, update: {}, create: { teamId: id, userId: leader.id } });
     revalidatePath("/departments");
+    revalidatePath(`/departments/teams/${id}`);
   });
 }
 
