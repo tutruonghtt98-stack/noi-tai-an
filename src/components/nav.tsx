@@ -50,7 +50,7 @@ export function MobileNav() {
         value={activeValue}
         scrollBehavior="minimize"
         aria-label={t.nav.mainNav}
-        className="fixed inset-x-4 z-40 flex items-center justify-center gap-2.5 transition-[gap] duration-300 ease-out data-[minimized]:gap-1 md:hidden"
+        className="fixed inset-x-4 z-40 flex items-center justify-center gap-2.5 md:hidden"
         style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       >
         <BottomNavigationHighlight className="absolute inset-x-1 inset-y-1.5 rounded-full bg-accent-soft">
