@@ -29,7 +29,7 @@ function overdueCount(lists: { name: string; cards: unknown[] }[]): number {
   return lists.find((l) => l.name === "listOverdue")?.cards.length ?? 0;
 }
 
-export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ b?: string }> }) {
+export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ b?: string; card?: string }> }) {
   const user = await requireUser();
   const { t } = await getI18n();
   const w = t.work.workspace;
@@ -120,6 +120,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
             )}
             canManage={active.access === "owner"}
             teams={teamOptions}
+            openCardId={sp.card}
           />
         </>
       )}

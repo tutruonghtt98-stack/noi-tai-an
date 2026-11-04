@@ -382,7 +382,7 @@ export async function addWorkCardComment(cardId: string, content: string) {
     const user = await requireUser();
     const card = await db.workCard.findUnique({
       where: { id: cardId },
-      select: { title: true, assigneeUserId: true, teamId: true, list: { select: { board: { select: { userId: true } } } } },
+      select: { title: true, assigneeUserId: true, teamId: true, list: { select: { board: { select: { id: true, userId: true } } } } },
     });
     if (!card) throw new UserError("VALIDATION");
     const userTeamIds = await getUserTeamIds(user.id);
@@ -398,6 +398,7 @@ export async function addWorkCardComment(cardId: string, content: string) {
       const members = await db.teamMember.findMany({ where: { teamId: card.teamId, userId: { not: user.id } }, select: { userId: true } });
       for (const m of members) notifyIds.add(m.userId);
     }
+    const href = `/workspace?b=${board.id}&card=${cardId}`;
     for (const id of notifyIds) {
       await db.notification.create({
         data: {
@@ -406,7 +407,7 @@ export async function addWorkCardComment(cardId: string, content: string) {
           type: "WORK_CARD_COMMENT",
           title: `${user.name ?? user.email ?? "Ai đó"} đã bình luận`,
           body: `${card.title}: ${text}`,
-          href: "/workspace",
+          href,
         },
       });
     }

@@ -1,5 +1,6 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
@@ -60,18 +61,37 @@ export function KanbanBoard({
   lists,
   canManage = true,
   teams = [],
+  openCardId,
 }: {
   lists: SerializedList[];
   canManage?: boolean;
   teams?: { id: string; name: string }[];
+  /** Id thẻ cần tự mở popup ngay khi vào trang (vd: bấm "Mở" từ thông báo bình luận). */
+  openCardId?: string;
 }) {
   const { t } = useI18n();
   const w = t.work.workspace;
   const { exec } = useAction();
+  const router = useRouter();
   const pending = useRef<PendingDrag | null>(null);
   const [drag, setDrag] = useState<ActiveDrag | null>(null);
   const [overListId, setOverListId] = useState<string | null>(null);
   const [openCard, setOpenCard] = useState<{ card: SerializedCard; listId: string } | null>(null);
+
+  useEffect(() => {
+    if (!openCardId) return;
+    for (const list of lists) {
+      const card = list.cards.find((c) => c.id === openCardId);
+      if (card) {
+        setOpenCard({ card, listId: list.id });
+        break;
+      }
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.delete("card");
+    router.replace(url.pathname + url.search, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openCardId]);
 
   const listOptions = lists.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name }));
   const doneListId = lists.find((l) => l.name === "listDone")?.id;
