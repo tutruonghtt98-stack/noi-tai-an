@@ -9,6 +9,7 @@ import { CountUp } from "@/components/ui/count-up";
 import { SegmentLinks } from "@/components/ui/segment-links";
 import { Avatar } from "@/components/ui/avatar";
 import { SplitHeading } from "@/components/ui/split-heading";
+import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { CustomerToolbar } from "./toolbar";
 import { AddCustomerButton } from "./add-customer-form";
 import { DeleteCustomerButton } from "./delete-button";
@@ -101,34 +102,36 @@ export default async function WorkCustomersPage({ searchParams }: { searchParams
       />
 
       <section className="card grid grid-cols-2 gap-3 p-3 sm:p-4 lg:grid-cols-4" aria-label={c.tableTitle}>
-        <div className="rounded-[1.5rem] bg-ink p-5 text-bg">
-          <p className="text-sm font-medium opacity-70">{c.statCustomers}</p>
-          <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
-            <CountUp value={stats.total} />
-          </p>
-          <p className="mt-3 text-sm opacity-70">{fmt(c.statCustomersNote, { online: stats.online, store: stats.inStore })}</p>
-        </div>
-        <div className="rounded-[1.5rem] bg-surface-2 p-5">
-          <p className="text-sm font-medium text-ink-2">{c.statNew}</p>
-          <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
-            <CountUp value={stats.newThisMonth} />
-          </p>
-          <p className="mt-3 text-sm text-muted">{c.statNewNote}</p>
-        </div>
-        <div className="rounded-[1.5rem] bg-surface-2 p-5">
-          <p className="text-sm font-medium text-ink-2">{c.statRepeat}</p>
-          <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
-            <CountUp value={stats.repeatRate * 100} suffix="%" />
-          </p>
-          <p className="mt-3 text-sm text-muted">{c.statRepeatNote}</p>
-        </div>
-        <div className="rounded-[1.5rem] bg-surface-2 p-5">
-          <p className="text-sm font-medium text-ink-2">{c.statAvgValue}</p>
-          <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
-            <CountUp value={stats.avgLifetimeCents} shape="vnd" />
-          </p>
-          <p className="mt-3 text-sm text-muted">{fmt(c.statAvgValueNote, { total: vnd(stats.totalLifetimeCents) })}</p>
-        </div>
+        <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={70}>
+          <div className="rounded-[1.5rem] bg-ink p-5 text-bg">
+            <p className="text-sm font-medium opacity-70">{c.statCustomers}</p>
+            <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
+              <CountUp value={stats.total} />
+            </p>
+            <p className="mt-3 text-sm opacity-70">{fmt(c.statCustomersNote, { online: stats.online, store: stats.inStore })}</p>
+          </div>
+          <div className="rounded-[1.5rem] bg-surface-2 p-5">
+            <p className="text-sm font-medium text-ink-2">{c.statNew}</p>
+            <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
+              <CountUp value={stats.newThisMonth} />
+            </p>
+            <p className="mt-3 text-sm text-muted">{c.statNewNote}</p>
+          </div>
+          <div className="rounded-[1.5rem] bg-surface-2 p-5">
+            <p className="text-sm font-medium text-ink-2">{c.statRepeat}</p>
+            <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
+              <CountUp value={stats.repeatRate * 100} suffix="%" />
+            </p>
+            <p className="mt-3 text-sm text-muted">{c.statRepeatNote}</p>
+          </div>
+          <div className="rounded-[1.5rem] bg-surface-2 p-5">
+            <p className="text-sm font-medium text-ink-2">{c.statAvgValue}</p>
+            <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
+              <CountUp value={stats.avgLifetimeCents} shape="vnd" />
+            </p>
+            <p className="mt-3 text-sm text-muted">{fmt(c.statAvgValueNote, { total: vnd(stats.totalLifetimeCents) })}</p>
+          </div>
+        </StaggerReveal>
       </section>
 
       <section className="card mt-[var(--gap)]" aria-labelledby="customers-table">
