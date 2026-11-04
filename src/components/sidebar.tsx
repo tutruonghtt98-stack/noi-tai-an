@@ -1,33 +1,31 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ChevronsLeft, ChevronsRight, Sparkles, Settings } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n/client";
 import { LogoMark } from "@/components/logo";
-import { NotificationBell, type NotificationItem } from "@/components/notification-bell";
 import { ThemeToggle, UserMenu } from "@/components/user-menu";
 import { TOP_NAV, isActive } from "@/components/nav";
 
 const STORAGE_KEY = "nta-sidebar-collapsed";
 
 /** Cột điều hướng dọc bên trái (md+): logo, menu chính, và cụm điều khiển toàn cục (thông báo/theme/tài khoản)
- * gộp xuống đáy — có nút thu gọn/mở rộng, nhớ trạng thái qua localStorage. */
+ * gộp xuống đáy — có nút thu gọn/mở rộng, nhớ trạng thái qua localStorage.
+ * `notificationSlot` được truyền từ layout dưới dạng <Suspense> để không chặn render nội dung trang. */
 export function Sidebar({
   name,
   image,
   plan,
   isAdmin,
-  notifications,
-  unreadCount,
+  notificationSlot,
 }: {
   name: string;
   image: string | null;
   plan: string;
   isAdmin: boolean;
-  notifications: NotificationItem[];
-  unreadCount: number;
+  notificationSlot: ReactNode;
 }) {
   const path = usePathname();
   const { t } = useI18n();
@@ -124,7 +122,7 @@ export function Sidebar({
 
         <div className={cn("mt-1 flex items-center gap-2", collapsed ? "flex-col" : "justify-between")}>
           <div className={cn("flex items-center gap-1", collapsed && "flex-col")}>
-            <NotificationBell notifications={notifications} unreadCount={unreadCount} placement="above" />
+            {notificationSlot}
             <ThemeToggle />
           </div>
           <UserMenu name={name} image={image} plan={plan} isAdmin={isAdmin} placement="above" />

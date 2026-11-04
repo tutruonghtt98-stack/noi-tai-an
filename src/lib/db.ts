@@ -8,7 +8,7 @@ const adapter = new PrismaPg({
   // Serverless: nhiều instance function chạy song song, mỗi cái có pool riêng —
   // giữ pool nhỏ và timeout rõ ràng để tránh chiếm hết connection slot của Supabase.
   connectionTimeoutMillis: 8_000,
-  max: 5,
+  max: 10,
 });
 
 export const db =
