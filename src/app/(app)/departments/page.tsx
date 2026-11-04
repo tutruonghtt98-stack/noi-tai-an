@@ -8,6 +8,7 @@ import { SplitHeading } from "@/components/ui/split-heading";
 import { CountUp } from "@/components/ui/count-up";
 import { Avatar } from "@/components/ui/avatar";
 import { Empty } from "@/components/ui/empty";
+import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { DepartmentsNav } from "./nav";
 import { DEPT_DOT } from "./colors";
 import { WorkspaceSwitcher } from "./workspace-switcher";
@@ -40,59 +41,63 @@ export default async function DepartmentsOverviewPage({ searchParams }: { search
 
       <DepartmentsNav active="overview" workspaceId={active.id} t={w} />
 
-      <section className="card grid grid-cols-1 gap-3 p-3 sm:grid-cols-3 sm:p-4">
-        <div className="rounded-[1.5rem] bg-ink p-5 text-bg">
-          <p className="text-sm font-medium opacity-70">{w.statDepartments}</p>
-          <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
-            <CountUp value={overview.departments} />
-          </p>
-        </div>
-        <div className="rounded-[1.5rem] bg-surface-2 p-5">
-          <p className="text-sm font-medium text-ink-2">{w.statMembers}</p>
-          <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
-            <CountUp value={overview.members} />
-          </p>
-        </div>
-        <div className="rounded-[1.5rem] bg-surface-2 p-5">
-          <p className="text-sm font-medium text-ink-2">{w.statTeams}</p>
-          <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
-            <CountUp value={overview.teams} />
-          </p>
-        </div>
-      </section>
+      <StaggerReveal slide={{ direction: "up", offset: 20 }} holdDelay={100}>
+        <section className="card grid grid-cols-1 gap-3 p-3 sm:grid-cols-3 sm:p-4">
+          <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={70}>
+            <div className="rounded-[1.5rem] bg-ink p-5 text-bg">
+              <p className="text-sm font-medium opacity-70">{w.statDepartments}</p>
+              <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
+                <CountUp value={overview.departments} />
+              </p>
+            </div>
+            <div className="rounded-[1.5rem] bg-surface-2 p-5">
+              <p className="text-sm font-medium text-ink-2">{w.statMembers}</p>
+              <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
+                <CountUp value={overview.members} />
+              </p>
+            </div>
+            <div className="rounded-[1.5rem] bg-surface-2 p-5">
+              <p className="text-sm font-medium text-ink-2">{w.statTeams}</p>
+              <p className="tabular mt-4 text-4xl font-semibold tracking-tight">
+                <CountUp value={overview.teams} />
+              </p>
+            </div>
+          </StaggerReveal>
+        </section>
 
-      <section className="card mt-[var(--gap)]" aria-labelledby="recent-departments">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h2 id="recent-departments" className="card-title">
-            {w.recentDepartments}
-          </h2>
-          <AddDepartmentButton workspaceId={active.id} />
-        </div>
-        {overview.recentDepartments.length === 0 ? (
-          <Empty icon={Building2} text={w.recentDepartmentsEmpty} />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {overview.recentDepartments.map((d) => (
-              <Link key={d.id} href={`/departments/${d.id}?w=${active.id}`} className="block rounded-[1.25rem] border border-line p-4 hover:bg-surface-2">
-                <div className="flex items-center gap-2">
-                  <span className={`size-2.5 rounded-full ${DEPT_DOT[d.color] ?? "bg-muted"}`} aria-hidden />
-                  <p className="truncate font-medium">{d.name}</p>
-                </div>
-                <div className="mt-3 flex items-center justify-between text-sm text-muted">
-                  <span className="tabular">{d._count.members} {w.colMembers.toLowerCase()}</span>
-                  <span className="tabular">{d._count.teams} {w.colTeams.toLowerCase()}</span>
-                </div>
-                {d.manager && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <Avatar name={d.manager.name ?? "?"} image={d.manager.image} size={24} />
-                    <span className="truncate text-xs text-muted">{d.manager.name}</span>
-                  </div>
-                )}
-              </Link>
-            ))}
+        <section className="card mt-[var(--gap)]" aria-labelledby="recent-departments">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 id="recent-departments" className="card-title">
+              {w.recentDepartments}
+            </h2>
+            <AddDepartmentButton workspaceId={active.id} />
           </div>
-        )}
-      </section>
+          {overview.recentDepartments.length === 0 ? (
+            <Empty icon={Building2} text={w.recentDepartmentsEmpty} />
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {overview.recentDepartments.map((d) => (
+                <Link key={d.id} href={`/departments/${d.id}?w=${active.id}`} className="block rounded-[1.25rem] border border-line p-4 hover:bg-surface-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`size-2.5 rounded-full ${DEPT_DOT[d.color] ?? "bg-muted"}`} aria-hidden />
+                    <p className="truncate font-medium">{d.name}</p>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-sm text-muted">
+                    <span className="tabular">{d._count.members} {w.colMembers.toLowerCase()}</span>
+                    <span className="tabular">{d._count.teams} {w.colTeams.toLowerCase()}</span>
+                  </div>
+                  {d.manager && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <Avatar name={d.manager.name ?? "?"} image={d.manager.image} size={24} />
+                      <span className="truncate text-xs text-muted">{d.manager.name}</span>
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      </StaggerReveal>
     </>
   );
 }

@@ -7,6 +7,7 @@ import { getAccessibleBoards } from "@/lib/work-queries";
 import { getUserTeams } from "@/lib/department-queries";
 import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
+import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { BoardHeaderCard, BoardSwitcher, NewBoardButton } from "./board-switcher";
 import { KanbanBoard, type SerializedList } from "./kanban-board";
 import { WorkspaceLiveSync } from "./live-sync";
@@ -76,25 +77,27 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
             const done = active.lists.find((l) => l.name === "listDone")?.cards.length ?? 0;
             const pct = total ? Math.round((done / total) * 100) : 0;
             return (
-              <BoardHeaderCard
-                board={{
-                  id: active.id,
-                  name: active.name,
-                  description: active.description,
-                  dueDate: active.dueDate ? active.dueDate.toISOString() : null,
-                  assignee: active.assignee,
-                  teamId: active.teamId,
-                }}
-                title={active.description || active.name}
-                shared={active.access !== "owner"}
-                ownerName={active.access !== "owner" ? active.user.name : null}
-                dueText={dueLabel(active.dueDate) ?? w.noDue}
-                cardsText={fmt(w.cardsCount, { n: total })}
-                progressPct={pct}
-                progressText={fmt(w.progressDone, { done, total })}
-                canManage={active.access === "owner"}
-                teams={teamOptions}
-              />
+              <StaggerReveal slide={{ direction: "up", offset: 16 }}>
+                <BoardHeaderCard
+                  board={{
+                    id: active.id,
+                    name: active.name,
+                    description: active.description,
+                    dueDate: active.dueDate ? active.dueDate.toISOString() : null,
+                    assignee: active.assignee,
+                    teamId: active.teamId,
+                  }}
+                  title={active.description || active.name}
+                  shared={active.access !== "owner"}
+                  ownerName={active.access !== "owner" ? active.user.name : null}
+                  dueText={dueLabel(active.dueDate) ?? w.noDue}
+                  cardsText={fmt(w.cardsCount, { n: total })}
+                  progressPct={pct}
+                  progressText={fmt(w.progressDone, { done, total })}
+                  canManage={active.access === "owner"}
+                  teams={teamOptions}
+                />
+              </StaggerReveal>
             );
           })()}
 
