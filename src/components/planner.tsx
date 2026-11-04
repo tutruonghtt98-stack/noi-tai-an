@@ -1,12 +1,23 @@
 "use client";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, LocateFixed } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
 import { colorVar, softVar } from "@/lib/colors";
 import { cn } from "@/lib/cn";
 
-export type PlannerTask = { id: string; title: string; date: string; startTime: string | null; estimateMin: number | null; done: boolean; color: string | null };
+export type PlannerTask = {
+  id: string;
+  title: string;
+  date: string;
+  startTime: string | null;
+  estimateMin: number | null;
+  done: boolean;
+  color: string | null;
+  /** Có thì khối lịch trình bấm được, điều hướng tới (vd: thẻ/bảng Workspace liên quan). */
+  href?: string;
+};
 
 const PALETTE = ["ochre", "mist", "jade", "rose"];
 const toH = (hhmm: string) => {
@@ -136,16 +147,14 @@ function DayTrack({ tasks, now }: { tasks: PlannerTask[]; now: number | null }) 
           ))}
           {placed.map((p) => {
             const past = now != null && p.end < now;
-            return (
-              <div
-                key={p.id}
-                className={cn(
-                  "absolute flex h-[68px] items-center gap-3 overflow-hidden rounded-[1.25rem] px-4",
-                  (p.done || past) && "opacity-55",
-                )}
-                style={{ left: p.start * PX_PER_HOUR + 2, width: p.w - 6, top: 36 + p.lane * ROW, background: softVar(p.c) }}
-                title={`${p.startTime} · ${p.title}`}
-              >
+            const boxClassName = cn(
+              "absolute flex h-[68px] items-center gap-3 overflow-hidden rounded-[1.25rem] px-4",
+              (p.done || past) && "opacity-55",
+              p.href && "transition-transform hover:-translate-y-0.5 hover:shadow-card",
+            );
+            const boxStyle = { left: p.start * PX_PER_HOUR + 2, width: p.w - 6, top: 36 + p.lane * ROW, background: softVar(p.c) };
+            const content = (
+              <>
                 <span className="grid size-9 shrink-0 place-items-center rounded-full" style={{ background: colorVar(p.c) }}>
                   {p.done ? <Check className="size-4 text-[#1d1c1a]" strokeWidth={3} aria-hidden /> : <Clock className="size-4 text-[#1d1c1a]" aria-hidden />}
                 </span>
@@ -156,6 +165,15 @@ function DayTrack({ tasks, now }: { tasks: PlannerTask[]; now: number | null }) 
                     {p.estimateMin ? ` · ${p.estimateMin}′` : ""}
                   </span>
                 </span>
+              </>
+            );
+            return p.href ? (
+              <Link key={p.id} href={p.href} className={boxClassName} style={boxStyle} title={`${p.startTime} · ${p.title}`}>
+                {content}
+              </Link>
+            ) : (
+              <div key={p.id} className={boxClassName} style={boxStyle} title={`${p.startTime} · ${p.title}`}>
+                {content}
               </div>
             );
           })}
@@ -251,18 +269,25 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                       const dur = Math.max(0.5, (x.estimateMin ?? 60) / 60);
                       const c = x.color ?? PALETTE[i % PALETTE.length]!;
                       const past = now != null && (d < today || (d === today && s + dur < now));
-                      return (
-                        <div
-                          key={x.id}
-                          title={`${x.startTime} · ${x.title}`}
-                          className={cn(
-                            "absolute inset-x-1 overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-[0.6875rem] leading-tight",
-                            (x.done || past) && "opacity-55",
-                          )}
-                          style={{ top: s * HOUR_PX + 1, height: dur * HOUR_PX - 2, background: softVar(c), borderColor: colorVar(c) }}
-                        >
+                      const boxClassName = cn(
+                        "absolute inset-x-1 overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-[0.6875rem] leading-tight",
+                        (x.done || past) && "opacity-55",
+                        x.href && "hover:brightness-95",
+                      );
+                      const boxStyle = { top: s * HOUR_PX + 1, height: dur * HOUR_PX - 2, background: softVar(c), borderColor: colorVar(c) };
+                      const content = (
+                        <>
                           <span className={cn("block truncate font-semibold", x.done && "line-through")}>{x.title}</span>
                           <span className="tabular text-ink-2">{x.startTime}</span>
+                        </>
+                      );
+                      return x.href ? (
+                        <Link key={x.id} href={x.href} title={`${x.startTime} · ${x.title}`} className={boxClassName} style={boxStyle}>
+                          {content}
+                        </Link>
+                      ) : (
+                        <div key={x.id} title={`${x.startTime} · ${x.title}`} className={boxClassName} style={boxStyle}>
+                          {content}
                         </div>
                       );
                     })}

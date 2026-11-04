@@ -66,12 +66,12 @@ export default async function DashboardPage() {
   };
   const boardDeadlines = boards
     .filter((b) => b.dueDate)
-    .map((b) => ({ id: `board:${b.id}`, name: b.name, dueDate: b.dueDate! }))
+    .map((b) => ({ id: `board:${b.id}`, name: b.name, dueDate: b.dueDate!, href: `/workspace?b=${b.id}` }))
     .filter((b) => inWeek(b.dueDate));
   const cardDeadlines = boards
-    .flatMap((b) => b.lists.flatMap((l) => l.cards))
+    .flatMap((b) => b.lists.flatMap((l) => l.cards.map((c) => ({ ...c, boardId: b.id }))))
     .filter((c) => c.dueDate)
-    .map((c) => ({ id: `card:${c.id}`, name: c.title, dueDate: c.dueDate! }))
+    .map((c) => ({ id: `card:${c.id}`, name: c.title, dueDate: c.dueDate!, href: `/workspace?b=${c.boardId}&card=${c.id}` }))
     .filter((c) => inWeek(c.dueDate));
 
   const hour = hourInZone(user.timezone);
@@ -223,21 +223,23 @@ export default async function DashboardPage() {
             })),
             ...boardDeadlines.map((b) => ({
               id: b.id,
-              title: `${t.dashboard.boardDeadlinePrefix}${b.name}`,
+              title: b.name,
               date: b.dueDate.toISOString().slice(0, 10),
               startTime: b.dueDate.toISOString().slice(11, 16),
-              estimateMin: null,
+              estimateMin: 90,
               done: false,
               color: "rose",
+              href: b.href,
             })),
             ...cardDeadlines.map((c) => ({
               id: c.id,
-              title: `${t.dashboard.cardDeadlinePrefix}${c.name}`,
+              title: c.name,
               date: c.dueDate.toISOString().slice(0, 10),
               startTime: c.dueDate.toISOString().slice(11, 16),
-              estimateMin: null,
+              estimateMin: 90,
               done: false,
               color: "mist",
+              href: c.href,
             })),
           ]}
         />
