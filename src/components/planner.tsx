@@ -271,7 +271,9 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                   laneEnds[lane] = x.start + x.dur;
                   return { ...x, lane };
                 });
-                const totalLanes = Math.max(1, laneEnds.length);
+                // Xếp kiểu "cascade": mỗi làn lệch sang phải một chút và nằm trên làn trước — ô vẫn gần đủ
+                // rộng để đọc được thông tin, phần không bị che của làn dưới vẫn bấm được.
+                const CASCADE_STEP = 16; // %
                 return (
                   <div key={d} className={cn("relative rounded-xl", d === today ? "bg-accent-soft/40" : "bg-surface-2/50")}>
                     {hours.map((h) => (
@@ -288,8 +290,9 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                       const boxStyle = {
                         top: x.start * HOUR_PX + 1,
                         height: x.dur * HOUR_PX - 2,
-                        left: `calc(${(x.lane / totalLanes) * 100}% + 2px)`,
-                        width: `calc(${(1 / totalLanes) * 100}% - 4px)`,
+                        left: `calc(${x.lane * CASCADE_STEP}% + 2px)`,
+                        right: 2,
+                        zIndex: x.lane + 1,
                         background: softVar(c),
                         borderColor: colorVar(c),
                       };
