@@ -13,6 +13,7 @@ import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { CustomerToolbar } from "./toolbar";
 import { AddCustomerButton } from "./add-customer-form";
 import { DeleteCustomerButton } from "./delete-button";
+import { EditCustomerButton } from "./edit-customer-form";
 
 export const metadata: Metadata = { title: "Khách hàng" };
 
@@ -188,7 +189,10 @@ export default async function WorkCustomersPage({ searchParams }: { searchParams
                       </div>
                     </td>
                     <td className="py-3 pl-2 text-right">
-                      <DeleteCustomerButton id={row.id} label={c.delete} confirm={c.confirmDelete} />
+                      <div className="flex items-center justify-end gap-1">
+                        <EditCustomerButton customer={{ id: row.id, name: row.name, email: row.email, city: row.city, channel: row.channel, tags: row.tags }} />
+                        <DeleteCustomerButton id={row.id} label={c.delete} confirm={c.confirmDelete} />
+                      </div>
                     </td>
                   </tr>
                 ))}

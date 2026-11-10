@@ -2,6 +2,14 @@ import type { Dict } from "./vi";
 
 const en: Dict = {
   brand: { name: "Nội Tại Ẩn", tagline: "Discipline from within" },
+  journeyOffer: {
+    title: "Would you like to begin the 180-day journey?",
+    description: "STILL / BETTER is divided into six stages: Reset, Discipline, Growth, Focus, Mastery, and Transform. You can tailor personal missions; work remains in your existing Workspace.",
+    startToday: "Start today",
+    decline: "Not now",
+    started: "Your 180-day journey has started.",
+    responseSaved: "Your choice has been saved.",
+  },
   common: {
     save: "Save",
     cancel: "Cancel",
@@ -48,6 +56,7 @@ const en: Dict = {
     habits: "Habits",
     customers: "Customers",
     workspace: "Workspace",
+    journey: "180-day journey",
     departments: "Departments",
     analytics: "Analytics",
     settings: "Settings",
@@ -457,6 +466,9 @@ const en: Dict = {
       deleted: "Customer deleted",
       delete: "Delete",
       confirmDelete: "Delete this customer?",
+      edit: "Edit",
+      editTitle: "Edit customer",
+      updated: "Customer updated",
     },
     workspace: {
       title: "Workspace",

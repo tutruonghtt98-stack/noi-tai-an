@@ -1,5 +1,13 @@
 const vi = {
   brand: { name: "Nội Tại Ẩn", tagline: "Kỷ luật từ bên trong" },
+  journeyOffer: {
+    title: "Bạn có muốn bắt đầu hành trình 180 ngày?",
+    description: "STILL / BETTER chia hành trình thành sáu chặng: Reset, Discipline, Growth, Focus, Mastery và Transform. Bạn có thể tùy chỉnh nhiệm vụ cá nhân; công việc vẫn được quản lý trong Workspace hiện tại.",
+    startToday: "Bắt đầu hôm nay",
+    decline: "Không tham gia",
+    started: "Hành trình 180 ngày đã bắt đầu.",
+    responseSaved: "Đã ghi nhận lựa chọn của bạn.",
+  },
   common: {
     save: "Lưu",
     cancel: "Huỷ",
@@ -46,6 +54,7 @@ const vi = {
     habits: "Thói quen",
     customers: "Khách hàng",
     workspace: "Workspace",
+    journey: "Hành trình 180 ngày",
     departments: "Phòng ban",
     analytics: "Phân tích",
     settings: "Cài đặt",
@@ -455,6 +464,9 @@ const vi = {
       deleted: "Đã xoá khách hàng",
       delete: "Xoá",
       confirmDelete: "Xoá khách hàng này?",
+      edit: "Sửa",
+      editTitle: "Chỉnh sửa khách hàng",
+      updated: "Đã cập nhật khách hàng",
     },
     workspace: {
       title: "Workspace",

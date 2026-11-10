@@ -38,7 +38,7 @@ function buildConfig(): NextAuthConfig {
           return db.user.upsert({
             where: { email },
             update: {},
-            create: { email, name: "Minh An", role: "ADMIN", plan: "PRO" },
+            create: { email, name: "Minh An", role: "ADMIN", plan: "PRO", journeyOfferStatus: "PENDING" },
           });
         },
       }),
@@ -70,9 +70,9 @@ function buildConfig(): NextAuthConfig {
     },
     events: {
       async createUser({ user }) {
-        if (user.id && user.email && adminEmails.includes(user.email.toLowerCase())) {
-          await db.user.update({ where: { id: user.id }, data: { role: "ADMIN" } });
-        }
+        if (!user.id) return;
+        const role = user.email && adminEmails.includes(user.email.toLowerCase()) ? "ADMIN" : undefined;
+        await db.user.update({ where: { id: user.id }, data: { journeyOfferStatus: "PENDING", ...(role ? { role } : {}) } });
       },
     },
   };

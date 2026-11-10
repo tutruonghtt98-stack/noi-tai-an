@@ -54,6 +54,39 @@ enum TaskStatus {
   DONE
 }
 
+enum JourneyProgramStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum JourneyStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
+
+enum JourneyDayStatus {
+  IN_PROGRESS
+  COMPLETED
+  REST
+  MISSED
+}
+
+enum JourneyOfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum JourneyMissionType {
+  HEALTH
+  PERSONAL_GROWTH
+  PRODUCTIVITY
+  REFLECTION
+}
+
 // ---------- Auth.js ----------
 
 model User {
@@ -77,6 +110,7 @@ model User {
   breakMinutes   Int       @default(5)
   dailyFocusGoal Int       @default(120) // phút
   onboardedAt    DateTime?
+  journeyOfferStatus JourneyOfferStatus?
   bannedAt       DateTime? // Admin khoá tài khoản
   teamSeats      Int? // số chỗ khi mua gói Team
 
@@ -100,6 +134,11 @@ model User {
   notifications      Notification[]    @relation("NotificationUser")
   sentNotifications  Notification[]    @relation("NotificationActor")
   badges             UserBadge[]
+  journeys           UserJourney[]
+  disciplineTransactions DisciplineTransaction[]
+  journeyXpTransactions  JourneyXPTransaction[]
+  workCardEvents     WorkCardEvent[]       @relation("WorkCardEventActor")
+  journeyAdminAudits JourneyAdminAudit[]   @relation("JourneyAdminActor")
 
   ownedWorkspaces       Workspace[]        @relation("WorkspaceOwner")
   workspaceMemberships  WorkspaceMember[]  @relation("WorkspaceMembership")
@@ -454,6 +493,488 @@ model UserBadge {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, code])
+}
+
+// ---------- STILL / BETTER 180-day journey ----------
+
+model JourneyProgram {
+  id                    String               @id @default(cuid())
+  code                  String
+  version               Int                  @default(1)
+  durationDays          Int                  @default(180)
+  title                 String
+  description           String?
+  status                JourneyProgramStatus @default(DRAFT)
+  publishedAt           DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  levels                JourneyLevel[]
+  dailyChallenges       JourneyDailyChallenge[]
+  weeklyChallenges      JourneyWeeklyChallenge[]
+  quotes                JourneyQuote[]
+  achievements          JourneyAchievementDefinition[]
+  ruleSets              JourneyRuleSet[]
+  journeys              UserJourney[]
+
+  @@unique([code, version])
+  @@index([status, publishedAt])
+}
+
+model JourneyLevel {
+  id                   String                  @id @default(cuid())
+  programId            String
+  number               Int
+  startDay             Int
+  endDay               Int
+  slug                 String
+  title                String
+  tagline              String?
+  description          String?
+  objective            String
+  skills               String[]                @default([])
+  reflectionQuestions  String[]                @default([])
+  completionCriteria   Json?
+  reportSections       Json?
+  completionThreshold Int                     @default(75)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  program              JourneyProgram          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  missions             JourneyMission[]
+  weeklyChallenges     JourneyWeeklyChallenge[]
+  monthlyChallenge     JourneyMonthlyChallenge?
+  reviews              JourneyLevelReview[]
+  achievements         JourneyAchievementDefinition[]
+
+  @@unique([programId, number])
+  @@unique([programId, slug])
+  @@index([programId])
+}
+
+model JourneyMission {
+  id                  String             @id @default(cuid())
+  levelId             String
+  dayInLevel          Int
+  sequence            Int
+  title               String
+  description         String
+  objective           String
+  type                JourneyMissionType
+  suggestedMinutes    Int?
+  xpReward            Int                @default(0)
+  completionCriteria  String
+  active              Boolean            @default(true)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  level               JourneyLevel       @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  completions         JourneyMissionCompletion[]
+
+  @@unique([levelId, dayInLevel, sequence])
+  @@index([levelId, dayInLevel])
+}
+
+model JourneyDailyChallenge {
+  id              String             @id @default(cuid())
+  programId       String
+  journeyDay      Int
+  title           String
+  description     String
+  completionCriteria String
+  xpReward        Int                @default(0)
+  active          Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  program         JourneyProgram     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  dayRecords      JourneyDayRecord[]
+
+  @@unique([programId, journeyDay])
+}
+
+model JourneyWeeklyChallenge {
+  id                 String         @id @default(cuid())
+  programId          String
+  levelId            String
+  weekNumber         Int
+  startDay           Int
+  endDay             Int
+  title              String
+  description        String
+  completionCriteria String
+  xpReward           Int            @default(0)
+  active             Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  program            JourneyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  level              JourneyLevel   @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  completions        JourneyWeeklyChallengeCompletion[]
+
+  @@unique([programId, weekNumber])
+  @@index([levelId, weekNumber])
+}
+
+model JourneyMonthlyChallenge {
+  id                 String       @id @default(cuid())
+  levelId            String       @unique
+  title              String
+  description        String
+  completionCriteria Json
+  xpReward           Int          @default(0)
+  active             Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  level              JourneyLevel @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  completions        JourneyMonthlyChallengeCompletion[]
+}
+
+model JourneyQuote {
+  id        String         @id @default(cuid())
+  programId String
+  quote     String
+  author    String?
+  dayNumber Int?
+  active    Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  program   JourneyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId, dayNumber, active])
+}
+
+model JourneyAchievementDefinition {
+  id          String         @id @default(cuid())
+  programId   String
+  levelId     String?
+  code        String
+  title       String
+  description String
+  metric      String
+  threshold   Int?
+  xpReward    Int            @default(0)
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  program     JourneyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  level       JourneyLevel?  @relation(fields: [levelId], references: [id], onDelete: SetNull)
+  awards      JourneyAchievement[]
+
+  @@unique([programId, code])
+  @@index([levelId, active])
+}
+
+model JourneyAchievement {
+  id           String                       @id @default(cuid())
+  journeyId    String
+  definitionId String
+  awardedAt    DateTime                     @default(now())
+  snapshot     Json?
+  journey      UserJourney                  @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  definition   JourneyAchievementDefinition @relation(fields: [definitionId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, definitionId])
+  @@index([journeyId, awardedAt])
+}
+
+model JourneyRuleSet {
+  id                              String         @id @default(cuid())
+  programId                       String
+  version                         Int            @default(1)
+  missionWeight                   Int            @default(60)
+  habitWeight                     Int            @default(20)
+  workspaceWeight                 Int            @default(20)
+  levelCompletionThreshold        Int            @default(75)
+  earlyCompletionPoints           Int            @default(15)
+  onTimeCompletionPoints          Int            @default(10)
+  importantWorkBonus              Int            @default(5)
+  assignedAndCompletedSameDayBonus Int            @default(5)
+  overdueFirstDayPenalty           Int            @default(5)
+  overdueAdditionalDayPenalty      Int            @default(2)
+  maxOverduePenalty                Int?
+  importantLabel                  String         @default("IMPORTANT")
+  teamAssignmentPolicy            String         @default("DIRECT_ONLY")
+  publishedAt                     DateTime?
+  createdAt                       DateTime       @default(now())
+  updatedAt                       DateTime       @updatedAt
+  program                         JourneyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  journeys                        UserJourney[]
+
+  @@unique([programId, version])
+}
+
+model UserJourney {
+  id                String                   @id @default(cuid())
+  userId            String
+  programId         String
+  ruleSetId         String
+  status            JourneyStatus            @default(ACTIVE)
+  timezone          String                   @default("Asia/Ho_Chi_Minh")
+  currentDay        Int                      @default(1)
+  // Cam kết ban đầu người dùng chọn lúc bắt đầu hành trình (vd. giờ thức dậy cố định, mục tiêu chính).
+  // Dạng Json để mở rộng thêm câu hỏi về sau mà không cần migration mới.
+  commitments       Json?
+  joinedAt          DateTime                 @default(now())
+  pausedAt          DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program           JourneyProgram           @relation(fields: [programId], references: [id])
+  ruleSet           JourneyRuleSet           @relation(fields: [ruleSetId], references: [id])
+  days              JourneyDayRecord[]
+  missionCompletions JourneyMissionCompletion[]
+  personalMissions  JourneyPersonalMission[]
+  levelReviews      JourneyLevelReview[]
+  disciplineTransactions DisciplineTransaction[]
+  xpTransactions    JourneyXPTransaction[]
+  weeklyChallengeCompletions JourneyWeeklyChallengeCompletion[]
+  monthlyChallengeCompletions JourneyMonthlyChallengeCompletion[]
+  achievements      JourneyAchievement[]
+  expenseEntries    JourneyExpenseEntry[]
+  commitmentChecks  JourneyCommitmentCheck[]
+
+  @@index([userId, status])
+  @@index([programId, status])
+}
+
+model JourneyDayRecord {
+  id                       String                    @id @default(cuid())
+  journeyId                String
+  journeyDay               Int
+  date                     DateTime                  @db.Date
+  status                   JourneyDayStatus          @default(IN_PROGRESS)
+  dailyScore               Int?
+  dailyChallengeId         String?
+  dailyChallengeCompletedAt DateTime?
+  restReason               String?
+  completedAt              DateTime?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  journey                  UserJourney               @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  dailyChallenge           JourneyDailyChallenge?   @relation(fields: [dailyChallengeId], references: [id], onDelete: SetNull)
+  missionCompletions       JourneyMissionCompletion[]
+  personalMissions         JourneyPersonalMission[]
+  reflection               JourneyReflection?
+  expense                  JourneyExpenseEntry?
+
+  @@unique([journeyId, date])
+  @@index([journeyId, journeyDay])
+  @@index([journeyId, status])
+}
+
+// Ghi nhận tối giản "chi tiêu hôm nay" trong thử thách ngày — chỉ lưu số tiền + ghi chú ngắn.
+// Phần quản lý chi tiêu đầy đủ (phân loại, ngân sách, báo cáo) sẽ xây ở giai đoạn sau, dựa trên bảng này.
+model JourneyExpenseEntry {
+  id          String           @id @default(cuid())
+  journeyId   String
+  dayRecordId String           @unique
+  date        DateTime         @db.Date
+  amountVnd   Int
+  note        String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  journey     UserJourney      @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  dayRecord   JourneyDayRecord @relation(fields: [dayRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([journeyId, date])
+  @@index([journeyId, date])
+}
+
+// Đánh dấu hoàn thành từng cam kết cá nhân nhịp WEEKLY (chọn lúc bắt đầu hành trình) theo từng tuần —
+// hiển thị/tick ở thẻ "Công việc cần làm" (tab Tuần); Weekly Challenge chỉ cho xác nhận khi đủ cam kết.
+model JourneyCommitmentCheck {
+  id          String      @id @default(cuid())
+  journeyId   String
+  weekNumber  Int
+  optionId    String
+  label       String
+  completedAt DateTime    @default(now())
+  journey     UserJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+
+  @@unique([journeyId, weekNumber, optionId])
+  @@index([journeyId, weekNumber])
+}
+
+model JourneyMissionCompletion {
+  id          String           @id @default(cuid())
+  journeyId   String
+  dayRecordId String
+  missionId   String
+  completedAt DateTime         @default(now())
+  journey     UserJourney      @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  dayRecord   JourneyDayRecord @relation(fields: [dayRecordId], references: [id], onDelete: Cascade)
+  mission     JourneyMission   @relation(fields: [missionId], references: [id], onDelete: Restrict)
+  xpTransaction JourneyXPTransaction?
+
+  @@unique([journeyId, missionId])
+  @@index([dayRecordId, completedAt])
+  @@index([missionId, completedAt])
+}
+
+model JourneyPersonalMission {
+  id             String           @id @default(cuid())
+  journeyId      String
+  dayRecordId    String?
+  title          String
+  description    String?
+  category       String?
+  suggestedMinutes Int?
+  xpReward       Int              @default(0)
+  completedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  journey        UserJourney      @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  dayRecord      JourneyDayRecord? @relation(fields: [dayRecordId], references: [id], onDelete: SetNull)
+
+  @@index([journeyId, dayRecordId])
+}
+
+model JourneyReflection {
+  id          String           @id @default(cuid())
+  dayRecordId String           @unique
+  mood        Int?
+  wins        String?
+  lesson      String?
+  gratitude   String?
+  improvement String?
+  answers     Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  dayRecord   JourneyDayRecord @relation(fields: [dayRecordId], references: [id], onDelete: Cascade)
+}
+
+model JourneyLevelReview {
+  id              String         @id @default(cuid())
+  journeyId       String
+  levelId         String
+  completionRate  Int             @default(0)
+  passed          Boolean         @default(false)
+  answers         Json
+  reportSnapshot  Json?
+  submittedAt     DateTime        @default(now())
+  journey         UserJourney     @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  level           JourneyLevel    @relation(fields: [levelId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, levelId])
+  @@index([journeyId, submittedAt])
+}
+
+model JourneyWeeklyChallengeCompletion {
+  id          String                 @id @default(cuid())
+  journeyId   String
+  challengeId String
+  progress    Int                    @default(0)
+  completedAt DateTime?
+  snapshot    Json?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  journey     UserJourney            @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  challenge   JourneyWeeklyChallenge @relation(fields: [challengeId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, challengeId])
+  @@index([journeyId, completedAt])
+}
+
+model JourneyMonthlyChallengeCompletion {
+  id          String                  @id @default(cuid())
+  journeyId   String
+  challengeId String
+  passed      Boolean                 @default(false)
+  completedAt DateTime?
+  snapshot    Json?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  journey     UserJourney             @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  challenge   JourneyMonthlyChallenge @relation(fields: [challengeId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, challengeId])
+  @@index([journeyId, completedAt])
+}
+
+model WorkCardEvent {
+  id                    String    @id @default(cuid())
+  workCardId            String?
+  workCardIdSnapshot    String
+  actorUserId           String?
+  eventType             String
+  idempotencyKey        String    @unique
+  titleSnapshot         String
+  fromDueAt             DateTime?
+  toDueAt               DateTime?
+  fromAssigneeUserId    String?
+  toAssigneeUserId      String?
+  fromTeamId            String?
+  toTeamId              String?
+  fromStatus            String?
+  toStatus              String?
+  occurredAt            DateTime  @default(now())
+  createdAt             DateTime  @default(now())
+  actor                 User?     @relation("WorkCardEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  disciplineTransactions DisciplineTransaction[]
+
+  @@index([workCardIdSnapshot, occurredAt])
+  @@index([actorUserId, occurredAt])
+}
+
+model DisciplineTransaction {
+  id                       String          @id @default(cuid())
+  userId                   String
+  journeyId                String?
+  workCardEventId          String?
+  workCardIdSnapshot       String?
+  sourceType               String
+  sourceId                 String?
+  eventType                String
+  points                   Int
+  reason                   String
+  idempotencyKey           String          @unique
+  dueAtSnapshot            DateTime?
+  completedAtSnapshot      DateTime?
+  statusSnapshot           String?
+  assigneeUserIdSnapshot   String?
+  occurredAt               DateTime        @default(now())
+  adjustmentOfId           String?
+  createdAt                DateTime        @default(now())
+  user                     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  journey                  UserJourney?    @relation(fields: [journeyId], references: [id], onDelete: SetNull)
+  workCardEvent            WorkCardEvent?  @relation(fields: [workCardEventId], references: [id], onDelete: SetNull)
+  adjustmentOf             DisciplineTransaction?  @relation("DisciplineAdjustments", fields: [adjustmentOfId], references: [id], onDelete: SetNull)
+  adjustments              DisciplineTransaction[] @relation("DisciplineAdjustments")
+
+  @@index([userId, occurredAt])
+  @@index([journeyId, occurredAt])
+  @@index([workCardIdSnapshot, occurredAt])
+}
+
+model JourneyXPTransaction {
+  id                   String                    @id @default(cuid())
+  userId               String
+  journeyId            String?
+  missionCompletionId  String?                   @unique
+  eventType            String
+  xp                   Int
+  reason               String
+  idempotencyKey       String                    @unique
+  occurredAt           DateTime                  @default(now())
+  createdAt            DateTime                  @default(now())
+  user                 User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  journey              UserJourney?              @relation(fields: [journeyId], references: [id], onDelete: SetNull)
+  missionCompletion    JourneyMissionCompletion? @relation(fields: [missionCompletionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, occurredAt])
+  @@index([journeyId, occurredAt])
+}
+
+model JourneyAdminAudit {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+  admin      User     @relation("JourneyAdminActor", fields: [adminId], references: [id], onDelete: Restrict)
+
+  @@index([adminId, createdAt])
+  @@index([entityType, entityId])
 }
 
 // ---------- Phòng ban (Workspace / Department / Team) — Phase 1 ----------

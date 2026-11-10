@@ -8,6 +8,8 @@ import { DEFAULT_LISTS, getCardComments } from "@/lib/work-queries";
 import { getUserTeamIds } from "@/lib/department-queries";
 import { zonedDateTimeToUTC } from "@/lib/dates";
 import type { Prisma } from "@/generated/prisma/client";
+import { recordWorkCardScoreEvent, syncOverdueDiscipline } from "@/lib/journey-score-ledger";
+import { syncJourneyAchievements } from "@/lib/journey-achievements";
 
 const customerSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -28,6 +30,17 @@ export async function createWorkCustomer(input: CustomerInput) {
     const user = await requireUser();
     const data = customerSchema.parse(input);
     await db.workCustomer.create({ data: { ...data, userId: user.id } });
+    revalidatePath("/customers");
+  });
+}
+
+export async function updateWorkCustomer(id: string, input: CustomerInput) {
+  return run(async () => {
+    const user = await requireUser();
+    const row = await db.workCustomer.findUnique({ where: { id }, select: { userId: true } });
+    if (!row || row.userId !== user.id) throw new UserError("VALIDATION");
+    const data = customerSchema.parse(input);
+    await db.workCustomer.update({ where: { id }, data });
     revalidatePath("/customers");
   });
 }
@@ -263,17 +276,40 @@ export async function createWorkCard(input: CardInput) {
     const teamId = await resolveTeam(user.id, rawTeamId);
     const count = await db.workCard.count({ where: { listId: data.listId } });
     const assigneeUserId = await resolveAssigneeId(data.assignee);
-    await db.workCard.create({
-      data: {
-        ...data,
-        dueDate: data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null,
-        teamId,
-        assigneeUserId,
-        sortOrder: count,
-        checklist: [],
-        completedAt: isDoneList(list.name) ? new Date() : null,
-      },
+    const now = new Date();
+    const dueDate = data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null;
+    await db.$transaction(async (tx) => {
+      const card = await tx.workCard.create({
+        data: {
+          ...data,
+          dueDate,
+          teamId,
+          assigneeUserId,
+          sortOrder: count,
+          checklist: [],
+          completedAt: isDoneList(list.name) ? now : null,
+          createdAt: now,
+        },
+      });
+      await recordWorkCardScoreEvent(tx, {
+        cardId: card.id,
+        title: card.title,
+        label: card.label,
+        actorUserId: user.id,
+        eventType: "CARD_CREATED",
+        fromDueAt: null,
+        toDueAt: dueDate,
+        fromAssigneeUserId: null,
+        toAssigneeUserId: card.assigneeUserId,
+        fromTeamId: null,
+        toTeamId: card.teamId,
+        fromStatus: null,
+        toStatus: list.name,
+        createdAt: now,
+        occurredAt: now,
+      });
     });
+    if (assigneeUserId) await syncOverdueDiscipline(assigneeUserId, now);
     await notifyAssignee(data.assignee, user, data.title);
     if (teamId) await notifyTeamShared(teamId, user, `${user.name ?? user.email ?? "Ai đó"} đã cấp quyền thẻ cho team của bạn`, data.title);
     revalidatePath("/workspace");
@@ -291,10 +327,14 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
       where: { id },
       select: {
         listId: true,
+        label: true,
+        title: true,
         assignee: true,
         assigneeUserId: true,
         teamId: true,
+        dueDate: true,
         completedAt: true,
+        createdAt: true,
         list: { select: { boardId: true, name: true, board: { select: { userId: true } } } },
       },
     });
@@ -314,19 +354,62 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
     const assigneeUserId = isOwner ? await resolveAssigneeId(data.assignee) : card.assigneeUserId;
     const teamId = isOwner ? await resolveTeam(user.id, rawTeamId) : card.teamId;
     const teamChanged = isOwner && teamId !== card.teamId;
+    const dueDate = data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null;
+    const dueDateChanged = (card.dueDate?.getTime() ?? null) !== (dueDate?.getTime() ?? null);
     const completedAt = changingList ? (isDoneList(targetList.name) ? (card.completedAt ?? new Date()) : null) : undefined;
-    await db.workCard.update({
-      where: { id },
-      data: {
-        ...data,
-        dueDate: data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null,
-        assignee,
-        assigneeUserId,
-        teamId,
-        ...(sortOrder != null ? { sortOrder } : {}),
-        ...(completedAt !== undefined ? { completedAt } : {}),
-      },
+    const statusChanged = changingList;
+    const completedNow = !isDoneList(card.list.name) && isDoneList(targetList.name) && !card.completedAt;
+    const eventType = completedNow
+      ? "CARD_COMPLETED"
+      : isDoneList(card.list.name) && !isDoneList(targetList.name)
+        ? "CARD_REOPENED"
+        : assigneeChanged
+          ? "ASSIGNEE_CHANGED"
+          : dueDateChanged
+            ? "DUE_DATE_CHANGED"
+            : teamChanged
+              ? "TEAM_CHANGED"
+              : "CARD_UPDATED";
+
+    if ((assigneeChanged || dueDateChanged || statusChanged) && card.assigneeUserId) {
+      await syncOverdueDiscipline(card.assigneeUserId);
+    }
+
+    const occurredAt = new Date();
+    await db.$transaction(async (tx) => {
+      await tx.workCard.update({
+        where: { id },
+        data: {
+          ...data,
+          dueDate,
+          assignee,
+          assigneeUserId,
+          teamId,
+          ...(sortOrder != null ? { sortOrder } : {}),
+          ...(completedAt !== undefined ? { completedAt } : {}),
+        },
+      });
+      await recordWorkCardScoreEvent(tx, {
+        cardId: id,
+        title: data.title,
+        label: data.label,
+        actorUserId: user.id,
+        eventType,
+        fromDueAt: card.dueDate,
+        toDueAt: dueDate,
+        fromAssigneeUserId: card.assigneeUserId,
+        toAssigneeUserId: assigneeUserId,
+        fromTeamId: card.teamId,
+        toTeamId: teamId,
+        fromStatus: card.list.name,
+        toStatus: targetList.name,
+        createdAt: card.createdAt,
+        occurredAt,
+        ...(completedNow ? { completedAt: completedAt ?? occurredAt } : {}),
+      });
     });
+    if ((assigneeChanged || dueDateChanged || statusChanged) && assigneeUserId) await syncOverdueDiscipline(assigneeUserId, occurredAt);
+    if (completedNow && assigneeUserId) await syncJourneyAchievements(assigneeUserId);
     if (assigneeChanged) await notifyAssignee(data.assignee, user, data.title);
     if (teamChanged && teamId) await notifyTeamShared(teamId, user, `${user.name ?? user.email ?? "Ai đó"} đã cấp quyền thẻ cho team của bạn`, data.title);
     revalidatePath("/workspace");
@@ -358,7 +441,16 @@ export async function moveWorkCard(id: string, toListId: string) {
     const user = await requireUser();
     const card = await db.workCard.findUnique({
       where: { id },
-      select: { assigneeUserId: true, teamId: true, completedAt: true, list: { select: { name: true, boardId: true, board: { select: { userId: true } } } } },
+      select: {
+        title: true,
+        label: true,
+        dueDate: true,
+        createdAt: true,
+        assigneeUserId: true,
+        teamId: true,
+        completedAt: true,
+        list: { select: { name: true, boardId: true, board: { select: { userId: true } } } },
+      },
     });
     if (!card) throw new UserError("VALIDATION");
     const userTeamIds = await getUserTeamIds(user.id);
@@ -370,8 +462,39 @@ export async function moveWorkCard(id: string, toListId: string) {
     if (!toList || toList.boardId !== card.list.boardId) throw new UserError("VALIDATION");
     if (isDoneList(toList.name) && !isOwner) throw new UserError("VALIDATION");
     const count = await db.workCard.count({ where: { listId: toListId } });
-    const completedAt = isDoneList(toList.name) ? (card.completedAt ?? new Date()) : null;
-    await db.workCard.update({ where: { id }, data: { listId: toListId, sortOrder: count, completedAt } });
+    const occurredAt = new Date();
+    const completedAt = isDoneList(toList.name) ? (card.completedAt ?? occurredAt) : null;
+    const completedNow = !isDoneList(card.list.name) && isDoneList(toList.name) && !card.completedAt;
+    const eventType = completedNow
+      ? "CARD_COMPLETED"
+      : isDoneList(card.list.name) && !isDoneList(toList.name)
+        ? "CARD_REOPENED"
+        : "CARD_MOVED";
+
+    if (card.assigneeUserId) await syncOverdueDiscipline(card.assigneeUserId);
+    await db.$transaction(async (tx) => {
+      await tx.workCard.update({ where: { id }, data: { listId: toListId, sortOrder: count, completedAt } });
+      await recordWorkCardScoreEvent(tx, {
+        cardId: id,
+        title: card.title,
+        label: card.label,
+        actorUserId: user.id,
+        eventType,
+        fromDueAt: card.dueDate,
+        toDueAt: card.dueDate,
+        fromAssigneeUserId: card.assigneeUserId,
+        toAssigneeUserId: card.assigneeUserId,
+        fromTeamId: card.teamId,
+        toTeamId: card.teamId,
+        fromStatus: card.list.name,
+        toStatus: toList.name,
+        createdAt: card.createdAt,
+        occurredAt,
+        ...(completedNow ? { completedAt: completedAt ?? occurredAt } : {}),
+      });
+    });
+    if (card.assigneeUserId) await syncOverdueDiscipline(card.assigneeUserId, occurredAt);
+    if (completedNow && card.assigneeUserId) await syncJourneyAchievements(card.assigneeUserId);
     revalidatePath("/workspace");
     revalidatePath("/analytics");
   });

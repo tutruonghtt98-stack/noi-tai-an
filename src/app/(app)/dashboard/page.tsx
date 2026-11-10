@@ -23,6 +23,8 @@ import { QuoteRotator } from "@/components/quote-rotator";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { colorVar } from "@/lib/colors";
 import { cn } from "@/lib/cn";
+import { JourneyOffer } from "@/components/journey-offer";
+import { getJourneyDashboard } from "@/lib/journey-queries";
 
 export const metadata: Metadata = { title: "Tổng quan" };
 
@@ -47,7 +49,7 @@ export default async function DashboardPage() {
   const today = todayISO(user.timezone);
   const weekStart = startOfWeek(today, user.weekStartsOn);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const [d, weekTasks, boards] = await Promise.all([
+  const [d, weekTasks, boards, journey] = await Promise.all([
     getDashboard(user, today),
     db.task.findMany({
       where: { userId: user.id, date: { gte: toDbDate(weekStart), lte: toDbDate(weekDays[6]!) } },
@@ -55,6 +57,7 @@ export default async function DashboardPage() {
       orderBy: { startTime: "asc" },
     }),
     getAccessibleBoards(user.id),
+    getJourneyDashboard(user),
   ]);
 
   // Hạn chót bảng/thẻ Workspace rơi trong tuần hiện tại — hiện chung với lịch trình như một "việc" của ngày đó.
@@ -88,6 +91,20 @@ export default async function DashboardPage() {
 
   return (
     <div className="grid grid-cols-1 gap-[var(--gap)] md:grid-cols-2 xl:grid-cols-12">
+      <JourneyOffer pendingOffer={user.journeyOfferStatus === "PENDING"} />
+      {journey?.level && (
+        <section className="card flex flex-wrap items-center justify-between gap-5 md:col-span-2 xl:col-span-12" aria-label="Hành trình 180 ngày">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase text-muted">STILL / BETTER · LEVEL {String(journey.level.number).padStart(2, "0")}</p>
+            <h2 className="mt-1 text-xl font-semibold">{journey.level.title} <span className="font-normal text-muted">· Ngày {journey.journey.currentDay}/180</span></h2>
+            <p className="mt-1 max-w-2xl text-sm text-ink-2">{journey.level.objective}</p>
+            <div className="mt-4 max-w-xl">
+              <ProgressBar value={Math.min(1, (journey.journey.currentDay - 1) / 180)} label="Tiến trình hành trình 180 ngày" />
+            </div>
+          </div>
+          <Link href="/journey" className="btn btn-primary">Tiếp tục hôm nay <ArrowUpRight className="size-4" aria-hidden /></Link>
+        </section>
+      )}
       <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
       <div className="flex flex-wrap items-end justify-between gap-4 xl:col-span-12">
         <div>
