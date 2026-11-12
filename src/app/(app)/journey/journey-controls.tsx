@@ -25,6 +25,7 @@ import {
   toggleJourneyWeeklyCommitment,
 } from "@/actions/journey";
 import { useAction } from "@/lib/use-action";
+import { useI18n } from "@/lib/i18n/client";
 
 type Mission = {
   id: string;
@@ -70,6 +71,7 @@ export function JourneyControls({
   weeklyCommitments: { optionId: string; label: string; done: boolean }[];
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const { exec, pending } = useAction();
   const [restReason, setRestReason] = useState("");
   const [expenseAmount, setExpenseAmount] = useState(expense?.amountVnd != null ? String(expense.amountVnd) : "");
@@ -89,7 +91,7 @@ export function JourneyControls({
           <div className="flex items-center gap-3">
             <span className="icon-btn icon-btn-plain text-accent-ink"><ListChecks className="size-5" aria-hidden /></span>
             <div>
-              <p className="text-xs font-semibold uppercase text-muted">CORE MISSIONS</p>
+              <p className="text-xs font-semibold uppercase text-muted">{t.journey.coreMissionsEyebrow}</p>
               <h2 id="core-missions" className="card-title text-xl">Công việc cần làm</h2>
             </div>
           </div>
@@ -174,7 +176,7 @@ export function JourneyControls({
           <div className="mb-4 flex items-center gap-3">
             <span className="icon-btn icon-btn-plain text-ochre-ink"><RotateCcw className="size-5" aria-hidden /></span>
             <div>
-              <p className="text-xs font-semibold uppercase text-muted">LEVEL RECOVERY</p>
+              <p className="text-xs font-semibold uppercase text-muted">{t.journey.levelRecoveryEyebrow}</p>
               <h2 id="recovery-missions" className="card-title text-xl">Nhiệm vụ còn thiếu trong chặng</h2>
             </div>
           </div>
@@ -198,7 +200,7 @@ export function JourneyControls({
         <section className="card hero-glow" aria-labelledby="daily-challenge">
           <div className="flex items-center gap-3">
             <span className="icon-btn icon-btn-plain text-accent-ink"><Sparkles className="size-5" aria-hidden /></span>
-            <p className="text-xs font-semibold uppercase text-muted">DAILY CHALLENGE · {dailyChallenge.xpReward} XP</p>
+            <p className="text-xs font-semibold uppercase text-muted">{t.journey.dailyChallengeEyebrow} · {dailyChallenge.xpReward} XP</p>
           </div>
           <h2 id="daily-challenge" className="card-title mt-2 text-lg">{dailyChallenge.title}</h2>
           <p className="mt-1 text-sm leading-6 text-ink-2">{dailyChallenge.description}</p>
@@ -273,7 +275,7 @@ export function JourneyControls({
 
       {isLevelEnd && (
         <section className="card" aria-labelledby="level-review">
-          <p className="text-xs font-semibold uppercase text-muted">LEVEL REVIEW · +50 XP</p>
+          <p className="text-xs font-semibold uppercase text-muted">{t.journey.levelReviewEyebrow} · +50 XP</p>
           <h2 id="level-review" className="card-title mt-1 text-xl">Tổng kết chặng</h2>
           <div className="mt-4 grid gap-3">
             {levelQuestions.map((question, index) => (
@@ -329,20 +331,8 @@ export function JourneyWeeklyChallengeActions({
     <>
       {weekly && (
         <div className="mt-3 grid gap-2">
-          {weekly.personalCommitments.length > 0 && (
-            <ul className="grid gap-1.5">
-              {weekly.personalCommitments.map((item) => (
-                <li key={item.label} className="flex items-center gap-2 text-sm leading-5 text-ink-2">
-                  <span className={`icon-btn icon-btn-plain size-5 shrink-0 ${item.done ? "text-success" : "text-muted"}`}>
-                    <Check className="size-3.5" aria-hidden />
-                  </span>
-                  {item.label}
-                </li>
-              ))}
-            </ul>
-          )}
           {weekly.personalCommitments.length > 0 && !weekly.completed && (
-            <p className="text-xs text-muted">Tick các cam kết trên ở thẻ "Công việc cần làm" → tab Tuần.</p>
+            <p className="text-xs text-muted">Tick đủ cam kết cá nhân ở thẻ "Công việc cần làm" → tab Tuần trước khi xác nhận.</p>
           )}
           {deadline && (
             <p className="field">
@@ -368,6 +358,7 @@ export function JourneyWeeklyChallengeActions({
 }
 
 function PersonalMissionControls({ missions, disabled }: { missions: PersonalMission[]; disabled: boolean }) {
+  const { t } = useI18n();
   const { exec, pending } = useAction();
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -382,7 +373,7 @@ function PersonalMissionControls({ missions, disabled }: { missions: PersonalMis
     const text = title.trim();
     if (!text) return;
     exec(() => createJourneyPersonalMission({ title: text, description, category, suggestedMinutes: minutes, xpReward: 5 }), {
-      success: "Đã thêm Personal Mission.",
+      success: "Đã thêm nhiệm vụ cá nhân.",
       onSuccess: () => { setTitle(""); setDescription(""); setCategory(""); refresh(); },
     });
   };
@@ -390,7 +381,7 @@ function PersonalMissionControls({ missions, disabled }: { missions: PersonalMis
   return (
     <section className="card" aria-labelledby="personal-missions">
       <div className="mb-4 border-b border-line pb-4">
-        <p className="text-xs font-semibold uppercase text-muted">PERSONAL MISSIONS</p>
+        <p className="text-xs font-semibold uppercase text-muted">{t.journey.personalMissionsEyebrow}</p>
         <h2 id="personal-missions" className="card-title mt-1 text-xl">Nhiệm vụ của bạn</h2>
       </div>
       {missions.length > 0 && (
@@ -402,7 +393,7 @@ function PersonalMissionControls({ missions, disabled }: { missions: PersonalMis
                 className={`icon-btn mt-0.5 shrink-0 ${mission.completedAt ? "bg-ink text-bg" : ""}`}
                 aria-label={mission.completedAt ? "Đã hoàn thành" : `Hoàn thành: ${mission.title}`}
                 disabled={disabled || pending || !!mission.completedAt}
-                onClick={() => exec(() => completeJourneyPersonalMission(mission.id), { success: "Đã hoàn thành Personal Mission.", onSuccess: refresh })}
+                onClick={() => exec(() => completeJourneyPersonalMission(mission.id), { success: "Đã hoàn thành nhiệm vụ cá nhân.", onSuccess: refresh })}
               ><Check className="size-4" aria-hidden /></button>
               <div className="min-w-0 flex-1">
                 {editing?.id === mission.id ? (
@@ -467,6 +458,7 @@ export function JourneyReflectionCard({
   dayStatus: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const { exec, pending } = useAction();
   const [mood, setMood] = useState(reflection?.mood ?? 3);
   const [wins, setWins] = useState(reflection?.wins ?? "");
@@ -480,10 +472,10 @@ export function JourneyReflectionCard({
     <section className="card" aria-labelledby="daily-reflection">
       <div className="mb-4 flex items-end justify-between gap-3 border-b border-line pb-4">
         <div>
-          <p className="text-xs font-semibold uppercase text-muted">REFLECTION</p>
+          <p className="text-xs font-semibold uppercase text-muted">{t.journey.reflectionEyebrow}</p>
           <h2 id="daily-reflection" className="card-title text-xl">Khép lại ngày</h2>
         </div>
-        <span className="tabular rounded-full bg-surface-2 px-2.5 py-1 text-sm font-medium">Daily Score {dayScore}/100</span>
+        <span className="tabular rounded-full bg-surface-2 px-2.5 py-1 text-sm font-medium">{t.journey.dailyScoreLabel} {dayScore}/100</span>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="field">
@@ -506,20 +498,20 @@ export function JourneyReflectionCard({
           type="button"
           className="btn btn-soft"
           disabled={closed || pending}
-          onClick={() => exec(() => saveJourneyReflection({ mood, wins, lesson, gratitude, improvement }), { success: "Đã lưu reflection.", onSuccess: refresh })}
+          onClick={() => exec(() => saveJourneyReflection({ mood, wins, lesson, gratitude, improvement }), { success: `${t.journey.saveReflection}.`, onSuccess: refresh })}
         >
-          <Send className="size-4" aria-hidden /> Lưu reflection
+          <Send className="size-4" aria-hidden /> {t.journey.saveReflection}
         </button>
         <button
           type="button"
           className="btn btn-primary"
-          disabled={closed || pending || !reflection}
-          onClick={() => exec(() => completeJourneyDay(), { success: "Đã khép lại ngày hôm nay.", onSuccess: refresh })}
+          disabled={closed || pending}
+          onClick={() => exec(() => completeJourneyDay({ mood, wins, lesson, gratitude, improvement }), { success: "Đã khép lại ngày hôm nay.", onSuccess: refresh })}
         >
           <Check className="size-4" aria-hidden /> Hoàn thành ngày
         </button>
       </div>
-      {!closed && !reflection && <p className="mt-2 text-xs text-muted">Lưu reflection và hoàn thành ít nhất một Core Mission để khép lại ngày.</p>}
+      {!closed && <p className="mt-2 text-xs text-muted">Bấm "Hoàn thành ngày" sẽ tự lưu lại các ô trên — cần hoàn thành ít nhất một Core Mission trước đó.</p>}
       {closed && <p className="mt-2 text-sm text-muted">Ngày này đã được ghi nhận: {dayStatus === "REST" ? "nghỉ hợp lệ" : dayStatus === "MISSED" ? "bỏ lỡ" : "hoàn thành"}.</p>}
     </section>
   );

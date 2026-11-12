@@ -13,6 +13,8 @@ import { SplitChars } from "@/components/ui/split-chars";
 import { Empty } from "@/components/ui/empty";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { weeklyCommitmentOptions, getCommittedWakeTime } from "@/lib/journey-goal-domains";
+import { JourneyMidnightRefresh } from "./midnight-refresh";
+import { getI18n } from "@/lib/i18n";
 
 export const metadata: Metadata = { title: "Hành trình 180 ngày" };
 
@@ -27,6 +29,7 @@ function AsideCardHead({ eyebrow, title }: { eyebrow: string; title: string }) {
 
 export default async function JourneyPage() {
   const user = await requireUser();
+  const { t } = await getI18n();
   await syncOverdueDiscipline(user.id);
   const journey = await getJourneyDashboard(user);
 
@@ -65,11 +68,11 @@ export default async function JourneyPage() {
             <p className="tabular mt-2 text-4xl font-semibold tracking-tight"><CountUp value={completedDays} />/180</p>
           </div>
           <div>
-            <p className="text-xs uppercase text-muted">Discipline Points</p>
+            <p className="text-xs uppercase text-muted">{t.journey.disciplinePoints}</p>
             <p className="tabular mt-2 text-4xl font-semibold tracking-tight"><CountUp value={discipline._sum.points ?? 0} /></p>
           </div>
           <div>
-            <p className="text-xs uppercase text-muted">Journey XP</p>
+            <p className="text-xs uppercase text-muted">{t.journey.journeyXp}</p>
             <p className="tabular mt-2 text-4xl font-semibold tracking-tight"><CountUp value={xp._sum.xp ?? 0} /></p>
           </div>
         </section>
@@ -123,10 +126,11 @@ export default async function JourneyPage() {
 
   return (
     <>
+      <JourneyMidnightRefresh timezone={journey.journey.timezone} today={journey.today} />
       <PageHeader
         title={`${journey.level.title} · Ngày ${dayNumber}`}
         subtitle={journey.level.objective}
-        action={<span className="badge inline-flex items-center gap-2"><Flame className="size-3.5" aria-hidden /> LEVEL {String(journey.level.number).padStart(2, "0")}</span>}
+        action={<span className="badge inline-flex items-center gap-2"><Flame className="size-3.5" aria-hidden /> {t.journey.level} {String(journey.level.number).padStart(2, "0")}</span>}
       />
 
       <section className="card hero-glow flex flex-col gap-6 lg:flex-row lg:items-center" aria-label="Tiến độ hành trình">
@@ -154,17 +158,17 @@ export default async function JourneyPage() {
           <p className="mt-3 text-sm opacity-70">trên tổng 180 ngày</p>
         </div>
         <div className="rounded-[1.5rem] bg-surface-2 p-5">
-          <p className="text-sm font-medium text-ink-2">Discipline Points</p>
+          <p className="text-sm font-medium text-ink-2">{t.journey.disciplinePoints}</p>
           <p className="tabular mt-4 text-4xl font-semibold tracking-tight"><CountUp value={discipline._sum.points ?? 0} /></p>
           <p className="mt-3 text-sm text-muted">từ dữ liệu Workspace</p>
         </div>
         <div className="rounded-[1.5rem] bg-surface-2 p-5">
-          <p className="text-sm font-medium text-ink-2">Journey XP</p>
+          <p className="text-sm font-medium text-ink-2">{t.journey.journeyXp}</p>
           <p className="tabular mt-4 text-4xl font-semibold tracking-tight"><CountUp value={xp._sum.xp ?? 0} /></p>
           <p className="mt-3 text-sm text-muted">từ mission &amp; thử thách</p>
         </div>
         <div className="rounded-[1.5rem] bg-surface-2 p-5">
-          <p className="text-sm font-medium text-ink-2">Daily Score</p>
+          <p className="text-sm font-medium text-ink-2">{t.journey.dailyScoreLabel}</p>
           <p className="tabular mt-4 text-4xl font-semibold tracking-tight"><CountUp value={journey.dailyScore} suffix="%" /></p>
           <p className="mt-3 text-sm text-muted">mission, thói quen, Workspace</p>
         </div>
@@ -211,7 +215,7 @@ export default async function JourneyPage() {
         <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
           <aside className="grid content-start gap-[var(--gap)]">
             <section className="card" aria-labelledby="weekly-challenge">
-              <AsideCardHead eyebrow="WEEKLY CHALLENGE" title={journey.weeklyChallenge?.title ?? "Chưa có thử thách tuần"} />
+              <AsideCardHead eyebrow={t.journey.weeklyChallengeEyebrow} title={journey.weeklyChallenge?.title ?? "Chưa có thử thách tuần"} />
               {journey.weeklyChallenge && (
                 <>
                   <p className="text-sm leading-6 text-ink-2">{journey.weeklyChallenge.description}</p>
@@ -232,7 +236,7 @@ export default async function JourneyPage() {
 
             <section className="card" aria-labelledby="daily-quote">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase text-muted">
-                <Quote className="size-3.5" aria-hidden /> TODAY
+                <Quote className="size-3.5" aria-hidden /> {t.journey.todayEyebrow}
               </div>
               <blockquote id="daily-quote" className="mt-2 text-sm leading-6 text-ink-2">
                 “{quote?.quote ?? "Một bước nhỏ có chủ đích vẫn là một bước tiến."}”
@@ -240,7 +244,7 @@ export default async function JourneyPage() {
             </section>
 
             <section className="card" aria-labelledby="journey-workspace">
-              <AsideCardHead eyebrow="WORKSPACE TASKS" title="Việc được giao hôm nay" />
+              <AsideCardHead eyebrow={t.journey.workspaceTasksEyebrow} title="Việc được giao hôm nay" />
               {journey.workspaceCards.length ? (
                 <ul className="divide-y divide-line border-y border-line">
                   {journey.workspaceCards.map((card) => (
@@ -261,7 +265,7 @@ export default async function JourneyPage() {
             <JourneyReflectionCard dayScore={journey.dailyScore} reflection={journey.dayRecord.reflection} dayStatus={journey.dayRecord.status} />
 
             <section className="card" aria-labelledby="journey-achievements">
-              <AsideCardHead eyebrow="ACHIEVEMENTS" title="Thành tích đã đạt" />
+              <AsideCardHead eyebrow={t.journey.achievementsEyebrow} title="Thành tích đã đạt" />
               {journey.achievements.length ? (
                 <ul className="grid gap-3">
                   {journey.achievements.map((award) => (

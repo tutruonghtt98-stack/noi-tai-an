@@ -546,12 +546,24 @@ export async function toggleJourneyWeeklyCommitment(optionId: string) {
   });
 }
 
-export async function completeJourneyDay() {
+export async function completeJourneyDay(reflection?: z.input<typeof reflectionSchema>) {
   return run(async () => {
     const user = await requireUser();
     const dashboard = await getJourneyDashboard(user);
     if (!dashboard?.dayRecord || dashboard.dayRecord.status !== "IN_PROGRESS") throw new UserError("JOURNEY_NOT_ACTIVE");
-    if (!dashboard.dayRecord.reflection) throw new UserError("REFLECTION_REQUIRED");
+
+    // Bấm "Hoàn thành ngày" tự lưu luôn Reflection hiện tại trên form — không bắt người dùng phải
+    // nhớ bấm "Lưu reflection" riêng trước đó nữa.
+    if (reflection) {
+      const data = reflectionSchema.parse(reflection);
+      await db.journeyReflection.upsert({
+        where: { dayRecordId: dashboard.dayRecord.id },
+        update: data,
+        create: { dayRecordId: dashboard.dayRecord.id, ...data },
+      });
+    } else if (!dashboard.dayRecord.reflection) {
+      throw new UserError("REFLECTION_REQUIRED");
+    }
 
     const completedMissions = dashboard.journey.currentDay === dashboard.level?.endDay && dashboard.level
       ? await db.journeyMissionCompletion.count({ where: { journeyId: dashboard.journey.id, mission: { levelId: dashboard.level.id, active: true } } })

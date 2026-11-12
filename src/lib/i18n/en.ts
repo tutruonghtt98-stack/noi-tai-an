@@ -652,6 +652,23 @@ const en: Dict = {
     reportsSoon: "Department performance reports and an AI assistant are coming in a later phase.",
     confirmDeleteWorkspace: "Archive this workspace? All departments and teams inside it will be hidden.",
   },
+  journey: {
+    coreMissionsEyebrow: "CORE MISSIONS",
+    weeklyChallengeEyebrow: "WEEKLY CHALLENGE",
+    dailyChallengeEyebrow: "DAILY CHALLENGE",
+    personalMissionsEyebrow: "PERSONAL MISSIONS",
+    levelRecoveryEyebrow: "LEVEL RECOVERY",
+    levelReviewEyebrow: "LEVEL REVIEW",
+    reflectionEyebrow: "REFLECTION",
+    todayEyebrow: "TODAY",
+    workspaceTasksEyebrow: "WORKSPACE TASKS",
+    achievementsEyebrow: "ACHIEVEMENTS",
+    disciplinePoints: "Discipline Points",
+    journeyXp: "Journey XP",
+    dailyScoreLabel: "Daily Score",
+    level: "LEVEL",
+    saveReflection: "Save reflection",
+  },
 };
 
 export default en;

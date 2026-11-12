@@ -650,6 +650,23 @@ const vi = {
     reportsSoon: "Báo cáo hiệu suất phòng ban và trợ lý AI sẽ có ở giai đoạn tiếp theo.",
     confirmDeleteWorkspace: "Lưu trữ workspace này? Toàn bộ phòng ban và nhóm bên trong sẽ bị ẩn.",
   },
+  journey: {
+    coreMissionsEyebrow: "NHIỆM VỤ CHÍNH",
+    weeklyChallengeEyebrow: "THỬ THÁCH TUẦN",
+    dailyChallengeEyebrow: "THỬ THÁCH NGÀY",
+    personalMissionsEyebrow: "NHIỆM VỤ CÁ NHÂN",
+    levelRecoveryEyebrow: "PHỤC HỒI CHẶNG",
+    levelReviewEyebrow: "TỔNG KẾT CHẶNG",
+    reflectionEyebrow: "NHẬT KÝ NGÀY",
+    todayEyebrow: "HÔM NAY",
+    workspaceTasksEyebrow: "VIỆC WORKSPACE",
+    achievementsEyebrow: "THÀNH TÍCH",
+    disciplinePoints: "Điểm kỷ luật",
+    journeyXp: "Điểm kinh nghiệm",
+    dailyScoreLabel: "Điểm ngày",
+    level: "CẤP",
+    saveReflection: "Lưu nhật ký",
+  },
 };
 
 export default vi;
