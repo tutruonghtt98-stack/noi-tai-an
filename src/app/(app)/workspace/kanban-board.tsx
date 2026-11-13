@@ -1,16 +1,16 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2, Circle, Clock, Eye, Check, type LucideIcon } from "lucide-react";
+import { AlertCircle, CheckCircle2, Circle, Clock, Eye, Check, GripVertical, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { fmt } from "@/lib/i18n/format";
 import { cn } from "@/lib/cn";
-import { moveWorkCard } from "@/actions/work";
+import { moveWorkCard, reorderWorkCards } from "@/actions/work";
+import { reorderIds } from "@/lib/work-view";
 import { Avatar } from "@/components/ui/avatar";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { daysBetween, isoInZone, todayISO } from "@/lib/dates";
-import { AddCardButton } from "./add-card-button";
 import { CardModal, type SerializedCard } from "./card-modal";
 import type { MemberOption } from "./assignee-picker";
 import type { Dict } from "@/lib/i18n/vi";
@@ -81,14 +81,16 @@ type ActiveDrag = { card: SerializedCard; x: number; y: number; width: number };
 
 export function KanbanBoard({
   lists,
-  canManage = true,
+  boardListsByBoardId,
+  canManageByBoardId,
   teams = [],
   members = [],
   openCardId,
   timezone,
 }: {
   lists: SerializedList[];
-  canManage?: boolean;
+  boardListsByBoardId: Record<string, { id: string; name: string }[]>;
+  canManageByBoardId: Record<string, boolean>;
   teams?: { id: string; name: string }[];
   members?: MemberOption[];
   /** Id thẻ cần tự mở popup ngay khi vào trang (vd: bấm "Mở" từ thông báo bình luận). */
@@ -109,7 +111,7 @@ export function KanbanBoard({
     for (const list of lists) {
       const card = list.cards.find((c) => c.id === openCardId);
       if (card) {
-        setOpenCard({ card, listId: list.id });
+        setOpenCard({ card, listId: card.listId });
         break;
       }
     }
@@ -119,9 +121,11 @@ export function KanbanBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openCardId]);
 
-  const listOptions = lists.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name }));
-  const doneListId = lists.find((l) => l.name === "listDone")?.id;
-  const reviewListId = lists.find((l) => l.name === "listReview")?.id;
+  const boardListsRaw = (openCard && boardListsByBoardId[openCard.card.boardId]) || [];
+  const boardLists = boardListsRaw.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name }));
+  const doneListId = boardListsRaw.find((l) => l.name === "listDone")?.id;
+  const reviewListId = boardListsRaw.find((l) => l.name === "listReview")?.id;
+  const canDelete = openCard ? (canManageByBoardId[openCard.card.boardId] ?? false) : true;
 
   const resetDrag = () => {
     pending.current = null;
@@ -151,14 +155,24 @@ export function KanbanBoard({
     const listEl = (el as HTMLElement | null)?.closest<HTMLElement>("[data-list-id]");
     const hoveredId = listEl?.dataset.listId ?? null;
     // Người/team được cấp quyền không được kéo thẻ thẳng vào Hoàn thành — phải qua Xem lại rồi chủ bảng duyệt.
-    setOverListId(hoveredId && hoveredId === doneListId && !canManage ? null : hoveredId);
+    const hoveredIsDone = hoveredId === "listDone";
+    setOverListId(hoveredIsDone && !(canManageByBoardId[p.card.boardId] ?? false) ? null : hoveredId);
   };
 
   const onCardPointerUp = (e: React.PointerEvent<HTMLDivElement>, card: SerializedCard, listId: string) => {
     const p = pending.current;
     const wasDragging = !!drag;
     if (wasDragging && overListId && overListId !== p?.fromListId) {
-      exec(() => moveWorkCard(card.id, overListId));
+      const realTargetId = boardListsByBoardId[card.boardId]?.find((l) => l.name === overListId)?.id;
+      if (realTargetId) exec(() => moveWorkCard(card.id, realTargetId));
+    } else if (wasDragging && overListId && overListId === p?.fromListId) {
+      const column = lists.find((l) => l.id === listId);
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const targetId = (el as HTMLElement | null)?.closest<HTMLElement>("[data-card-id]")?.dataset.cardId;
+      if (column && targetId && targetId !== card.id) {
+        const next = reorderIds(column.cards.map((c) => c.id), card.id, targetId);
+        exec(() => reorderWorkCards(next));
+      }
     } else if (!wasDragging) {
       setOpenCard({ card, listId });
     }
@@ -166,15 +180,18 @@ export function KanbanBoard({
   };
 
   const approveCard = (card: SerializedCard) => {
-    if (!doneListId) return;
-    exec(() => moveWorkCard(card.id, doneListId), { success: w.cardApproved });
+    const target = boardListsByBoardId[card.boardId]?.find((l) => l.name === "listDone")?.id;
+    if (!target) return;
+    exec(() => moveWorkCard(card.id, target), { success: w.cardApproved });
   };
 
   return (
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={70}>
-        {lists.map((list) => (
+        {lists.map((list) => {
+          const Icon = STATUS_ICON[list.name] ?? undefined;
+          return (
           <div
             key={list.id}
             data-list-id={list.id}
@@ -185,12 +202,11 @@ export function KanbanBoard({
             )}
           >
             <div className="flex items-center justify-between gap-2 px-1">
-              <span className={cn("inline-flex items-center gap-2 font-medium", list.color === "danger" && "text-danger")}>
-                <span className={`size-2 shrink-0 rounded-full ${DOT[list.color] ?? "bg-muted"}`} aria-hidden />
+              <span className={cn("badge inline-flex items-center gap-1.5", STATUS_BADGE_CLASS[list.color])}>
+                {Icon && <Icon className="size-3.5" aria-hidden />}
                 {w[list.name as keyof typeof w] ?? list.name}
-                <span className="tabular text-sm text-muted">{list.cards.length}</span>
+                <span className="tabular">{list.cards.length}</span>
               </span>
-              {canManage && <AddCardButton listId={list.id} teams={teams} members={members} />}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -201,11 +217,13 @@ export function KanbanBoard({
               ) : (
                 list.cards.map((card) => {
                   const isDraggingThis = drag?.card.id === card.id;
-                  const showApprove = canManage && list.name === "listReview" && !!doneListId;
-                  const locked = list.name === "listDone" && !canManage;
+                  const canManageThis = canManageByBoardId[card.boardId] ?? false;
+                  const showApprove = canManageThis && list.name === "listReview" && !!boardListsByBoardId[card.boardId]?.find((l) => l.name === "listDone");
+                  const locked = list.name === "listDone" && !canManageThis;
                   return (
                     <div
                       key={card.id}
+                      data-card-id={card.id}
                       role="button"
                       tabIndex={0}
                       onPointerDown={(e) => !locked && onCardPointerDown(e, card, list.id)}
@@ -220,6 +238,9 @@ export function KanbanBoard({
                       )}
                     >
                       <div className={isDraggingThis ? "invisible" : undefined}>
+                        <div className="mb-1 flex items-center justify-between">
+                          <GripVertical className="size-3.5 shrink-0 text-muted" aria-label={w.dragHandleLabel} />
+                        </div>
                         <CardBody w={w} card={card} timezone={timezone} />
                         {showApprove && (
                           <button
@@ -241,7 +262,8 @@ export function KanbanBoard({
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
         </StaggerReveal>
       </div>
 
@@ -258,13 +280,13 @@ export function KanbanBoard({
         open={!!openCard}
         card={openCard?.card ?? null}
         listId={openCard?.listId ?? ""}
-        lists={listOptions}
+        lists={boardLists}
         teams={teams}
         members={members}
         reviewListId={reviewListId}
         doneListId={doneListId}
         onClose={() => setOpenCard(null)}
-        canDelete={canManage}
+        canDelete={canDelete}
         timezone={timezone}
       />
     </>
