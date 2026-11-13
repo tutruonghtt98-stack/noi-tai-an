@@ -59,13 +59,7 @@ export async function getWorkStats(userId: string) {
 
 // ---------- Workspace (Kanban) ----------
 
-export const DEFAULT_LISTS: { name: string; color: string }[] = [
-  { name: "listToDo", color: "muted" },
-  { name: "listInProgress", color: "mist" },
-  { name: "listReview", color: "ochre" },
-  { name: "listDone", color: "jade" },
-  { name: "listOverdue", color: "danger" },
-];
+export { DEFAULT_LISTS } from "./work-types";
 
 export type BoardAccess = "owner" | "member";
 

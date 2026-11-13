@@ -2,39 +2,23 @@ import type { Metadata } from "next";
 import { Kanban } from "lucide-react";
 import { requireUser } from "@/lib/session";
 import { getI18n } from "@/lib/i18n";
-import { fmt } from "@/lib/i18n/format";
-import { getAccessibleBoards } from "@/lib/work-queries";
+import { getAccessibleBoards, DEFAULT_LISTS } from "@/lib/work-queries";
 import { getUserTeams, getUserWorkspaceMembers } from "@/lib/department-queries";
-import { daysBetween, isoInZone, todayISO } from "@/lib/dates";
+import { todayISO } from "@/lib/dates";
 import { SplitHeading } from "@/components/ui/split-heading";
 import { Empty } from "@/components/ui/empty";
-import { StaggerReveal } from "@/components/ui/stagger-reveal";
-import { BoardHeaderCard, BoardSwitcher, NewBoardButton } from "./board-switcher";
-import { KanbanBoard, type SerializedList } from "./kanban-board";
-import { WorkspaceLiveSync } from "./live-sync";
 import { ViewSwitcher } from "./view-switcher";
-import { WorkTableView } from "./work-table-view";
+import { WorkListView } from "./work-list-view";
 import { WorkCalendarView } from "./work-calendar-view";
-import { parseWorkView } from "@/lib/work-view";
+import { NewTaskButton } from "./new-task-button";
+import { NewBoardButton } from "./board-switcher";
+import { WorkspaceLiveSync } from "./live-sync";
+import { parseWorkView, poolListsByName } from "@/lib/work-view";
 import type { ChecklistItem } from "@/lib/work-types";
 
 export const metadata: Metadata = { title: "Workspace" };
 
-function totalCards(lists: { cards: unknown[] }[]): number {
-  let n = 0;
-  for (const l of lists) n += l.cards.length;
-  return n;
-}
-
-function inProgressCount(lists: { name: string; cards: unknown[] }[]): number {
-  return lists.find((l) => l.name === "listInProgress")?.cards.length ?? 0;
-}
-
-function overdueCount(lists: { name: string; cards: unknown[] }[]): number {
-  return lists.find((l) => l.name === "listOverdue")?.cards.length ?? 0;
-}
-
-export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ b?: string; card?: string; v?: string }> }) {
+export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ card?: string; v?: string }> }) {
   const user = await requireUser();
   const { t } = await getI18n();
   const w = t.work.workspace;
@@ -42,34 +26,52 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
   const view = parseWorkView(sp.v);
 
   const [boards, teams, members] = await Promise.all([getAccessibleBoards(user.id), getUserTeams(user.id), getUserWorkspaceMembers(user.id)]);
-  const active = boards.find((b) => b.id === sp.b) ?? boards[0];
   const teamOptions = teams.map((t) => ({ id: t.id, name: t.department ? `${t.department.name} / ${t.name}` : t.name }));
-
   const today = todayISO(user.timezone);
-  const dueLabel = (due: Date | null) => {
-    if (!due) return null;
-    const diffDays = daysBetween(today, isoInZone(due, user.timezone));
-    if (diffDays === 0) return w.dueToday;
-    if (diffDays > 0) return fmt(w.dueIn, { n: diffDays });
-    return fmt(w.overdue, { n: Math.abs(diffDays) });
-  };
+
+  const boardsForList = boards.map((b) => ({
+    id: b.id,
+    name: b.name,
+    lists: b.lists.map((l) => ({ id: l.id, name: l.name })),
+  }));
+  const boardListsByBoardId = Object.fromEntries(boardsForList.map((b) => [b.id, b.lists]));
+  const canManageByBoardId = Object.fromEntries(boards.map((b) => [b.id, b.access === "owner"]));
+
+  const pooled = poolListsByName(
+    boards.map((b) =>
+      b.lists.map((list) => ({
+        name: list.name,
+        color: list.color,
+        cards: list.cards.map((card) => ({
+          id: card.id,
+          boardId: b.id,
+          listId: card.listId,
+          label: card.label,
+          title: card.title,
+          assignee: card.assignee,
+          teamId: card.teamId,
+          dueDate: card.dueDate ? card.dueDate.toISOString() : null,
+          startDate: card.startDate ? card.startDate.toISOString() : null,
+          priority: card.priority,
+          checklist: Array.isArray(card.checklist) ? (card.checklist as unknown as ChecklistItem[]) : [],
+        })),
+      })),
+    ),
+    DEFAULT_LISTS,
+  );
+  const lists = pooled.map((l) => ({ id: l.name, name: l.name, color: l.color, cards: l.cards }));
+
+  const hasNoBoards = !boards.length;
 
   return (
     <>
       <WorkspaceLiveSync />
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <SplitHeading text={w.title} className="text-2xl font-semibold sm:text-[2rem]" />
+        {!hasNoBoards && <NewTaskButton boards={boardsForList} teams={teamOptions} members={members} />}
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <BoardSwitcher
-          boards={boards.map((b) => ({ id: b.id, name: b.name, inProgress: inProgressCount(b.lists), overdue: overdueCount(b.lists) }))}
-          active={active?.id}
-        />
-        <NewBoardButton teams={teamOptions} members={members} />
-      </div>
-
-      {!active ? (
+      {hasNoBoards ? (
         <div className="card">
           <Empty icon={Kanban} text={w.emptyBoards}>
             <NewBoardButton primary teams={teamOptions} members={members} />
@@ -77,73 +79,29 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
         </div>
       ) : (
         <>
-          {(() => {
-            const total = totalCards(active.lists);
-            const done = active.lists.find((l) => l.name === "listDone")?.cards.length ?? 0;
-            const pct = total ? Math.round((done / total) * 100) : 0;
-            return (
-              <StaggerReveal asChild={false} slide={{ direction: "up", offset: 16 }}>
-                <BoardHeaderCard
-                  board={{
-                    id: active.id,
-                    name: active.name,
-                    description: active.description,
-                    dueDate: active.dueDate ? active.dueDate.toISOString() : null,
-                    assignee: active.assignee,
-                    teamId: active.teamId,
-                    sortOrder: active.sortOrder,
-                  }}
-                  title={active.description || active.name}
-                  shared={active.access !== "owner"}
-                  ownerName={active.access !== "owner" ? active.user.name : null}
-                  dueText={dueLabel(active.dueDate) ?? w.noDue}
-                  cardsText={fmt(w.cardsCount, { n: total })}
-                  progressPct={pct}
-                  progressText={fmt(w.progressDone, { done, total })}
-                  canManage={active.access === "owner"}
-                  teams={teamOptions}
-                  members={members}
-                  timezone={user.timezone}
-                />
-              </StaggerReveal>
-            );
-          })()}
-
-          <ViewSwitcher w={w} boardId={active.id} current={view} />
-
-          {(() => {
-            const lists: SerializedList[] = active.lists.map((list) => ({
-              id: list.id,
-              name: list.name,
-              color: list.color,
-              cards: list.cards.map((card) => ({
-                id: card.id,
-                label: card.label,
-                title: card.title,
-                assignee: card.assignee,
-                teamId: card.teamId,
-                dueDate: card.dueDate ? card.dueDate.toISOString() : null,
-                startDate: card.startDate ? card.startDate.toISOString() : null,
-                checklist: Array.isArray(card.checklist) ? (card.checklist as unknown as ChecklistItem[]) : [],
-              })),
-            }));
-            const canManage = active.access === "owner";
-            return view === "kanban" ? (
-              <KanbanBoard lists={lists} canManage={canManage} teams={teamOptions} members={members} openCardId={sp.card} timezone={user.timezone} />
-            ) : view === "table" ? (
-              <WorkTableView lists={lists} canManage={canManage} teams={teamOptions} members={members} timezone={user.timezone} />
-            ) : (
-              <WorkCalendarView
-                lists={lists}
-                canManage={canManage}
-                teams={teamOptions}
-                members={members}
-                timezone={user.timezone}
-                today={today}
-                weekStartsOn={user.weekStartsOn}
-              />
-            );
-          })()}
+          <ViewSwitcher w={w} current={view} />
+          {view === "list" ? (
+            <WorkListView
+              lists={lists}
+              boardListsByBoardId={boardListsByBoardId}
+              canManageByBoardId={canManageByBoardId}
+              teams={teamOptions}
+              members={members}
+              timezone={user.timezone}
+              openCardId={sp.card}
+            />
+          ) : (
+            <WorkCalendarView
+              lists={lists}
+              boardListsByBoardId={boardListsByBoardId}
+              canManageByBoardId={canManageByBoardId}
+              teams={teamOptions}
+              members={members}
+              timezone={user.timezone}
+              today={today}
+              weekStartsOn={user.weekStartsOn}
+            />
+          )}
         </>
       )}
     </>
