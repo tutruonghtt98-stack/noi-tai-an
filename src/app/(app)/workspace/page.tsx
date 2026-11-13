@@ -123,6 +123,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
                 assignee: card.assignee,
                 teamId: card.teamId,
                 dueDate: card.dueDate ? card.dueDate.toISOString() : null,
+                startDate: card.startDate ? card.startDate.toISOString() : null,
                 checklist: Array.isArray(card.checklist) ? (card.checklist as unknown as ChecklistItem[]) : [],
               })),
             }));
