@@ -554,6 +554,7 @@ const en: Dict = {
       commentPh: "Write a comment…",
       commentSend: "Send",
       commentSent: "Comment sent",
+      attachmentLimitReached: "Each card can have at most 10 attachments.",
     },
   },
   departments: {

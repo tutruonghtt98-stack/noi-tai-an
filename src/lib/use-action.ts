@@ -21,6 +21,7 @@ export function useAction() {
       if (code === "FORBIDDEN") return t.departments.forbidden;
       if (code === "CHALLENGE_NOT_AVAILABLE") return "Chưa có thử thách cho hành trình hiện tại.";
       if (code === "CHALLENGE_CRITERIA_INCOMPLETE") return "Hãy tick đủ tất cả tiêu chí trước khi xác nhận.";
+      if (code === "ATTACHMENT_LIMIT") return t.work.workspace.attachmentLimitReached;
       return t.common.error;
     },
     [t],

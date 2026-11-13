@@ -552,6 +552,7 @@ const vi = {
       commentPh: "Viết bình luận…",
       commentSend: "Gửi",
       commentSent: "Đã gửi bình luận",
+      attachmentLimitReached: "Mỗi thẻ chỉ được tối đa 10 đính kèm.",
     },
   },
   departments: {

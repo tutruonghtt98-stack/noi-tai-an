@@ -218,6 +218,11 @@ const cardSchema = z.object({
     .trim()
     .optional()
     .transform((v) => v || null),
+  startDate: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => v || null),
   teamId: z
     .string()
     .trim()
@@ -278,11 +283,13 @@ export async function createWorkCard(input: CardInput) {
     const assigneeUserId = await resolveAssigneeId(data.assignee);
     const now = new Date();
     const dueDate = data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null;
+    const startDate = data.startDate ? zonedDateTimeToUTC(data.startDate, user.timezone) : null;
     await db.$transaction(async (tx) => {
       const card = await tx.workCard.create({
         data: {
           ...data,
           dueDate,
+          startDate,
           teamId,
           assigneeUserId,
           sortOrder: count,
@@ -355,6 +362,7 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
     const teamId = isOwner ? await resolveTeam(user.id, rawTeamId) : card.teamId;
     const teamChanged = isOwner && teamId !== card.teamId;
     const dueDate = data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null;
+    const startDate = data.startDate ? zonedDateTimeToUTC(data.startDate, user.timezone) : null;
     const dueDateChanged = (card.dueDate?.getTime() ?? null) !== (dueDate?.getTime() ?? null);
     const completedAt = changingList ? (isDoneList(targetList.name) ? (card.completedAt ?? new Date()) : null) : undefined;
     const statusChanged = changingList;
@@ -382,6 +390,7 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
         data: {
           ...data,
           dueDate,
+          startDate,
           assignee,
           assigneeUserId,
           teamId,
@@ -417,9 +426,19 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
   });
 }
 
-const checklistItemSchema = z.object({ id: z.string().min(1), text: z.string().trim().min(1).max(200), done: z.boolean() });
+const checklistItemSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().trim().min(1).max(200),
+  done: z.boolean(),
+  description: z
+    .string()
+    .trim()
+    .max(300)
+    .optional()
+    .transform((v) => v || undefined),
+});
 
-export async function updateWorkCardChecklist(id: string, checklist: { id: string; text: string; done: boolean }[]) {
+export async function updateWorkCardChecklist(id: string, checklist: { id: string; text: string; done: boolean; description?: string }[]) {
   return run(async () => {
     const user = await requireUser();
     const card = await db.workCard.findUnique({
@@ -567,6 +586,70 @@ export async function addWorkCardComment(cardId: string, content: string) {
         },
       });
     }
+    revalidatePath("/workspace");
+  });
+}
+
+// ---------- Đính kèm thẻ ----------
+
+const attachmentSchema = z.object({
+  url: z.string().trim().url().max(2000),
+  label: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform((v) => v || null),
+});
+
+export async function listWorkCardAttachments(cardId: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const card = await db.workCard.findUnique({
+      where: { id: cardId },
+      select: { assigneeUserId: true, teamId: true, list: { select: { board: { select: { userId: true } } } } },
+    });
+    if (!card) throw new UserError("VALIDATION");
+    const userTeamIds = await getUserTeamIds(user.id);
+    if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
+    const attachments = await db.workCardAttachment.findMany({ where: { cardId }, orderBy: { createdAt: "asc" } });
+    return attachments.map((a) => ({ id: a.id, url: a.url, label: a.label }));
+  });
+}
+
+export async function addWorkCardAttachment(cardId: string, input: { url: string; label?: string }) {
+  return run(async () => {
+    const user = await requireUser();
+    const card = await db.workCard.findUnique({
+      where: { id: cardId },
+      select: { assigneeUserId: true, teamId: true, list: { select: { name: true, board: { select: { userId: true } } } } },
+    });
+    if (!card) throw new UserError("VALIDATION");
+    const userTeamIds = await getUserTeamIds(user.id);
+    if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
+    if (isDoneList(card.list.name) && !isBoardOwner(card.list.board, user.id)) throw new UserError("VALIDATION");
+    const data = attachmentSchema.parse(input);
+    const count = await db.workCardAttachment.count({ where: { cardId } });
+    if (count >= 10) throw new UserError("ATTACHMENT_LIMIT");
+    await db.workCardAttachment.create({ data: { cardId, url: data.url, label: data.label } });
+    revalidatePath("/workspace");
+  });
+}
+
+export async function deleteWorkCardAttachment(id: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const attachment = await db.workCardAttachment.findUnique({
+      where: { id },
+      select: {
+        card: { select: { assigneeUserId: true, teamId: true, list: { select: { name: true, board: { select: { userId: true } } } } } },
+      },
+    });
+    if (!attachment) throw new UserError("VALIDATION");
+    const userTeamIds = await getUserTeamIds(user.id);
+    if (!canActOnCard(attachment.card, user.id, userTeamIds)) throw new UserError("VALIDATION");
+    if (isDoneList(attachment.card.list.name) && !isBoardOwner(attachment.card.list.board, user.id)) throw new UserError("VALIDATION");
+    await db.workCardAttachment.delete({ where: { id } });
     revalidatePath("/workspace");
   });
 }
