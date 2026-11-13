@@ -17,7 +17,7 @@ import type { Dict } from "@/lib/i18n/vi";
 
 export type SerializedList = { id: string; name: string; color: string; cards: SerializedCard[] };
 
-const DOT: Record<string, string> = { muted: "bg-muted", mist: "bg-mist", ochre: "bg-ochre", jade: "bg-jade", danger: "bg-danger" };
+export const DOT: Record<string, string> = { muted: "bg-muted", mist: "bg-mist", ochre: "bg-ochre", jade: "bg-jade", danger: "bg-danger" };
 
 export function dueLabel(w: Dict["work"]["workspace"], due: string | null, timezone: string) {
   if (!due) return null;
