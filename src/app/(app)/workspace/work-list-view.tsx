@@ -1,13 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
+import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/avatar";
-import { DOT, PRIORITY_BADGE_CLASS, dueLabel, type SerializedList } from "./kanban-board";
+import { STATUS_BADGE_CLASS, STATUS_ICON, PRIORITY_BADGE_CLASS, dueLabel, type SerializedList } from "./kanban-board";
 import { CardModal, type SerializedCard } from "./card-modal";
 import type { MemberOption } from "./assignee-picker";
+import { reorderIds } from "@/lib/work-view";
+import { reorderWorkCards } from "@/actions/work";
 
 export function WorkListView({
   lists,
@@ -29,8 +32,10 @@ export function WorkListView({
   const { t } = useI18n();
   const w = t.work.workspace;
   const router = useRouter();
+  const { exec } = useAction();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [openCard, setOpenCard] = useState<{ card: SerializedCard; listId: string } | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!openCardId) return;
@@ -63,15 +68,19 @@ export function WorkListView({
 
   return (
     <>
-      {lists.map((list) => (
+      {lists.map((list) => {
+        const Icon = STATUS_ICON[list.name] ?? undefined;
+        return (
         <div key={list.name} className="wsx-panel mb-4">
           <button
             type="button"
             className="flex w-full items-center gap-2 text-left"
             onClick={() => setCollapsed((c) => ({ ...c, [list.name]: !c[list.name] }))}
           >
-            <span className={`size-2 shrink-0 rounded-full ${DOT[list.color] ?? "bg-muted"}`} aria-hidden />
-            <span className="font-medium">{w[list.name as keyof typeof w] ?? list.name}</span>
+            <span className={cn("badge inline-flex items-center gap-1.5", STATUS_BADGE_CLASS[list.color])}>
+              {Icon && <Icon className="size-3.5" aria-hidden />}
+              {w[list.name as keyof typeof w] ?? list.name}
+            </span>
             <span className="tabular text-muted">({list.cards.length})</span>
             {collapsed[list.name] ? (
               <ChevronRight className="ml-auto size-4" aria-hidden />
@@ -87,6 +96,7 @@ export function WorkListView({
               <table className="mt-3 w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-muted">
+                    <th className="w-8 px-1 py-2" />
                     <th className="px-3 py-2">{w.colTitle}</th>
                     <th className="px-3 py-2">{w.colAssignee}</th>
                     <th className="px-3 py-2">{w.typeTitle}</th>
@@ -110,7 +120,31 @@ export function WorkListView({
                             open(card);
                           }
                         }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (!draggedId || draggedId === card.id) return;
+                          const ids = list.cards.map((c) => c.id);
+                          const next = reorderIds(ids, draggedId, card.id);
+                          exec(() => reorderWorkCards(next));
+                          setDraggedId(null);
+                        }}
                       >
+                        <td className="px-1 py-2.5">
+                          <span
+                            draggable
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
+                            onDragStart={(e) => {
+                              e.stopPropagation();
+                              setDraggedId(card.id);
+                            }}
+                            aria-label={w.dragHandleLabel}
+                            className="inline-flex cursor-grab text-muted active:cursor-grabbing"
+                          >
+                            <GripVertical className="size-4" aria-hidden />
+                          </span>
+                        </td>
                         <td className="px-3 py-2.5">
                           {card.label && <span className="badge mr-2">{card.label}</span>}
                           {card.title}
@@ -128,7 +162,8 @@ export function WorkListView({
               </table>
             ))}
         </div>
-      ))}
+        );
+      })}
 
       <CardModal
         open={!!openCard}
