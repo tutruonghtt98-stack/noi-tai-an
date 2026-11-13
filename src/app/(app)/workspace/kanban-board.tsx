@@ -19,6 +19,13 @@ export type SerializedList = { id: string; name: string; color: string; cards: S
 
 export const DOT: Record<string, string> = { muted: "bg-muted", mist: "bg-mist", ochre: "bg-ochre", jade: "bg-jade", danger: "bg-danger" };
 
+export type WorkCardPriority = "LOW" | "NORMAL" | "URGENT";
+export const PRIORITY_BADGE_CLASS: Record<WorkCardPriority, string> = {
+  LOW: "bg-jade/15 text-jade-ink",
+  NORMAL: "bg-ochre/15 text-ochre-ink",
+  URGENT: "bg-danger/15 text-danger",
+};
+
 export function dueLabel(w: Dict["work"]["workspace"], due: string | null, timezone: string) {
   if (!due) return null;
   const diffDays = daysBetween(todayISO(timezone), isoInZone(new Date(due), timezone));
