@@ -46,13 +46,19 @@ export function WorkTableView({
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
             <tr className="border-b border-line text-xs text-muted">
-              <th className="cursor-pointer select-none px-3 py-2" onClick={() => toggleSort("title")}>
-                {w.colTitle}
+              <th className="px-3 py-2" aria-sort={sortCol === "title" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+                <button type="button" className="inline-flex items-center gap-1 select-none" onClick={() => toggleSort("title")}>
+                  {w.colTitle}
+                  {sortCol === "title" && <span aria-hidden>{sortDir === "asc" ? "▲" : "▼"}</span>}
+                </button>
               </th>
               <th className="px-3 py-2">{w.colStatus}</th>
               <th className="px-3 py-2">{w.colAssignee}</th>
-              <th className="cursor-pointer select-none px-3 py-2" onClick={() => toggleSort("due")}>
-                {w.colDue}
+              <th className="px-3 py-2" aria-sort={sortCol === "due" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+                <button type="button" className="inline-flex items-center gap-1 select-none" onClick={() => toggleSort("due")}>
+                  {w.colDue}
+                  {sortCol === "due" && <span aria-hidden>{sortDir === "asc" ? "▲" : "▼"}</span>}
+                </button>
               </th>
               <th className="px-3 py-2">{w.colChecklist}</th>
             </tr>
@@ -62,11 +68,20 @@ export function WorkTableView({
               const total = row.card.checklist.length;
               const done = row.card.checklist.filter((c) => c.done).length;
               const due = dueLabel(w, row.card.dueDate, timezone);
+              const open = () => setOpenCard({ card: row.card, listId: row.listId });
               return (
                 <tr
                   key={row.card.id}
-                  className="cursor-pointer border-b border-line/60 last:border-0 hover:bg-surface-2/60"
-                  onClick={() => setOpenCard({ card: row.card, listId: row.listId })}
+                  role="button"
+                  tabIndex={0}
+                  className="cursor-pointer border-b border-line/60 last:border-0 hover:bg-surface-2/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink"
+                  onClick={open}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      open();
+                    }
+                  }}
                 >
                   <td className="px-3 py-2.5">
                     {row.card.label && <span className="badge mr-2">{row.card.label}</span>}
