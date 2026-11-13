@@ -1,10 +1,23 @@
 import { dayOfWeek, isoInZone, monthBounds, rangeISO, type ISODate } from "./dates";
 
-export type WorkView = "kanban" | "table" | "calendar";
-const WORK_VIEWS: WorkView[] = ["kanban", "table", "calendar"];
+export type WorkView = "list" | "calendar";
+const WORK_VIEWS: WorkView[] = ["list", "calendar"];
 
 export function parseWorkView(v: string | undefined): WorkView {
-  return (WORK_VIEWS as string[]).includes(v ?? "") ? (v as WorkView) : "kanban";
+  return (WORK_VIEWS as string[]).includes(v ?? "") ? (v as WorkView) : "list";
+}
+
+export type PoolableList<TCard> = { name: string; color: string; cards: TCard[] };
+
+export function poolListsByName<TCard>(
+  boardsLists: PoolableList<TCard>[][],
+  order: { name: string; color: string }[],
+): PoolableList<TCard>[] {
+  return order.map(({ name, color }) => ({
+    name,
+    color,
+    cards: boardsLists.flatMap((lists) => lists.find((l) => l.name === name)?.cards ?? []),
+  }));
 }
 
 export type FlattenableList<TCard> = { id: string; name: string; color: string; cards: TCard[] };

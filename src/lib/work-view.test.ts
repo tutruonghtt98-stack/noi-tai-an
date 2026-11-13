@@ -1,18 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dayOfWeek, monthBounds } from "./dates";
-import { parseWorkView, flattenCards, sortRows, buildMonthCells, groupCardsByDate } from "./work-view";
+import { parseWorkView, flattenCards, sortRows, buildMonthCells, groupCardsByDate, poolListsByName } from "./work-view";
 
 test("parseWorkView returns the value when valid", () => {
-  assert.equal(parseWorkView("table"), "table");
+  assert.equal(parseWorkView("list"), "list");
   assert.equal(parseWorkView("calendar"), "calendar");
-  assert.equal(parseWorkView("kanban"), "kanban");
 });
 
-test("parseWorkView defaults to kanban for missing or invalid values", () => {
-  assert.equal(parseWorkView(undefined), "kanban");
-  assert.equal(parseWorkView(""), "kanban");
-  assert.equal(parseWorkView("xyz"), "kanban");
+test("parseWorkView defaults to list for missing or invalid values", () => {
+  assert.equal(parseWorkView(undefined), "list");
+  assert.equal(parseWorkView(""), "list");
+  assert.equal(parseWorkView("kanban"), "list");
+  assert.equal(parseWorkView("table"), "list");
 });
 
 type TestCard = { id: string; title: string; dueDate: string | null };
@@ -72,4 +72,28 @@ test("groupCardsByDate buckets dated cards by local-timezone date and keeps unda
   assert.equal(undated[0].card.id, "b");
   assert.equal(byDate["2026-11-20"]?.[0]?.card.id, "a");
   assert.equal(byDate["2026-11-05"]?.[0]?.card.id, "c");
+});
+
+type TestPoolCard = { id: string };
+const poolOrder = [
+  { name: "listToDo", color: "muted" },
+  { name: "listDone", color: "jade" },
+];
+
+test("poolListsByName merges same-named lists across boards, in order's sequence", () => {
+  const boardA = [{ name: "listToDo", color: "muted", cards: [{ id: "a1" }] }];
+  const boardB = [
+    { name: "listToDo", color: "muted", cards: [{ id: "b1" }] },
+    { name: "listDone", color: "jade", cards: [{ id: "b2" }] },
+  ];
+  const pooled = poolListsByName<TestPoolCard>([boardA, boardB], poolOrder);
+  assert.deepEqual(pooled.map((l) => l.name), ["listToDo", "listDone"]);
+  assert.deepEqual(pooled[0]!.cards.map((c) => c.id), ["a1", "b1"]);
+  assert.deepEqual(pooled[1]!.cards.map((c) => c.id), ["b2"]);
+});
+
+test("poolListsByName treats a board missing a named list as contributing no cards for it", () => {
+  const boardWithoutDone = [{ name: "listToDo", color: "muted", cards: [{ id: "x" }] }];
+  const pooled = poolListsByName<TestPoolCard>([boardWithoutDone], poolOrder);
+  assert.deepEqual(pooled[1]!.cards, []);
 });
