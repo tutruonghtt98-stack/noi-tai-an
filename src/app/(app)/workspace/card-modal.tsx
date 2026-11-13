@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Calendar, ListChecks, MessageSquare, Paperclip, Tag, Users, X } from "lucide-react";
+import { Calendar, GripVertical, ListChecks, MessageSquare, Paperclip, Users, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/cn";
@@ -19,6 +19,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { AssigneePicker, type MemberOption } from "./assignee-picker";
 import type { WorkCardPriority } from "./kanban-board";
 import { utcToZonedDateTimeInput } from "@/lib/dates";
+import { reorderIds } from "@/lib/work-view";
 import type { ChecklistItem } from "@/lib/work-types";
 
 type CardComment = { id: string; content: string; createdAt: string; userName: string | null; userImage: string | null };
@@ -35,6 +36,7 @@ export type SerializedCard = {
   dueDate: string | null;
   startDate: string | null;
   priority: WorkCardPriority;
+  sortOrder: number;
   checklist: ChecklistItem[];
 };
 
@@ -77,6 +79,7 @@ export function CardModal({
   const [column, setColumn] = useState("");
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [newItem, setNewItem] = useState("");
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [comments, setComments] = useState<CardComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [attachments, setAttachments] = useState<CardAttachment[]>([]);
@@ -222,7 +225,7 @@ export function CardModal({
                 disabled={locked}
               />
             </label>
-            <div className="grid min-w-0 gap-4 sm:grid-cols-3">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <label className="field">
                 <span className="label">{w.fieldColumn}</span>
                 <select className="input" value={column} onChange={(e) => setColumn(e.target.value)} disabled={locked}>
@@ -232,12 +235,6 @@ export function CardModal({
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="field">
-                <span className="label inline-flex items-center gap-1.5">
-                  <Tag className="size-3.5" aria-hidden /> {w.typeTitle}
-                </span>
-                <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={w.cardLabelPh} maxLength={30} disabled={locked} />
               </label>
               <label className="field">
                 <span className="label">{w.priorityTitle}</span>
@@ -302,8 +299,28 @@ export function CardModal({
               ) : (
                 <ul className="space-y-2">
                   {checklist.map((item) => (
-                    <li key={item.id} className="flex flex-col gap-1">
+                    <li
+                      key={item.id}
+                      className="flex flex-col gap-1"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => {
+                        if (!draggedItemId || draggedItemId === item.id) return;
+                        const next = reorderIds(checklist.map((i) => i.id), draggedItemId, item.id).map((id) => checklist.find((i) => i.id === id)!);
+                        persistChecklist(next);
+                        setDraggedItemId(null);
+                      }}
+                    >
                       <div className="flex items-center gap-2">
+                        {!locked && (
+                          <span
+                            draggable
+                            onDragStart={() => setDraggedItemId(item.id)}
+                            aria-label={w.dragHandleLabel}
+                            className="inline-flex shrink-0 cursor-grab text-muted active:cursor-grabbing"
+                          >
+                            <GripVertical className="size-3.5" aria-hidden />
+                          </span>
+                        )}
                         <input
                           type="checkbox"
                           className="size-4 shrink-0 accent-[var(--ink)]"
