@@ -10,6 +10,7 @@ import { Empty } from "@/components/ui/empty";
 import { ViewSwitcher } from "./view-switcher";
 import { WorkListView } from "./work-list-view";
 import { WorkCalendarView } from "./work-calendar-view";
+import { KanbanBoard } from "./kanban-board";
 import { NewTaskButton } from "./new-task-button";
 import { NewBoardButton } from "./board-switcher";
 import { WorkspaceLiveSync } from "./live-sync";
@@ -54,6 +55,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
           dueDate: card.dueDate ? card.dueDate.toISOString() : null,
           startDate: card.startDate ? card.startDate.toISOString() : null,
           priority: card.priority,
+          sortOrder: card.sortOrder,
           checklist: Array.isArray(card.checklist) ? (card.checklist as unknown as ChecklistItem[]) : [],
         })),
       })),
@@ -84,7 +86,17 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
       ) : (
         <>
           <ViewSwitcher w={w} current={view} />
-          {view === "list" ? (
+          {view === "kanban" ? (
+            <KanbanBoard
+              lists={lists}
+              boardListsByBoardId={boardListsByBoardId}
+              canManageByBoardId={canManageByBoardId}
+              teams={teamOptions}
+              members={members}
+              timezone={user.timezone}
+              openCardId={sp.card}
+            />
+          ) : view === "list" ? (
             <WorkListView
               lists={lists}
               boardListsByBoardId={boardListsByBoardId}

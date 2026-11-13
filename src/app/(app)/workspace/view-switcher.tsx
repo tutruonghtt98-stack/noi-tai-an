@@ -4,6 +4,7 @@ import type { WorkView } from "@/lib/work-view";
 
 export function ViewSwitcher({ w, current }: { w: Dict["work"]["workspace"]; current: WorkView }) {
   const views: { key: WorkView; label: string }[] = [
+    { key: "kanban", label: w.viewKanban },
     { key: "list", label: w.viewList },
     { key: "calendar", label: w.viewCalendar },
   ];
