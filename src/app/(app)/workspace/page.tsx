@@ -12,6 +12,10 @@ import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { BoardHeaderCard, BoardSwitcher, NewBoardButton } from "./board-switcher";
 import { KanbanBoard, type SerializedList } from "./kanban-board";
 import { WorkspaceLiveSync } from "./live-sync";
+import { ViewSwitcher } from "./view-switcher";
+import { WorkTableView } from "./work-table-view";
+import { WorkCalendarView } from "./work-calendar-view";
+import { parseWorkView } from "@/lib/work-view";
 import type { ChecklistItem } from "@/lib/work-types";
 
 export const metadata: Metadata = { title: "Workspace" };
@@ -30,11 +34,12 @@ function overdueCount(lists: { name: string; cards: unknown[] }[]): number {
   return lists.find((l) => l.name === "listOverdue")?.cards.length ?? 0;
 }
 
-export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ b?: string; card?: string }> }) {
+export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ b?: string; card?: string; v?: string }> }) {
   const user = await requireUser();
   const { t } = await getI18n();
   const w = t.work.workspace;
   const sp = await searchParams;
+  const view = parseWorkView(sp.v);
 
   const [boards, teams, members] = await Promise.all([getAccessibleBoards(user.id), getUserTeams(user.id), getUserWorkspaceMembers(user.id)]);
   const active = boards.find((b) => b.id === sp.b) ?? boards[0];
@@ -104,29 +109,40 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
             );
           })()}
 
-          <KanbanBoard
-            lists={active.lists.map(
-              (list): SerializedList => ({
-                id: list.id,
-                name: list.name,
-                color: list.color,
-                cards: list.cards.map((card) => ({
-                  id: card.id,
-                  label: card.label,
-                  title: card.title,
-                  assignee: card.assignee,
-                  teamId: card.teamId,
-                  dueDate: card.dueDate ? card.dueDate.toISOString() : null,
-                  checklist: Array.isArray(card.checklist) ? (card.checklist as unknown as ChecklistItem[]) : [],
-                })),
-              }),
-            )}
-            canManage={active.access === "owner"}
-            teams={teamOptions}
-            members={members}
-            openCardId={sp.card}
-            timezone={user.timezone}
-          />
+          <ViewSwitcher w={w} boardId={active.id} current={view} />
+
+          {(() => {
+            const lists: SerializedList[] = active.lists.map((list) => ({
+              id: list.id,
+              name: list.name,
+              color: list.color,
+              cards: list.cards.map((card) => ({
+                id: card.id,
+                label: card.label,
+                title: card.title,
+                assignee: card.assignee,
+                teamId: card.teamId,
+                dueDate: card.dueDate ? card.dueDate.toISOString() : null,
+                checklist: Array.isArray(card.checklist) ? (card.checklist as unknown as ChecklistItem[]) : [],
+              })),
+            }));
+            const canManage = active.access === "owner";
+            return view === "kanban" ? (
+              <KanbanBoard lists={lists} canManage={canManage} teams={teamOptions} members={members} openCardId={sp.card} timezone={user.timezone} />
+            ) : view === "table" ? (
+              <WorkTableView lists={lists} canManage={canManage} teams={teamOptions} members={members} timezone={user.timezone} />
+            ) : (
+              <WorkCalendarView
+                lists={lists}
+                canManage={canManage}
+                teams={teamOptions}
+                members={members}
+                timezone={user.timezone}
+                today={today}
+                weekStartsOn={user.weekStartsOn}
+              />
+            );
+          })()}
         </>
       )}
     </>
