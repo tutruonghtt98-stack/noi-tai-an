@@ -29,6 +29,12 @@ enum ThemePref {
   SYSTEM
 }
 
+enum WorkCardPriority {
+  LOW
+  NORMAL
+  URGENT
+}
+
 enum GoalHorizon {
   YEAR
   QUARTER
@@ -401,6 +407,7 @@ model WorkCard {
   checklist      Json      @default("[]")
   dueDate        DateTime?
   startDate      DateTime?
+  priority       WorkCardPriority @default(NORMAL)
   completedAt    DateTime? // mốc chuyển vào cột "Hoàn thành" — dùng cho báo cáo trước/đúng/trễ hạn
   sortOrder      Int       @default(0)
   createdAt      DateTime  @default(now())
