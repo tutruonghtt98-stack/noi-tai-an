@@ -400,14 +400,16 @@ model WorkCard {
   teamId         String? // team được cấp quyền xem/thao tác thẻ này
   checklist      Json      @default("[]")
   dueDate        DateTime?
+  startDate      DateTime?
   completedAt    DateTime? // mốc chuyển vào cột "Hoàn thành" — dùng cho báo cáo trước/đúng/trễ hạn
   sortOrder      Int       @default(0)
   createdAt      DateTime  @default(now())
 
-  list         WorkList          @relation(fields: [listId], references: [id], onDelete: Cascade)
-  assigneeUser User?             @relation("WorkCardAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
-  team         Team?             @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  list         WorkList             @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assigneeUser User?                @relation("WorkCardAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  team         Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
   comments     WorkCardComment[]
+  attachments  WorkCardAttachment[]
 
   @@index([listId])
   @@index([assigneeUserId])
@@ -423,6 +425,18 @@ model WorkCardComment {
 
   card WorkCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
   user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([cardId])
+}
+
+model WorkCardAttachment {
+  id        String   @id @default(cuid())
+  cardId    String
+  url       String
+  label     String?
+  createdAt DateTime @default(now())
+
+  card WorkCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
   @@index([cardId])
 }
