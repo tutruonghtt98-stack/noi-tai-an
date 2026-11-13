@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { Calendar, ListChecks, MessageSquare, Paperclip, Tag, Users, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/cn";
@@ -195,20 +195,27 @@ export function CardModal({
     >
       {open && (
         <>
-          <div className="flex items-center justify-between gap-4 border-b border-line p-5">
+          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line p-5">
             <h2 className="text-lg font-semibold">{w.cardDetailTitle}</h2>
             <button type="button" className="icon-btn icon-btn-plain" onClick={onClose} aria-label={t.common.close}>
               <X className="size-5" aria-hidden />
             </button>
           </div>
 
-          <div className="grid gap-4 overflow-y-auto p-5">
+          <div className="grid min-h-0 min-w-0 flex-1 gap-4 overflow-y-auto p-5">
             {locked && <p className="rounded-xl bg-surface-3 px-3 py-2 text-sm text-muted">{w.cardLocked}</p>}
             <label className="field">
               <span className="label">{w.cardTitle}</span>
-              <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} autoFocus disabled={locked} />
+              <input
+                className="input !h-auto border-transparent bg-transparent !px-0 text-xl font-semibold shadow-none focus:border-line focus:bg-surface-2/60 focus:px-3"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={160}
+                autoFocus
+                disabled={locked}
+              />
             </label>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <label className="field">
                 <span className="label">{w.fieldColumn}</span>
                 <select className="input" value={column} onChange={(e) => setColumn(e.target.value)} disabled={locked}>
@@ -220,13 +227,17 @@ export function CardModal({
                 </select>
               </label>
               <label className="field">
-                <span className="label">{w.typeTitle}</span>
+                <span className="label inline-flex items-center gap-1.5">
+                  <Tag className="size-3.5" aria-hidden /> {w.typeTitle}
+                </span>
                 <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={w.cardLabelPh} maxLength={30} disabled={locked} />
               </label>
             </div>
 
             <div>
-              <p className="label mb-2">{w.peopleTitle}</p>
+              <p className="label mb-2 inline-flex items-center gap-1.5">
+                <Users className="size-3.5" aria-hidden /> {w.peopleTitle}
+              </p>
               <div className="grid gap-4">
                 <label className="field">
                   <span className="label">{w.cardAssignee}</span>
@@ -251,21 +262,26 @@ export function CardModal({
             </div>
 
             <div>
-              <p className="label mb-2">{w.timelineTitle}</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="field">
+              <p className="label mb-2 inline-flex items-center gap-1.5">
+                <Calendar className="size-3.5" aria-hidden /> {w.timelineTitle}
+              </p>
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                <label className="field min-w-0">
                   <span className="label">{w.startDateLabel}</span>
-                  <input className="input" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} disabled={locked} />
+                  <input className="input w-full min-w-0" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} disabled={locked} />
                 </label>
-                <label className="field">
+                <label className="field min-w-0">
                   <span className="label">{w.cardDue}</span>
-                  <input className="input" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={locked} />
+                  <input className="input w-full min-w-0" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={locked} />
                 </label>
               </div>
             </div>
 
             <div>
-              <p className="label mb-2">{w.checklistTitle}</p>
+              <p className="label mb-2 inline-flex items-center gap-1.5">
+                <ListChecks className="size-3.5" aria-hidden /> {w.checklistTitle}
+                {checklist.length > 0 && <span className="tabular text-muted">({checklist.filter((i) => i.done).length}/{checklist.length})</span>}
+              </p>
               {checklist.length === 0 ? (
                 <p className="text-sm text-muted">{w.checklistEmpty}</p>
               ) : (
@@ -323,14 +339,18 @@ export function CardModal({
             </div>
 
             <div>
-              <p className="label mb-2">{w.attachmentsTitle}</p>
+              <p className="label mb-2 inline-flex items-center gap-1.5">
+                <Paperclip className="size-3.5" aria-hidden /> {w.attachmentsTitle}
+                {attachments.length > 0 && <span className="tabular text-muted">({attachments.length})</span>}
+              </p>
               {attachments.length === 0 ? (
                 <p className="text-sm text-muted">{w.attachmentsEmpty}</p>
               ) : (
                 <ul className="space-y-1.5">
                   {attachments.map((a) => (
-                    <li key={a.id} className="flex items-center gap-2">
-                      <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-sm text-accent underline">
+                    <li key={a.id} className="flex items-center gap-2 rounded-xl border border-line bg-surface-2/60 px-3 py-2">
+                      <Paperclip className="size-4 shrink-0 text-muted" aria-hidden />
+                      <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-sm hover:underline">
                         {a.label || a.url}
                       </a>
                       {!locked && (
@@ -371,7 +391,10 @@ export function CardModal({
             </div>
 
             <div>
-              <p className="label mb-2">{w.commentsTitle}</p>
+              <p className="label mb-2 inline-flex items-center gap-1.5">
+                <MessageSquare className="size-3.5" aria-hidden /> {w.commentsTitle}
+                {comments.length > 0 && <span className="tabular text-muted">({comments.length})</span>}
+              </p>
               {comments.length === 0 ? (
                 <p className="text-sm text-muted">{w.commentsEmpty}</p>
               ) : (
@@ -408,7 +431,7 @@ export function CardModal({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-line p-5">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line p-5">
             {canDelete ? (
               <button
                 type="button"

@@ -593,7 +593,12 @@ export async function addWorkCardComment(cardId: string, content: string) {
 // ---------- Đính kèm thẻ ----------
 
 const attachmentSchema = z.object({
-  url: z.string().trim().url().max(2000),
+  url: z
+    .string()
+    .trim()
+    .url()
+    .max(2000)
+    .refine((u) => /^https?:\/\//i.test(u), "URL phải bắt đầu bằng http:// hoặc https://"),
   label: z
     .string()
     .trim()
