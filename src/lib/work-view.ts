@@ -61,6 +61,13 @@ export function buildMonthCells(year: number, month: number, weekStartsOn: numbe
   return cells;
 }
 
+export function reorderIds(ids: string[], draggedId: string, targetId: string): string[] {
+  if (draggedId === targetId || !ids.includes(draggedId) || !ids.includes(targetId)) return [...ids];
+  const without = ids.filter((id) => id !== draggedId);
+  const targetIndex = without.indexOf(targetId);
+  return [...without.slice(0, targetIndex), draggedId, ...without.slice(targetIndex)];
+}
+
 export function groupCardsByDate<TCard extends { dueDate: string | null }>(
   rows: FlatRow<TCard>[],
   timezone: string,

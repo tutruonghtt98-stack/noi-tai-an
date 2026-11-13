@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dayOfWeek, monthBounds } from "./dates";
-import { parseWorkView, flattenCards, sortRows, buildMonthCells, groupCardsByDate, poolListsByName } from "./work-view";
+import { parseWorkView, flattenCards, sortRows, buildMonthCells, groupCardsByDate, poolListsByName, reorderIds } from "./work-view";
 
 test("parseWorkView returns the value when valid", () => {
   assert.equal(parseWorkView("list"), "list");
@@ -96,4 +96,20 @@ test("poolListsByName treats a board missing a named list as contributing no car
   const boardWithoutDone = [{ name: "listToDo", color: "muted", cards: [{ id: "x" }] }];
   const pooled = poolListsByName<TestPoolCard>([boardWithoutDone], poolOrder);
   assert.deepEqual(pooled[1]!.cards, []);
+});
+
+test("reorderIds moves the dragged id to just before the target id", () => {
+  assert.deepEqual(reorderIds(["a", "b", "c", "d"], "d", "b"), ["a", "d", "b", "c"]);
+  assert.deepEqual(reorderIds(["a", "b", "c", "d"], "a", "c"), ["b", "a", "c", "d"]);
+});
+
+test("reorderIds is a no-op copy when ids are equal or missing", () => {
+  assert.deepEqual(reorderIds(["a", "b"], "a", "a"), ["a", "b"]);
+  assert.deepEqual(reorderIds(["a", "b"], "z", "b"), ["a", "b"]);
+});
+
+test("reorderIds does not mutate its input array", () => {
+  const original = ["a", "b", "c"];
+  reorderIds(original, "c", "a");
+  assert.deepEqual(original, ["a", "b", "c"]);
 });

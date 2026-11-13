@@ -456,6 +456,26 @@ export async function updateWorkCardChecklist(id: string, checklist: { id: strin
   });
 }
 
+const reorderCardIdsSchema = z.array(z.string().min(1)).min(1).max(200);
+
+export async function reorderWorkCards(cardIds: string[]) {
+  return run(async () => {
+    const user = await requireUser();
+    const ids = reorderCardIdsSchema.parse(cardIds);
+    const userTeamIds = await getUserTeamIds(user.id);
+    const cards = await db.workCard.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, assigneeUserId: true, teamId: true, list: { select: { board: { select: { userId: true } } } } },
+    });
+    if (cards.length !== ids.length) throw new UserError("VALIDATION");
+    for (const card of cards) {
+      if (!canActOnCard(card, user.id, userTeamIds)) throw new UserError("VALIDATION");
+    }
+    await db.$transaction(ids.map((id, index) => db.workCard.update({ where: { id }, data: { sortOrder: index } })));
+    revalidatePath("/workspace");
+  });
+}
+
 export async function moveWorkCard(id: string, toListId: string) {
   return run(async () => {
     const user = await requireUser();
