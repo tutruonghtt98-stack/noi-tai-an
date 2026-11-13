@@ -9,7 +9,7 @@ export function ViewSwitcher({ w, boardId, current }: { w: Dict["work"]["workspa
     { key: "calendar", label: w.viewCalendar },
   ];
   return (
-    <div className="segmented">
+    <div className="wsx-tabs">
       {views.map((v) => (
         <Link
           key={v.key}

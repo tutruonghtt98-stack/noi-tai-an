@@ -52,7 +52,7 @@ export function WorkCalendarView({
     <button
       key={row.card.id}
       type="button"
-      className="flex w-full items-center gap-1.5 truncate rounded-lg bg-surface px-1.5 py-1 text-left text-xs shadow-card"
+      className="flex w-full items-center gap-1.5 truncate rounded-md border border-line bg-surface px-1.5 py-1 text-left text-xs"
       onClick={() => setOpenCard({ card: row.card, listId: row.listId })}
     >
       <span className={`size-1.5 shrink-0 rounded-full ${DOT[row.listColor] ?? "bg-muted"}`} aria-hidden />
@@ -62,7 +62,7 @@ export function WorkCalendarView({
 
   return (
     <>
-      <div className="card">
+      <div className="wsx-panel">
         <div className="mb-4 flex items-center justify-between gap-2">
           <button type="button" aria-label={w.calendarPrevMonth} className="btn btn-soft !p-2" onClick={() => setMonthOffset((n) => n - 1)}>
             <ChevronLeft className="size-4" aria-hidden />
@@ -87,12 +87,12 @@ export function WorkCalendarView({
             </span>
           ))}
           {cells.map((iso, i) => {
-            if (!iso) return <span key={`e${i}`} className="min-h-20 rounded-xl bg-surface-2/60" aria-hidden />;
+            if (!iso) return <span key={`e${i}`} className="min-h-20 rounded-lg border border-transparent" aria-hidden />;
             const dayRows = byDate[iso] ?? [];
             return (
               <div
                 key={iso}
-                className={cn("flex min-h-20 flex-col gap-1 rounded-xl bg-surface-2 p-1.5", iso === today && "ring-2 ring-ink ring-offset-2 ring-offset-surface")}
+                className={cn("wsx-cell flex min-h-20 flex-col gap-1 p-1.5", iso === today && "ring-2 ring-ink ring-offset-2 ring-offset-surface")}
               >
                 <span className="tabular px-0.5 text-xs text-muted">{Number(iso.slice(8))}</span>
                 {dayRows.map(chip)}

@@ -1,12 +1,12 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
-import { SegmentLinks } from "@/components/ui/segment-links";
 import { utcToZonedDateTimeInput } from "@/lib/dates";
 import { createWorkBoard, deleteWorkBoard, reorderWorkBoard, updateWorkBoard } from "@/actions/work";
 import { AssigneePicker, type MemberOption } from "./assignee-picker";
@@ -27,8 +27,8 @@ export function BoardSwitcher({
     label:
       b.inProgress > 0 || b.overdue > 0 ? (
         <>
-          {b.name}{" "}
-          <span>
+          {b.name}
+          <span className="ml-1">
             (<span className="text-mist-ink">{b.inProgress}</span>
             {b.overdue > 0 && (
               <>
@@ -43,7 +43,16 @@ export function BoardSwitcher({
       ),
   }));
   if (!items.length) return null;
-  return <SegmentLinks ariaLabel={w.title} active={active ?? items[0]!.value} items={items} />;
+  const activeId = active ?? items[0]!.value;
+  return (
+    <div className="wsx-tabs" role="radiogroup" aria-label={w.title}>
+      {items.map((item) => (
+        <Link key={item.value} href={item.href} role="radio" aria-checked={item.value === activeId} aria-current={item.value === activeId ? "page" : undefined}>
+          {item.label}
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 /** Ô nhập số thứ tự hiển thị của bảng (trong thanh tab) — chỉ chủ bảng chỉnh được. Số nhỏ hơn hiện trước. */

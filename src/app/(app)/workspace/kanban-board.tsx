@@ -157,8 +157,8 @@ export function KanbanBoard({
             key={list.id}
             data-list-id={list.id}
             className={cn(
-              "flex min-w-0 flex-col gap-3 rounded-[1.5rem] p-3 transition-colors",
-              list.color === "danger" ? "bg-danger/10" : "bg-surface-3",
+              "wsx-col flex min-w-0 flex-col gap-3 p-3 transition-colors",
+              list.color === "danger" && "border-danger/40 bg-danger/5",
               overListId === list.id && drag && "ring-2 ring-inset ring-ink/20",
             )}
           >
@@ -192,9 +192,9 @@ export function KanbanBoard({
                       onPointerCancel={resetDrag}
                       style={{ touchAction: "none" }}
                       className={cn(
-                        "group w-full rounded-2xl p-3 text-left transition-colors",
+                        "group w-full p-3 text-left transition-colors",
                         locked ? "cursor-pointer" : "cursor-grab active:cursor-grabbing",
-                        isDraggingThis ? "border-2 border-dashed border-ink/25 bg-surface-2/70 shadow-none" : "bg-surface shadow-card",
+                        isDraggingThis ? "rounded-lg border-2 border-dashed border-ink/25 bg-surface-2/70 shadow-none" : "wsx-item",
                       )}
                     >
                       <div className={isDraggingThis ? "invisible" : undefined}>

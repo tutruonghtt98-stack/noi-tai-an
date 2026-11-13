@@ -42,7 +42,7 @@ export function WorkTableView({
 
   return (
     <>
-      <div className="card overflow-x-auto">
+      <div className="wsx-panel overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
             <tr className="border-b border-line text-xs text-muted">

@@ -467,6 +467,57 @@ h1, h2, h3 {
     color: var(--bg);
   }
 
+  /* Khu vực view của Workspace (Kanban/Bảng/Lịch) — phong cách AppFlowy: tab gạch chân,
+     viền mảnh thay nền xám đặc, bo góc nhỏ. Chỉ dùng trong src/app/(app)/workspace/. */
+  .wsx-tabs {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .wsx-tabs > a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.625rem 0.125rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ink-2);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 160ms ease, border-color 160ms ease;
+  }
+  .wsx-tabs > a:hover:not([aria-current="page"]) {
+    color: var(--ink);
+  }
+  .wsx-tabs > [aria-current="page"] {
+    color: var(--ink);
+    font-weight: 600;
+    border-bottom-color: var(--ink);
+  }
+
+  .wsx-col {
+    background: var(--surface-3);
+    border: 1px solid var(--line);
+    border-radius: 0.625rem;
+  }
+  .wsx-item {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    box-shadow: none;
+  }
+  .wsx-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0.625rem;
+    padding: var(--pad);
+  }
+  .wsx-cell {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+  }
+
   .progress {
     height: 0.5rem;
     border-radius: 999px;
