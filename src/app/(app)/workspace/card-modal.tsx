@@ -17,6 +17,7 @@ import {
 } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
 import { AssigneePicker, type MemberOption } from "./assignee-picker";
+import type { WorkCardPriority } from "./kanban-board";
 import { utcToZonedDateTimeInput } from "@/lib/dates";
 import type { ChecklistItem } from "@/lib/work-types";
 
@@ -25,12 +26,15 @@ type CardAttachment = { id: string; url: string; label: string | null };
 
 export type SerializedCard = {
   id: string;
+  boardId: string;
+  listId: string;
   label: string | null;
   title: string;
   assignee: string | null;
   teamId: string | null;
   dueDate: string | null;
   startDate: string | null;
+  priority: WorkCardPriority;
   checklist: ChecklistItem[];
 };
 
@@ -69,6 +73,7 @@ export function CardModal({
   const [teamId, setTeamId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [startDate, setStartDate] = useState("");
+  const [priority, setPriority] = useState<WorkCardPriority>("NORMAL");
   const [column, setColumn] = useState("");
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [newItem, setNewItem] = useState("");
@@ -93,6 +98,7 @@ export function CardModal({
     setTeamId(card.teamId ?? "");
     setDueDate(card.dueDate ? utcToZonedDateTimeInput(new Date(card.dueDate), timezone) : "");
     setStartDate(card.startDate ? utcToZonedDateTimeInput(new Date(card.startDate), timezone) : "");
+    setPriority(card.priority);
     setColumn(listId);
     setChecklist(card.checklist);
     setComments([]);
@@ -170,6 +176,7 @@ export function CardModal({
           teamId: teamId || undefined,
           dueDate: dueDate || undefined,
           startDate: startDate || undefined,
+          priority,
         }),
       { success: w.cardUpdated, onSuccess: onClose },
     );
@@ -215,7 +222,7 @@ export function CardModal({
                 disabled={locked}
               />
             </label>
-            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-3">
               <label className="field">
                 <span className="label">{w.fieldColumn}</span>
                 <select className="input" value={column} onChange={(e) => setColumn(e.target.value)} disabled={locked}>
@@ -231,6 +238,14 @@ export function CardModal({
                   <Tag className="size-3.5" aria-hidden /> {w.typeTitle}
                 </span>
                 <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={w.cardLabelPh} maxLength={30} disabled={locked} />
+              </label>
+              <label className="field">
+                <span className="label">{w.priorityTitle}</span>
+                <select className="input" value={priority} onChange={(e) => setPriority(e.target.value as WorkCardPriority)} disabled={locked}>
+                  <option value="LOW">{w.priorityLow}</option>
+                  <option value="NORMAL">{w.priorityNormal}</option>
+                  <option value="URGENT">{w.priorityUrgent}</option>
+                </select>
               </label>
             </div>
 

@@ -228,6 +228,7 @@ const cardSchema = z.object({
     .trim()
     .optional()
     .transform((v) => v || null),
+  priority: z.enum(["LOW", "NORMAL", "URGENT"]).default("NORMAL"),
 });
 export type CardInput = z.input<typeof cardSchema>;
 
