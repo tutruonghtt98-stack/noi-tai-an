@@ -6,12 +6,12 @@ import { parseWorkView, flattenCards, sortRows, buildMonthCells, groupCardsByDat
 test("parseWorkView returns the value when valid", () => {
   assert.equal(parseWorkView("list"), "list");
   assert.equal(parseWorkView("calendar"), "calendar");
+  assert.equal(parseWorkView("kanban"), "kanban");
 });
 
 test("parseWorkView defaults to list for missing or invalid values", () => {
   assert.equal(parseWorkView(undefined), "list");
   assert.equal(parseWorkView(""), "list");
-  assert.equal(parseWorkView("kanban"), "list");
   assert.equal(parseWorkView("table"), "list");
 });
 
@@ -74,17 +74,17 @@ test("groupCardsByDate buckets dated cards by local-timezone date and keeps unda
   assert.equal(byDate["2026-11-05"]?.[0]?.card.id, "c");
 });
 
-type TestPoolCard = { id: string };
+type TestPoolCard = { id: string; sortOrder: number };
 const poolOrder = [
   { name: "listToDo", color: "muted" },
   { name: "listDone", color: "jade" },
 ];
 
 test("poolListsByName merges same-named lists across boards, in order's sequence", () => {
-  const boardA = [{ name: "listToDo", color: "muted", cards: [{ id: "a1" }] }];
+  const boardA = [{ name: "listToDo", color: "muted", cards: [{ id: "a1", sortOrder: 0 }] }];
   const boardB = [
-    { name: "listToDo", color: "muted", cards: [{ id: "b1" }] },
-    { name: "listDone", color: "jade", cards: [{ id: "b2" }] },
+    { name: "listToDo", color: "muted", cards: [{ id: "b1", sortOrder: 1 }] },
+    { name: "listDone", color: "jade", cards: [{ id: "b2", sortOrder: 0 }] },
   ];
   const pooled = poolListsByName<TestPoolCard>([boardA, boardB], poolOrder);
   assert.deepEqual(pooled.map((l) => l.name), ["listToDo", "listDone"]);
@@ -93,9 +93,16 @@ test("poolListsByName merges same-named lists across boards, in order's sequence
 });
 
 test("poolListsByName treats a board missing a named list as contributing no cards for it", () => {
-  const boardWithoutDone = [{ name: "listToDo", color: "muted", cards: [{ id: "x" }] }];
+  const boardWithoutDone = [{ name: "listToDo", color: "muted", cards: [{ id: "x", sortOrder: 0 }] }];
   const pooled = poolListsByName<TestPoolCard>([boardWithoutDone], poolOrder);
   assert.deepEqual(pooled[1]!.cards, []);
+});
+
+test("poolListsByName sorts a group's merged cards by sortOrder, across boards", () => {
+  const boardA = [{ name: "listToDo", color: "muted", cards: [{ id: "a-high", sortOrder: 5 }] }];
+  const boardB = [{ name: "listToDo", color: "muted", cards: [{ id: "b-low", sortOrder: 1 }] }];
+  const pooled = poolListsByName<TestPoolCard>([boardA, boardB], poolOrder);
+  assert.deepEqual(pooled[0]!.cards.map((c) => c.id), ["b-low", "a-high"]);
 });
 
 test("reorderIds moves the dragged id to just before the target id", () => {

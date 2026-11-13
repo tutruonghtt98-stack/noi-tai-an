@@ -1,7 +1,7 @@
 import { dayOfWeek, isoInZone, monthBounds, rangeISO, type ISODate } from "./dates";
 
-export type WorkView = "list" | "calendar";
-const WORK_VIEWS: WorkView[] = ["list", "calendar"];
+export type WorkView = "kanban" | "list" | "calendar";
+const WORK_VIEWS: WorkView[] = ["kanban", "list", "calendar"];
 
 export function parseWorkView(v: string | undefined): WorkView {
   return (WORK_VIEWS as string[]).includes(v ?? "") ? (v as WorkView) : "list";
@@ -9,15 +9,15 @@ export function parseWorkView(v: string | undefined): WorkView {
 
 export type PoolableList<TCard> = { name: string; color: string; cards: TCard[] };
 
-export function poolListsByName<TCard>(
+export function poolListsByName<TCard extends { sortOrder: number }>(
   boardsLists: PoolableList<TCard>[][],
   order: { name: string; color: string }[],
 ): PoolableList<TCard>[] {
-  return order.map(({ name, color }) => ({
-    name,
-    color,
-    cards: boardsLists.flatMap((lists) => lists.find((l) => l.name === name)?.cards ?? []),
-  }));
+  return order.map(({ name, color }) => {
+    const cards = boardsLists.flatMap((lists) => lists.find((l) => l.name === name)?.cards ?? []);
+    cards.sort((a, b) => a.sortOrder - b.sortOrder);
+    return { name, color, cards };
+  });
 }
 
 export type FlattenableList<TCard> = { id: string; name: string; color: string; cards: TCard[] };

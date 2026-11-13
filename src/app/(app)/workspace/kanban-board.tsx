@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { AlertCircle, CheckCircle2, Circle, Clock, Eye, Check, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { fmt } from "@/lib/i18n/format";
@@ -24,6 +24,21 @@ export const PRIORITY_BADGE_CLASS: Record<WorkCardPriority, string> = {
   LOW: "bg-jade/15 text-jade-ink",
   NORMAL: "bg-ochre/15 text-ochre-ink",
   URGENT: "bg-danger/15 text-danger",
+};
+
+export const STATUS_BADGE_CLASS: Record<string, string> = {
+  muted: "bg-muted/15 text-ink-2",
+  mist: "bg-mist/15 text-mist-ink",
+  ochre: "bg-ochre/15 text-ochre-ink",
+  jade: "bg-jade/15 text-jade-ink",
+  danger: "bg-danger/15 text-danger",
+};
+export const STATUS_ICON: Record<string, LucideIcon> = {
+  listToDo: Circle,
+  listInProgress: Clock,
+  listReview: Eye,
+  listDone: CheckCircle2,
+  listOverdue: AlertCircle,
 };
 
 export function dueLabel(w: Dict["work"]["workspace"], due: string | null, timezone: string) {
