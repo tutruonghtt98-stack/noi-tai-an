@@ -36,6 +36,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
   }));
   const boardListsByBoardId = Object.fromEntries(boardsForList.map((b) => [b.id, b.lists]));
   const canManageByBoardId = Object.fromEntries(boards.map((b) => [b.id, b.access === "owner"]));
+  const ownedBoardsForNewTask = boardsForList.filter((b) => canManageByBoardId[b.id]);
 
   const pooled = poolListsByName(
     boards.map((b) =>
@@ -68,7 +69,10 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
       <WorkspaceLiveSync />
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <SplitHeading text={w.title} className="text-2xl font-semibold sm:text-[2rem]" />
-        {!hasNoBoards && <NewTaskButton boards={boardsForList} teams={teamOptions} members={members} />}
+        <div className="flex items-center gap-2">
+          {ownedBoardsForNewTask.length > 0 && <NewTaskButton boards={ownedBoardsForNewTask} teams={teamOptions} members={members} />}
+          {!hasNoBoards && <NewBoardButton teams={teamOptions} members={members} />}
+        </div>
       </div>
 
       {hasNoBoards ? (
