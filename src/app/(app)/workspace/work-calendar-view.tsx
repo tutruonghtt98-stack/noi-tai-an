@@ -11,7 +11,8 @@ import { buildMonthCells, flattenCards, groupCardsByDate, type FlatRow } from "@
 
 export function WorkCalendarView({
   lists,
-  canManage = true,
+  boardListsByBoardId,
+  canManageByBoardId,
   teams = [],
   members = [],
   timezone,
@@ -19,7 +20,8 @@ export function WorkCalendarView({
   weekStartsOn,
 }: {
   lists: SerializedList[];
-  canManage?: boolean;
+  boardListsByBoardId: Record<string, { id: string; name: string }[]>;
+  canManageByBoardId: Record<string, boolean>;
   teams?: { id: string; name: string }[];
   members?: MemberOption[];
   timezone: string;
@@ -39,9 +41,10 @@ export function WorkCalendarView({
   const cells = buildMonthCells(year, month, weekStartsOn);
   const rows = flattenCards(lists);
   const { byDate, undated } = groupCardsByDate(rows, timezone);
-  const listOptions = lists.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name }));
-  const doneListId = lists.find((l) => l.name === "listDone")?.id;
-  const reviewListId = lists.find((l) => l.name === "listReview")?.id;
+  const boardLists = (openCard && boardListsByBoardId[openCard.card.boardId]) || [];
+  const doneListId = boardLists.find((l) => l.name === "listDone")?.id;
+  const reviewListId = boardLists.find((l) => l.name === "listReview")?.id;
+  const canDelete = openCard ? (canManageByBoardId[openCard.card.boardId] ?? false) : true;
 
   const title = new Intl.DateTimeFormat(locale === "en" ? "en-US" : "vi-VN", { month: "long", year: "numeric", timeZone: "UTC" }).format(
     new Date(Date.UTC(year, month - 1, 1)),
@@ -53,7 +56,7 @@ export function WorkCalendarView({
       key={row.card.id}
       type="button"
       className="flex w-full items-center gap-1.5 truncate rounded-md border border-line bg-surface px-1.5 py-1 text-left text-xs"
-      onClick={() => setOpenCard({ card: row.card, listId: row.listId })}
+      onClick={() => setOpenCard({ card: row.card, listId: row.card.listId })}
     >
       <span className={`size-1.5 shrink-0 rounded-full ${DOT[row.listColor] ?? "bg-muted"}`} aria-hidden />
       <span className="truncate">{row.card.title}</span>
@@ -106,13 +109,13 @@ export function WorkCalendarView({
         open={!!openCard}
         card={openCard?.card ?? null}
         listId={openCard?.listId ?? ""}
-        lists={listOptions}
+        lists={boardLists}
         teams={teams}
         members={members}
         reviewListId={reviewListId}
         doneListId={doneListId}
         onClose={() => setOpenCard(null)}
-        canDelete={canManage}
+        canDelete={canDelete}
         timezone={timezone}
       />
     </>
