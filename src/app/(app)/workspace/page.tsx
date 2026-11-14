@@ -47,6 +47,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
           listId: card.listId,
           label: card.label,
           title: card.title,
+          description: card.description,
           assignee: card.assignee,
           teamId: card.teamId,
           dueDate: card.dueDate ? card.dueDate.toISOString() : null,

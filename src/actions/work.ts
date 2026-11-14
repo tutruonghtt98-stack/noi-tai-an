@@ -204,6 +204,12 @@ const cardSchema = z.object({
     .optional()
     .transform((v) => v || null),
   title: z.string().trim().min(1).max(160),
+  description: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .transform((v) => v || null),
   assignee: z
     .string()
     .trim()

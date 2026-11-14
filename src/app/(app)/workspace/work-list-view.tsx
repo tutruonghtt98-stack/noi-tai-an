@@ -98,6 +98,7 @@ export function WorkListView({
                   <tr className="rounded-lg bg-surface-2 text-xs text-muted">
                     <th className="w-8 rounded-l-lg px-1 py-2" />
                     <th className="px-3 py-2">{w.colTitle}</th>
+                    <th className="px-3 py-2">{w.colDescription}</th>
                     <th className="px-3 py-2">{w.colAssignee}</th>
                     <th className="px-3 py-2">{w.typeTitle}</th>
                     <th className="px-3 py-2">{w.timelineTitle}</th>
@@ -148,6 +149,7 @@ export function WorkListView({
                           </span>
                         </td>
                         <td className="px-3 py-2.5">{card.title}</td>
+                        <td className="truncate max-w-xs px-3 py-2.5 text-muted">{card.description || "—"}</td>
                         <td className="px-3 py-2.5">{card.assignee ? <Avatar name={card.assignee} size={22} /> : "—"}</td>
                         <td className="px-3 py-2.5 text-muted">{card.label || "—"}</td>
                         <td className="px-3 py-2.5 text-muted">{due ?? w.noDue}</td>

@@ -23,6 +23,7 @@ export function NewTaskButton({
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [assignee, setAssignee] = useState("");
   const [teamId, setTeamId] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -32,6 +33,7 @@ export function NewTaskButton({
   const reset = () => {
     setLabel("");
     setTitle("");
+    setDescription("");
     setAssignee("");
     setTeamId("");
     setDueDate("");
@@ -57,6 +59,7 @@ export function NewTaskButton({
                   listId,
                   label: label || undefined,
                   title,
+                  description: description || undefined,
                   assignee: assignee || undefined,
                   teamId: teamId || undefined,
                   dueDate: dueDate || undefined,
@@ -74,6 +77,17 @@ export function NewTaskButton({
           <label className="field">
             <span className="label">{w.cardTitle}</span>
             <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={w.cardTitlePh} required maxLength={160} autoFocus />
+          </label>
+          <label className="field">
+            <span className="label">{w.cardDescription}</span>
+            <textarea
+              className="input"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={w.cardDescriptionPh}
+              maxLength={2000}
+              rows={3}
+            />
           </label>
           <label className="field">
             <span className="label">{w.fieldColumn}</span>

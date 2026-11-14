@@ -58,6 +58,7 @@ export function CardBody({ w, card, timezone }: { w: Dict["work"]["workspace"]; 
     <>
       {card.label && <span className="badge mb-2">{card.label}</span>}
       <p className="font-medium leading-snug">{card.title}</p>
+      {card.description && <p className="mt-1 line-clamp-2 text-xs text-muted">{card.description}</p>}
       {total > 0 && (
         <div className="mt-2">
           <p className="tabular text-xs text-muted">

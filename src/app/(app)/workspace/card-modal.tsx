@@ -31,6 +31,7 @@ export type SerializedCard = {
   listId: string;
   label: string | null;
   title: string;
+  description: string | null;
   assignee: string | null;
   teamId: string | null;
   dueDate: string | null;
@@ -70,6 +71,7 @@ export function CardModal({
   const { exec, pending } = useAction();
   const ref = useRef<HTMLDialogElement>(null);
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [label, setLabel] = useState("");
   const [assignee, setAssignee] = useState("");
   const [teamId, setTeamId] = useState("");
@@ -96,6 +98,7 @@ export function CardModal({
   useEffect(() => {
     if (!card) return;
     setTitle(card.title);
+    setDescription(card.description ?? "");
     setLabel(card.label ?? "");
     setAssignee(card.assignee ?? "");
     setTeamId(card.teamId ?? "");
@@ -175,6 +178,7 @@ export function CardModal({
           listId: column,
           label: label || undefined,
           title,
+          description: description || undefined,
           assignee: assignee || undefined,
           teamId: teamId || undefined,
           dueDate: dueDate || undefined,
@@ -222,6 +226,18 @@ export function CardModal({
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={160}
                 autoFocus
+                disabled={locked}
+              />
+            </label>
+            <label className="field">
+              <span className="label">{w.cardDescription}</span>
+              <textarea
+                className="input"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={w.cardDescriptionPh}
+                maxLength={2000}
+                rows={3}
                 disabled={locked}
               />
             </label>
