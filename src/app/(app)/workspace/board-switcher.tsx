@@ -8,7 +8,7 @@ import { fmt } from "@/lib/i18n/format";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
 import { utcToZonedDateTimeInput } from "@/lib/dates";
-import { createWorkBoard, deleteWorkBoard, reorderWorkBoard, updateWorkBoard } from "@/actions/work";
+import { deleteWorkBoard, reorderWorkBoard, updateWorkBoard } from "@/actions/work";
 import { AssigneePicker, type MemberOption } from "./assignee-picker";
 
 /** Thanh tab chọn bảng đang xem — tên bảng kèm số (đang làm[,quá hạn]) tô màu nếu có. Bảng sắp theo "Thứ tự". */
@@ -83,106 +83,6 @@ export function BoardOrderInput({ boardId, sortOrder }: { boardId: string; sortO
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
       onClick={(e) => e.stopPropagation()}
     />
-  );
-}
-
-export function NewBoardButton({
-  primary = false,
-  teams = [],
-  members = [],
-}: {
-  primary?: boolean;
-  teams?: { id: string; name: string }[];
-  members?: MemberOption[];
-}) {
-  const { t } = useI18n();
-  const w = t.work.workspace;
-  const router = useRouter();
-  const { exec, pending } = useAction();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [assignee, setAssignee] = useState("");
-  const [teamId, setTeamId] = useState("");
-
-  const reset = () => {
-    setName("");
-    setDescription("");
-    setDueDate("");
-    setAssignee("");
-    setTeamId("");
-  };
-
-  return (
-    <>
-      <button type="button" className={primary ? "btn btn-primary" : "btn btn-soft"} onClick={() => setOpen(true)}>
-        {w.newBoard}
-      </button>
-      <Modal open={open} onClose={() => setOpen(false)} title={w.newBoardTitle}>
-        <form
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            exec(
-              () =>
-                createWorkBoard({
-                  name,
-                  description: description || undefined,
-                  dueDate: dueDate || undefined,
-                  assignee: assignee || undefined,
-                  teamId: teamId || undefined,
-                }),
-              {
-                success: w.boardCreated,
-                onSuccess: (id) => {
-                  setOpen(false);
-                  reset();
-                  router.push(`/workspace?b=${id}`);
-                },
-              },
-            );
-          }}
-        >
-          <label className="field">
-            <span className="label">{w.boardName}</span>
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={w.boardNamePh} required maxLength={100} autoFocus />
-          </label>
-          <label className="field">
-            <span className="label">{w.boardDesc}</span>
-            <input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={w.boardDescPh} maxLength={200} />
-          </label>
-          <label className="field">
-            <span className="label">{w.boardDue}</span>
-            <input className="input" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-          </label>
-          <label className="field">
-            <span className="label">{w.boardAssignee}</span>
-            <AssigneePicker value={assignee} onChange={setAssignee} members={members} placeholder={w.boardAssigneePh} />
-            <span className="mt-1 block text-xs text-muted">{w.boardAssigneeHint}</span>
-          </label>
-          {teams.length > 0 && (
-            <label className="field">
-              <span className="label">{w.boardTeam}</span>
-              <select className="input" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
-                <option value="">{w.boardTeamNone}</option>
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-              <span className="mt-1 block text-xs text-muted">{w.boardTeamHint}</span>
-            </label>
-          )}
-          <div className="flex justify-end">
-            <button className="btn btn-primary" disabled={pending}>
-              {w.createBoard}
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </>
   );
 }
 

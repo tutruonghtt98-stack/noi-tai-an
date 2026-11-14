@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
-import { Kanban } from "lucide-react";
 import { requireUser } from "@/lib/session";
 import { getI18n } from "@/lib/i18n";
 import { getAccessibleBoards, DEFAULT_LISTS } from "@/lib/work-queries";
 import { getUserTeams, getUserWorkspaceMembers } from "@/lib/department-queries";
 import { todayISO } from "@/lib/dates";
 import { SplitHeading } from "@/components/ui/split-heading";
-import { Empty } from "@/components/ui/empty";
 import { ViewSwitcher } from "./view-switcher";
 import { WorkListView } from "./work-list-view";
 import { WorkCalendarView } from "./work-calendar-view";
 import { KanbanBoard } from "./kanban-board";
 import { NewTaskButton } from "./new-task-button";
-import { NewBoardButton } from "./board-switcher";
 import { WorkspaceLiveSync } from "./live-sync";
 import { parseWorkView, poolListsByName } from "@/lib/work-view";
 import type { ChecklistItem } from "@/lib/work-types";
@@ -64,8 +61,6 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
   );
   const lists = pooled.map((l) => ({ id: l.name, name: l.name, color: l.color, cards: l.cards }));
 
-  const hasNoBoards = !boards.length;
-
   return (
     <>
       <WorkspaceLiveSync />
@@ -73,52 +68,41 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
         <SplitHeading text={w.title} className="text-2xl font-semibold sm:text-[2rem]" />
         <div className="flex items-center gap-2">
           {ownedBoardsForNewTask.length > 0 && <NewTaskButton boards={ownedBoardsForNewTask} teams={teamOptions} members={members} />}
-          {!hasNoBoards && <NewBoardButton teams={teamOptions} members={members} />}
         </div>
       </div>
 
-      {hasNoBoards ? (
-        <div className="card">
-          <Empty icon={Kanban} text={w.emptyBoards}>
-            <NewBoardButton primary teams={teamOptions} members={members} />
-          </Empty>
-        </div>
+      <ViewSwitcher w={w} current={view} />
+      {view === "kanban" ? (
+        <KanbanBoard
+          lists={lists}
+          boardListsByBoardId={boardListsByBoardId}
+          canManageByBoardId={canManageByBoardId}
+          teams={teamOptions}
+          members={members}
+          timezone={user.timezone}
+          openCardId={sp.card}
+        />
+      ) : view === "list" ? (
+        <WorkListView
+          lists={lists}
+          boardListsByBoardId={boardListsByBoardId}
+          canManageByBoardId={canManageByBoardId}
+          teams={teamOptions}
+          members={members}
+          timezone={user.timezone}
+          openCardId={sp.card}
+        />
       ) : (
-        <>
-          <ViewSwitcher w={w} current={view} />
-          {view === "kanban" ? (
-            <KanbanBoard
-              lists={lists}
-              boardListsByBoardId={boardListsByBoardId}
-              canManageByBoardId={canManageByBoardId}
-              teams={teamOptions}
-              members={members}
-              timezone={user.timezone}
-              openCardId={sp.card}
-            />
-          ) : view === "list" ? (
-            <WorkListView
-              lists={lists}
-              boardListsByBoardId={boardListsByBoardId}
-              canManageByBoardId={canManageByBoardId}
-              teams={teamOptions}
-              members={members}
-              timezone={user.timezone}
-              openCardId={sp.card}
-            />
-          ) : (
-            <WorkCalendarView
-              lists={lists}
-              boardListsByBoardId={boardListsByBoardId}
-              canManageByBoardId={canManageByBoardId}
-              teams={teamOptions}
-              members={members}
-              timezone={user.timezone}
-              today={today}
-              weekStartsOn={user.weekStartsOn}
-            />
-          )}
-        </>
+        <WorkCalendarView
+          lists={lists}
+          boardListsByBoardId={boardListsByBoardId}
+          canManageByBoardId={canManageByBoardId}
+          teams={teamOptions}
+          members={members}
+          timezone={user.timezone}
+          today={today}
+          weekStartsOn={user.weekStartsOn}
+        />
       )}
     </>
   );

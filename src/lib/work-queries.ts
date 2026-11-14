@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { getUserTeamIds } from "@/lib/department-queries";
+import { DEFAULT_LISTS } from "./work-types";
 
 export type WorkFilter = "all" | "vip" | "wholesale" | "new" | "subscribers";
 export type WorkSort = "spend" | "orders" | "recent";
@@ -63,6 +64,22 @@ export { DEFAULT_LISTS } from "./work-types";
 
 export type BoardAccess = "owner" | "member";
 
+/** Bảng không còn là khái niệm hiển thị cho người dùng (view đã gộp hết thẻ của mọi bảng lại) — nhưng
+ * mỗi thẻ vẫn cần thuộc một WorkList/WorkBoard nào đó, nên user chưa sở hữu bảng nào thì được tự động
+ * cấp 1 bảng ẩn danh ngay khi mở Workspace, để "+ Thêm việc" luôn tạo được thẻ. */
+async function ensureDefaultBoard(userId: string) {
+  const owned = await db.workBoard.count({ where: { userId } });
+  if (owned > 0) return;
+  await db.workBoard.create({
+    data: {
+      userId,
+      name: "Công việc của tôi",
+      sortOrder: 0,
+      lists: { create: DEFAULT_LISTS.map((l, i) => ({ name: l.name, color: l.color, sortOrder: i })) },
+    },
+  });
+}
+
 /** Không có cron nền, nên "quét" ngay trước khi đọc dữ liệu: thẻ đã quá hạn (dueDate đã qua) mà chưa ở
  * cột "Hoàn thành" (và chưa ở sẵn "Quá hạn") thì tự động chuyển sang cột "Quá hạn" của đúng bảng đó. */
 async function sweepOverdueCards() {
@@ -92,6 +109,7 @@ async function sweepOverdueCards() {
  * Chủ bảng xem/thao tác toàn quyền; người phụ trách và thành viên team phụ trách chỉ xem/thao tác được
  * đúng những thẻ mà chủ bảng đã cấp quyền trực tiếp (card.assigneeUserId) hoặc cấp cho team của họ (card.teamId). */
 export async function getAccessibleBoards(userId: string) {
+  await ensureDefaultBoard(userId);
   await sweepOverdueCards();
   const teamIds = await getUserTeamIds(userId);
   const cardGrant = { OR: [{ assigneeUserId: userId }, ...(teamIds.length ? [{ teamId: { in: teamIds } }] : [])] };
