@@ -110,6 +110,11 @@ test("reorderIds moves the dragged id to just before the target id", () => {
   assert.deepEqual(reorderIds(["a", "b", "c", "d"], "a", "c"), ["b", "a", "c", "d"]);
 });
 
+test("reorderIds can insert the dragged id just after the target id, including to the last position", () => {
+  assert.deepEqual(reorderIds(["a", "b", "c", "d"], "a", "c", "after"), ["b", "c", "a", "d"]);
+  assert.deepEqual(reorderIds(["a", "b", "c", "d"], "a", "d", "after"), ["b", "c", "d", "a"]);
+});
+
 test("reorderIds is a no-op copy when ids are equal or missing", () => {
   assert.deepEqual(reorderIds(["a", "b"], "a", "a"), ["a", "b"]);
   assert.deepEqual(reorderIds(["a", "b"], "z", "b"), ["a", "b"]);

@@ -124,8 +124,10 @@ export function WorkListView({
                         onDrop={(e) => {
                           e.preventDefault();
                           if (!draggedId || draggedId === card.id) return;
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const position = e.clientY > rect.top + rect.height / 2 ? "after" : "before";
                           const ids = list.cards.map((c) => c.id);
-                          const next = reorderIds(ids, draggedId, card.id);
+                          const next = reorderIds(ids, draggedId, card.id, position);
                           exec(() => reorderWorkCards(next));
                           setDraggedId(null);
                         }}

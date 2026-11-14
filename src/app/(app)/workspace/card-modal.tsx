@@ -303,9 +303,13 @@ export function CardModal({
                       key={item.id}
                       className="flex flex-col gap-1"
                       onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => {
+                      onDrop={(e) => {
                         if (!draggedItemId || draggedItemId === item.id) return;
-                        const next = reorderIds(checklist.map((i) => i.id), draggedItemId, item.id).map((id) => checklist.find((i) => i.id === id)!);
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const position = e.clientY > rect.top + rect.height / 2 ? "after" : "before";
+                        const next = reorderIds(checklist.map((i) => i.id), draggedItemId, item.id, position).map(
+                          (id) => checklist.find((i) => i.id === id)!,
+                        );
                         persistChecklist(next);
                         setDraggedItemId(null);
                       }}

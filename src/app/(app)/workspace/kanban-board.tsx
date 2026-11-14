@@ -168,9 +168,12 @@ export function KanbanBoard({
     } else if (wasDragging && overListId && overListId === p?.fromListId) {
       const column = lists.find((l) => l.id === listId);
       const el = document.elementFromPoint(e.clientX, e.clientY);
-      const targetId = (el as HTMLElement | null)?.closest<HTMLElement>("[data-card-id]")?.dataset.cardId;
-      if (column && targetId && targetId !== card.id) {
-        const next = reorderIds(column.cards.map((c) => c.id), card.id, targetId);
+      const targetEl = (el as HTMLElement | null)?.closest<HTMLElement>("[data-card-id]");
+      const targetId = targetEl?.dataset.cardId;
+      if (column && targetEl && targetId && targetId !== card.id) {
+        const rect = targetEl.getBoundingClientRect();
+        const position = e.clientY > rect.top + rect.height / 2 ? "after" : "before";
+        const next = reorderIds(column.cards.map((c) => c.id), card.id, targetId, position);
         exec(() => reorderWorkCards(next));
       }
     } else if (!wasDragging) {
