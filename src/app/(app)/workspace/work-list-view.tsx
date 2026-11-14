@@ -77,11 +77,11 @@ export function WorkListView({
             className="flex w-full items-center gap-2 text-left"
             onClick={() => setCollapsed((c) => ({ ...c, [list.name]: !c[list.name] }))}
           >
-            <span className={cn("badge inline-flex items-center gap-1.5", STATUS_BADGE_CLASS[list.color])}>
-              {Icon && <Icon className="size-3.5" aria-hidden />}
+            <span className={cn("badge badge-lg inline-flex items-center", STATUS_BADGE_CLASS[list.color])}>
+              {Icon && <Icon className="size-4" aria-hidden />}
               {w[list.name as keyof typeof w] ?? list.name}
             </span>
-            <span className="tabular text-muted">({list.cards.length})</span>
+            <span className="badge badge-lg tabular">{list.cards.length}</span>
             {collapsed[list.name] ? (
               <ChevronRight className="ml-auto size-4" aria-hidden />
             ) : (
@@ -95,13 +95,13 @@ export function WorkListView({
             ) : (
               <table className="mt-3 w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line text-xs text-muted">
-                    <th className="w-8 px-1 py-2" />
+                  <tr className="rounded-lg bg-surface-2 text-xs text-muted">
+                    <th className="w-8 rounded-l-lg px-1 py-2" />
                     <th className="px-3 py-2">{w.colTitle}</th>
                     <th className="px-3 py-2">{w.colAssignee}</th>
                     <th className="px-3 py-2">{w.typeTitle}</th>
                     <th className="px-3 py-2">{w.timelineTitle}</th>
-                    <th className="px-3 py-2">{w.colPriority}</th>
+                    <th className="rounded-r-lg px-3 py-2">{w.colPriority}</th>
                   </tr>
                 </thead>
                 <tbody>
