@@ -156,7 +156,20 @@ export function calculateJourneyDailyScore(input: DailyScoreInput): number {
   return Math.round((weightedRate / totalWeight) * 100);
 }
 
-export function workspaceScoreIdempotencyKey(cardId: string, code: WorkspaceScoreCode, localDate: string) {
+/** Per-person key: co-assignees of one card each get their own ledger row for the same event. */
+export function workspaceScoreIdempotencyKey(cardId: string, code: WorkspaceScoreCode, localDate: string, userId: string) {
+  if (code === "WORK_COMPLETED_EARLY" || code === "WORK_COMPLETED_ON_TIME") return `workcard:${cardId}:${userId}:completion-reward`;
+  if (code === "IMPORTANT_WORK_BONUS") return `workcard:${cardId}:${userId}:important-bonus`;
+  if (code === "WORK_ASSIGNED_AND_COMPLETED_SAME_DAY") return `workcard:${cardId}:${userId}:same-day-bonus`;
+  return `workcard:${cardId}:${userId}:${code}:${localDate}`;
+}
+
+/**
+ * The key format used before multi-assignee (no userId). Rows written before the
+ * switch still carry it; the ledger checks it so the same person is never scored
+ * twice for one card/event across the format change.
+ */
+export function legacyWorkspaceScoreIdempotencyKey(cardId: string, code: WorkspaceScoreCode, localDate: string) {
   if (code === "WORK_COMPLETED_EARLY" || code === "WORK_COMPLETED_ON_TIME") return `workcard:${cardId}:completion-reward`;
   if (code === "IMPORTANT_WORK_BONUS") return `workcard:${cardId}:important-bonus`;
   if (code === "WORK_ASSIGNED_AND_COMPLETED_SAME_DAY") return `workcard:${cardId}:same-day-bonus`;

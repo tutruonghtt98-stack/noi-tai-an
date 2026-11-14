@@ -7,6 +7,7 @@ import {
   isScorableCompletionTransition,
   scoreOverdueDays,
   scoreWorkspaceCompletion,
+  legacyWorkspaceScoreIdempotencyKey,
   workspaceScoreIdempotencyKey,
 } from "./journey-scoring";
 
@@ -140,11 +141,32 @@ test("does not award completion points for creation in Done or reopening a card"
 
 test("uses a card-wide completion reward key and per-day overdue keys", () => {
   assert.equal(
-    workspaceScoreIdempotencyKey("card-1", "WORK_COMPLETED_EARLY", "2026-11-05"),
-    workspaceScoreIdempotencyKey("card-1", "WORK_COMPLETED_ON_TIME", "2026-11-06"),
+    workspaceScoreIdempotencyKey("card-1", "WORK_COMPLETED_EARLY", "2026-11-05", "user-a"),
+    workspaceScoreIdempotencyKey("card-1", "WORK_COMPLETED_ON_TIME", "2026-11-06", "user-a"),
   );
   assert.notEqual(
-    workspaceScoreIdempotencyKey("card-1", "WORK_OVERDUE_ADDITIONAL_DAY", "2026-11-05"),
-    workspaceScoreIdempotencyKey("card-1", "WORK_OVERDUE_ADDITIONAL_DAY", "2026-11-06"),
+    workspaceScoreIdempotencyKey("card-1", "WORK_OVERDUE_ADDITIONAL_DAY", "2026-11-05", "user-a"),
+    workspaceScoreIdempotencyKey("card-1", "WORK_OVERDUE_ADDITIONAL_DAY", "2026-11-06", "user-a"),
   );
+});
+
+test("workspaceScoreIdempotencyKey differs by userId for the same card/code/date", () => {
+  assert.notEqual(
+    workspaceScoreIdempotencyKey("card-1", "WORK_OVERDUE_FIRST_DAY", "2026-11-05", "user-a"),
+    workspaceScoreIdempotencyKey("card-1", "WORK_OVERDUE_FIRST_DAY", "2026-11-05", "user-b"),
+  );
+  for (const code of ["WORK_COMPLETED_EARLY", "IMPORTANT_WORK_BONUS", "WORK_ASSIGNED_AND_COMPLETED_SAME_DAY"] as const) {
+    assert.notEqual(
+      workspaceScoreIdempotencyKey("card-1", code, "2026-11-05", "user-a"),
+      workspaceScoreIdempotencyKey("card-1", code, "2026-11-05", "user-b"),
+    );
+  }
+});
+
+test("legacyWorkspaceScoreIdempotencyKey reproduces the pre-multi-assignee key format exactly", () => {
+  assert.equal(legacyWorkspaceScoreIdempotencyKey("card-1", "WORK_COMPLETED_EARLY", "2026-11-05"), "workcard:card-1:completion-reward");
+  assert.equal(legacyWorkspaceScoreIdempotencyKey("card-1", "WORK_COMPLETED_ON_TIME", "2026-11-05"), "workcard:card-1:completion-reward");
+  assert.equal(legacyWorkspaceScoreIdempotencyKey("card-1", "IMPORTANT_WORK_BONUS", "2026-11-05"), "workcard:card-1:important-bonus");
+  assert.equal(legacyWorkspaceScoreIdempotencyKey("card-1", "WORK_ASSIGNED_AND_COMPLETED_SAME_DAY", "2026-11-05"), "workcard:card-1:same-day-bonus");
+  assert.equal(legacyWorkspaceScoreIdempotencyKey("card-1", "WORK_OVERDUE_FIRST_DAY", "2026-11-05"), "workcard:card-1:WORK_OVERDUE_FIRST_DAY:2026-11-05");
 });
