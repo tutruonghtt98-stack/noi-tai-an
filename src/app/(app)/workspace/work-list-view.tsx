@@ -147,10 +147,7 @@ export function WorkListView({
                             <GripVertical className="size-4" aria-hidden />
                           </span>
                         </td>
-                        <td className="px-3 py-2.5">
-                          {card.label && <span className="badge mr-2">{card.label}</span>}
-                          {card.title}
-                        </td>
+                        <td className="px-3 py-2.5">{card.title}</td>
                         <td className="px-3 py-2.5">{card.assignee ? <Avatar name={card.assignee} size={22} /> : "—"}</td>
                         <td className="px-3 py-2.5 text-muted">{card.label || "—"}</td>
                         <td className="px-3 py-2.5 text-muted">{due ?? w.noDue}</td>
