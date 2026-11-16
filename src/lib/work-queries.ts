@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { getUserTeamIds } from "@/lib/department-queries";
-import { DEFAULT_LISTS } from "./work-types";
+import { DEFAULT_LISTS, type CardAssignee } from "./work-types";
 
 export type WorkFilter = "all" | "vip" | "wholesale" | "new" | "subscribers";
 export type WorkSort = "spend" | "orders" | "recent";
@@ -112,7 +112,7 @@ export async function getAccessibleBoards(userId: string) {
   await ensureDefaultBoard(userId);
   await sweepOverdueCards();
   const teamIds = await getUserTeamIds(userId);
-  const cardGrant = { OR: [{ assigneeUserId: userId }, ...(teamIds.length ? [{ teamId: { in: teamIds } }] : [])] };
+  const cardGrant = { OR: [{ assignees: { some: { userId } } }, ...(teamIds.length ? [{ teamId: { in: teamIds } }] : [])] };
   const boards = await db.workBoard.findMany({
     where: {
       OR: [{ userId }, { assigneeUserId: userId }, ...(teamIds.length ? [{ teamId: { in: teamIds } }] : []), { lists: { some: { cards: { some: cardGrant } } } }],
@@ -122,19 +122,34 @@ export async function getAccessibleBoards(userId: string) {
       user: { select: { id: true, name: true, image: true } },
       lists: {
         orderBy: { sortOrder: "asc" },
-        include: { cards: { orderBy: { sortOrder: "asc" } } },
+        include: {
+          cards: {
+            orderBy: { sortOrder: "asc" },
+            include: { assignees: { select: { email: true, userId: true, user: { select: { name: true } } } } },
+          },
+        },
       },
     },
   });
+  const toCardAssignees = (assignees: { email: string; userId: string | null; user: { name: string | null } | null }[]): CardAssignee[] =>
+    assignees.map((a) => ({ email: a.email, userId: a.userId, name: a.user?.name ?? null }));
   return boards.map((b) => {
     const access: BoardAccess = b.userId === userId ? "owner" : "member";
-    if (access === "owner") return { ...b, access };
+    if (access === "owner") {
+      return {
+        ...b,
+        access,
+        lists: b.lists.map((l) => ({ ...l, cards: l.cards.map((c) => ({ ...c, assignees: toCardAssignees(c.assignees) })) })),
+      };
+    }
     return {
       ...b,
       access,
       lists: b.lists.map((l) => ({
         ...l,
-        cards: l.cards.filter((c) => c.assigneeUserId === userId || (c.teamId && teamIds.includes(c.teamId))),
+        cards: l.cards
+          .filter((c) => c.assignees.some((a) => a.userId === userId) || (c.teamId && teamIds.includes(c.teamId)))
+          .map((c) => ({ ...c, assignees: toCardAssignees(c.assignees) })),
       })),
     };
   });

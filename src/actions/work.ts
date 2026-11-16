@@ -272,11 +272,11 @@ function isBoardOwner(board: { userId: string }, userId: string) {
 /** Chủ bảng toàn quyền; người/team được cấp quyền trực tiếp trên thẻ (card.assigneeUserId / card.teamId)
  * chỉ xem/thao tác được đúng thẻ đó, không có quyền trên các thẻ khác của bảng. */
 function canActOnCard(
-  card: { assigneeUserId: string | null; teamId: string | null; list: { board: { userId: string } } },
+  card: { assignees: { userId: string | null }[]; teamId: string | null; list: { board: { userId: string } } },
   userId: string,
   userTeamIds: string[],
 ) {
-  return isBoardOwner(card.list.board, userId) || card.assigneeUserId === userId || (!!card.teamId && userTeamIds.includes(card.teamId));
+  return isBoardOwner(card.list.board, userId) || card.assignees.some((a) => a.userId === userId) || (!!card.teamId && userTeamIds.includes(card.teamId));
 }
 
 export async function createWorkCard(input: CardInput) {
@@ -450,7 +450,7 @@ export async function updateWorkCardChecklist(id: string, checklist: { id: strin
     const user = await requireUser();
     const card = await db.workCard.findUnique({
       where: { id },
-      select: { assigneeUserId: true, teamId: true, list: { select: { name: true, board: { select: { userId: true } } } } },
+      select: { assignees: { select: { userId: true } }, teamId: true, list: { select: { name: true, board: { select: { userId: true } } } } },
     });
     if (!card) throw new UserError("VALIDATION");
     const userTeamIds = await getUserTeamIds(user.id);
@@ -471,7 +471,7 @@ export async function reorderWorkCards(cardIds: string[]) {
     const userTeamIds = await getUserTeamIds(user.id);
     const cards = await db.workCard.findMany({
       where: { id: { in: ids } },
-      select: { id: true, assigneeUserId: true, teamId: true, list: { select: { board: { select: { userId: true } } } } },
+      select: { id: true, assignees: { select: { userId: true } }, teamId: true, list: { select: { board: { select: { userId: true } } } } },
     });
     if (cards.length !== ids.length) throw new UserError("VALIDATION");
     for (const card of cards) {
@@ -563,7 +563,7 @@ export async function listWorkCardComments(cardId: string) {
     const user = await requireUser();
     const card = await db.workCard.findUnique({
       where: { id: cardId },
-      select: { assigneeUserId: true, teamId: true, list: { select: { board: { select: { userId: true } } } } },
+      select: { assignees: { select: { userId: true } }, teamId: true, list: { select: { board: { select: { userId: true } } } } },
     });
     if (!card) throw new UserError("VALIDATION");
     const userTeamIds = await getUserTeamIds(user.id);
@@ -584,7 +584,7 @@ export async function addWorkCardComment(cardId: string, content: string) {
     const user = await requireUser();
     const card = await db.workCard.findUnique({
       where: { id: cardId },
-      select: { title: true, assigneeUserId: true, teamId: true, list: { select: { board: { select: { id: true, userId: true } } } } },
+      select: { title: true, assignees: { select: { userId: true } }, teamId: true, list: { select: { board: { select: { id: true, userId: true } } } } },
     });
     if (!card) throw new UserError("VALIDATION");
     const userTeamIds = await getUserTeamIds(user.id);
@@ -595,7 +595,7 @@ export async function addWorkCardComment(cardId: string, content: string) {
     const notifyIds = new Set<string>();
     const board = card.list.board;
     if (board.userId !== user.id) notifyIds.add(board.userId);
-    if (card.assigneeUserId && card.assigneeUserId !== user.id) notifyIds.add(card.assigneeUserId);
+    for (const a of card.assignees) if (a.userId && a.userId !== user.id) notifyIds.add(a.userId);
     if (card.teamId) {
       const members = await db.teamMember.findMany({ where: { teamId: card.teamId, userId: { not: user.id } }, select: { userId: true } });
       for (const m of members) notifyIds.add(m.userId);
@@ -639,7 +639,7 @@ export async function listWorkCardAttachments(cardId: string) {
     const user = await requireUser();
     const card = await db.workCard.findUnique({
       where: { id: cardId },
-      select: { assigneeUserId: true, teamId: true, list: { select: { board: { select: { userId: true } } } } },
+      select: { assignees: { select: { userId: true } }, teamId: true, list: { select: { board: { select: { userId: true } } } } },
     });
     if (!card) throw new UserError("VALIDATION");
     const userTeamIds = await getUserTeamIds(user.id);
@@ -654,7 +654,7 @@ export async function addWorkCardAttachment(cardId: string, input: { url: string
     const user = await requireUser();
     const card = await db.workCard.findUnique({
       where: { id: cardId },
-      select: { assigneeUserId: true, teamId: true, list: { select: { name: true, board: { select: { userId: true } } } } },
+      select: { assignees: { select: { userId: true } }, teamId: true, list: { select: { name: true, board: { select: { userId: true } } } } },
     });
     if (!card) throw new UserError("VALIDATION");
     const userTeamIds = await getUserTeamIds(user.id);
@@ -674,7 +674,7 @@ export async function deleteWorkCardAttachment(id: string) {
     const attachment = await db.workCardAttachment.findUnique({
       where: { id },
       select: {
-        card: { select: { assigneeUserId: true, teamId: true, list: { select: { name: true, board: { select: { userId: true } } } } } },
+        card: { select: { assignees: { select: { userId: true } }, teamId: true, list: { select: { name: true, board: { select: { userId: true } } } } } },
       },
     });
     if (!attachment) throw new UserError("VALIDATION");
