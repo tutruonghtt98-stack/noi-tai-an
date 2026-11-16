@@ -37,8 +37,6 @@ type WorkCardScoreEventInput = {
   completedAt?: Date | null;
 };
 
-const ASSIGNMENT_EVENT_TYPES = ["CARD_CREATED", "ASSIGNEE_CHANGED"];
-
 type RuleSetFields = WorkspaceScoreRules & { importantLabel: string };
 
 function workspaceRules(ruleSet: RuleSetFields): WorkspaceScoreRules {
@@ -152,8 +150,12 @@ export async function recordWorkCardScoreEvent(tx: Transaction, input: WorkCardS
 }
 
 /**
- * When did `userId` get onto this card? The latest earlier assignment event that
- * ADDED them (in its `toAssigneeIds` but not its `fromAssigneeIds`). If they were
+ * When did `userId` get onto this card? The latest earlier event that ADDED them
+ * (in its `toAssigneeIds` but not its `fromAssigneeIds`). Deliberately NOT filtered
+ * by eventType: updateWorkCard labels a save CARD_REOPENED/CARD_COMPLETED even when
+ * the same save also changed the assignees, and the to-minus-from predicate alone
+ * already means "this event added them" (moveWorkCard and non-owner updates pass
+ * identical from/to sets; pre-migration rows default both to `[]`). If they were
  * added by this very event, or no earlier event records them (incl. all history
  * from before multi-assignee — deliberately not backfilled), they count as
  * "assigned right now": the current event's `occurredAt`, never `card.createdAt`.
@@ -168,7 +170,6 @@ async function findAssignedAt(
   const assignmentEvent = await tx.workCardEvent.findFirst({
     where: {
       workCardIdSnapshot: input.cardId,
-      eventType: { in: ASSIGNMENT_EVENT_TYPES },
       id: { not: event.id },
       occurredAt: { lte: event.occurredAt },
       toAssigneeIds: { array_contains: [userId] },
@@ -267,11 +268,10 @@ export async function syncOverdueDiscipline(userId: string, throughAt = new Date
   });
   if (!cards.length) return 0;
 
-  // Latest event that added this user to each card (see findAssignedAt).
+  // Latest event that added this user to each card, whatever its eventType (see findAssignedAt).
   const assignmentEvents = await db.workCardEvent.findMany({
     where: {
       workCardIdSnapshot: { in: cards.map((card) => card.id) },
-      eventType: { in: ASSIGNMENT_EVENT_TYPES },
       toAssigneeIds: { array_contains: [userId] },
       NOT: { fromAssigneeIds: { array_contains: [userId] } },
     },

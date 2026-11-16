@@ -16,7 +16,7 @@ import {
   updateWorkCardChecklist,
 } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
-import { AssigneesPicker, type MemberOption } from "./assignee-picker";
+import { AssigneesPicker, type AssigneesPickerHandle, type MemberOption } from "./assignee-picker";
 import type { WorkCardPriority } from "./kanban-board";
 import { utcToZonedDateTimeInput } from "@/lib/dates";
 import { reorderIds } from "@/lib/work-view";
@@ -74,6 +74,7 @@ export function CardModal({
   const [description, setDescription] = useState("");
   const [label, setLabel] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
+  const assigneesRef = useRef<AssigneesPickerHandle>(null);
   const [teamId, setTeamId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -172,6 +173,9 @@ export function CardModal({
   };
 
   const saveInfo = () => {
+    // Gom email đang gõ dở (chưa nhấn Enter) vào danh sách; null = sai định dạng, lỗi đã hiện ở ô nhập.
+    const finalAssignees = assigneesRef.current ? assigneesRef.current.flush() : assignees;
+    if (!finalAssignees) return;
     exec(
       () =>
         updateWorkCard(card.id, {
@@ -179,7 +183,7 @@ export function CardModal({
           label: label || undefined,
           title,
           description: description || undefined,
-          assignees,
+          assignees: finalAssignees,
           teamId: teamId || undefined,
           dueDate: dueDate || undefined,
           startDate: startDate || undefined,
@@ -269,7 +273,7 @@ export function CardModal({
               <div className="grid gap-4">
                 <label className="field">
                   <span className="label">{w.cardAssignee}</span>
-                  <AssigneesPicker value={assignees} onChange={setAssignees} members={members} placeholder={w.cardAssigneesPh} disabled={!canDelete || locked} />
+                  <AssigneesPicker ref={assigneesRef} value={assignees} onChange={setAssignees} members={members} placeholder={w.cardAssigneesPh} disabled={!canDelete || locked} />
                   <span className="mt-1 block text-xs text-muted">{w.cardAssigneesHint}</span>
                 </label>
                 {canDelete && teams.length > 0 && (

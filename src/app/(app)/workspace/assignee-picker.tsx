@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/avatar";
@@ -85,27 +85,43 @@ export function AssigneePicker({
   );
 }
 
+/** Cùng mẫu với z.string().email() của zod v4 (zod/v4/core/regexes `email`) mà server dùng để kiểm
+ * `assignees`, để client từ chối đúng những gì server sẽ từ chối. */
+const EMAIL_RE = /^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
+
+export type AssigneesPickerHandle = {
+  /** Đưa email đang gõ dở (chưa nhấn Enter) vào danh sách, y như nhấn Enter. Trả về danh sách
+   * cuối cùng để gửi lên server (không phải chờ state của cha cập nhật), hoặc `null` nếu email
+   * gõ dở không hợp lệ — khi đó lỗi đã hiện ngay dưới ô nhập và cha nên huỷ thao tác lưu. */
+  flush: () => string[] | null;
+};
+
 /** Nhiều người phụ trách — mỗi email đã thêm hiện thành chip (avatar + tên/email + nút xoá),
  * cộng 1 ô nhập để gõ/lọc và thêm thêm (Enter hoặc chọn từ dropdown). Không cho thêm trùng
- * (so khớp không phân biệt hoa thường). */
+ * (so khớp không phân biệt hoa thường). Email sai định dạng bị từ chối kèm thông báo.
+ * Cha gọi `ref.current.flush()` lúc lưu để không mất email gõ dở. */
 export function AssigneesPicker({
   value,
   onChange,
   members,
   placeholder,
   disabled = false,
+  ref: handleRef,
 }: {
   value: string[];
   onChange: (v: string[]) => void;
   members: MemberOption[];
   placeholder?: string;
   disabled?: boolean;
+  ref?: Ref<AssigneesPickerHandle>;
 }) {
   const { t } = useI18n();
   const w = t.work.workspace;
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [invalid, setInvalid] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const errorId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -118,17 +134,24 @@ export function AssigneesPicker({
 
   const memberByEmail = (email: string) => members.find((m) => (m.email ?? "").toLowerCase() === email.toLowerCase());
 
-  const addEmail = (raw: string) => {
+  /** Thêm 1 email thành chip. Trả về danh sách sau khi thêm, hoặc `null` nếu email sai định dạng. */
+  const addEmail = (raw: string): string[] | null => {
     const email = raw.trim().toLowerCase();
-    if (!email) return;
-    if (value.some((v) => v.toLowerCase() === email)) {
-      setQuery("");
-      return;
+    if (!email) return value;
+    if (!EMAIL_RE.test(email)) {
+      setInvalid(true);
+      return null;
     }
-    onChange([...value, email]);
+    setInvalid(false);
     setQuery("");
+    if (value.some((v) => v.toLowerCase() === email)) return value;
+    const next = [...value, email];
+    onChange(next);
     setOpen(false);
+    return next;
   };
+
+  useImperativeHandle(handleRef, () => ({ flush: () => (disabled ? value : addEmail(query)) }));
 
   const removeEmail = (email: string) => onChange(value.filter((v) => v.toLowerCase() !== email.toLowerCase()));
 
@@ -170,12 +193,18 @@ export function AssigneesPicker({
       )}
       <input
         className="input"
-        type="email"
+        // type="text" (không phải "email"): để chính component kiểm tra và báo lỗi bằng thông báo
+        // của app, thay vì tooltip mặc định của trình duyệt chặn submit form.
+        type="text"
+        inputMode="email"
         autoComplete="off"
         value={query}
         disabled={disabled}
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? errorId : undefined}
         onChange={(e) => {
           setQuery(e.target.value);
+          setInvalid(false);
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
@@ -195,6 +224,11 @@ export function AssigneesPicker({
         placeholder={placeholder}
         maxLength={160}
       />
+      {invalid && (
+        <p id={errorId} role="alert" className="mt-1 text-xs text-danger">
+          {w.cardAssigneeInvalid}
+        </p>
+      )}
       {open && filtered.length > 0 && (
         <ul role="listbox" className="rise absolute z-20 mt-1.5 max-h-60 w-full overflow-y-auto rounded-2xl border border-line bg-surface p-1.5 shadow-pop">
           {filtered.map((m) => (

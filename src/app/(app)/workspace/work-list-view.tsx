@@ -149,7 +149,9 @@ export function WorkListView({
                           </span>
                         </td>
                         <td className="px-3 py-2.5">{card.title}</td>
-                        <td className="truncate max-w-xs px-3 py-2.5 text-muted">{card.description || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted">
+                          <div className="max-w-xs truncate">{card.description || "—"}</div>
+                        </td>
                         <td className="px-3 py-2.5">
                           {card.assignees.length ? (
                             <AvatarStack people={card.assignees.map((a) => ({ name: a.name ?? a.email }))} size={22} moreLabel={w.moreAssigneesLabel} />

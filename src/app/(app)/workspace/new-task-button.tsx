@@ -1,11 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
 import { createWorkCard } from "@/actions/work";
-import { AssigneesPicker, type MemberOption } from "./assignee-picker";
+import { AssigneesPicker, type AssigneesPickerHandle, type MemberOption } from "./assignee-picker";
 import { DEFAULT_LISTS } from "@/lib/work-types";
 
 export function NewTaskButton({
@@ -25,6 +25,7 @@ export function NewTaskButton({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
+  const assigneesRef = useRef<AssigneesPickerHandle>(null);
   const [teamId, setTeamId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [status, setStatus] = useState(DEFAULT_LISTS[0]!.name);
@@ -53,6 +54,9 @@ export function NewTaskButton({
             e.preventDefault();
             const listId = boards.find((b) => b.id === boardId)?.lists.find((l) => l.name === status)?.id;
             if (!listId) return;
+            // Gom email đang gõ dở (chưa nhấn Enter) vào danh sách; null = sai định dạng, lỗi đã hiện ở ô nhập.
+            const finalAssignees = assigneesRef.current ? assigneesRef.current.flush() : assignees;
+            if (!finalAssignees) return;
             exec(
               () =>
                 createWorkCard({
@@ -60,7 +64,7 @@ export function NewTaskButton({
                   label: label || undefined,
                   title,
                   description: description || undefined,
-                  assignees,
+                  assignees: finalAssignees,
                   teamId: teamId || undefined,
                   dueDate: dueDate || undefined,
                 }),
@@ -117,7 +121,7 @@ export function NewTaskButton({
           </label>
           <label className="field">
             <span className="label">{w.cardAssignee}</span>
-            <AssigneesPicker value={assignees} onChange={setAssignees} members={members} placeholder={w.cardAssigneesPh} />
+            <AssigneesPicker ref={assigneesRef} value={assignees} onChange={setAssignees} members={members} placeholder={w.cardAssigneesPh} />
             <span className="mt-1 block text-xs text-muted">{w.cardAssigneesHint}</span>
           </label>
           {teams.length > 0 && (

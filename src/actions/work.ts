@@ -289,7 +289,7 @@ function isBoardOwner(board: { userId: string }, userId: string) {
   return board.userId === userId;
 }
 
-/** Chủ bảng toàn quyền; người/team được cấp quyền trực tiếp trên thẻ (card.assigneeUserId / card.teamId)
+/** Chủ bảng toàn quyền; người/team được cấp quyền trực tiếp trên thẻ (một trong card.assignees — bảng nối WorkCardAssignee — hoặc card.teamId)
  * chỉ xem/thao tác được đúng thẻ đó, không có quyền trên các thẻ khác của bảng. */
 function canActOnCard(
   card: { assignees: { userId: string | null }[]; teamId: string | null; list: { board: { userId: string } } },

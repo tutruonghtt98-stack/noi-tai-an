@@ -104,10 +104,10 @@ async function sweepOverdueCards() {
 }
 
 /** Bảng mà user sở hữu, được gắn làm người phụ trách bảng, thuộc team phụ trách bảng, hoặc có ít nhất
- * một thẻ được cấp quyền riêng (card.assigneeUserId / card.teamId) — để thẻ được giao luôn hiện ra ngay
+ * một thẻ được cấp quyền riêng (có trong card.assignees — bảng nối WorkCardAssignee — hoặc card.teamId) — để thẻ được giao luôn hiện ra ngay
  * dưới đúng tên bảng của người tạo, không cần một mục "Được giao cho tôi" riêng.
  * Chủ bảng xem/thao tác toàn quyền; người phụ trách và thành viên team phụ trách chỉ xem/thao tác được
- * đúng những thẻ mà chủ bảng đã cấp quyền trực tiếp (card.assigneeUserId) hoặc cấp cho team của họ (card.teamId). */
+ * đúng những thẻ mà chủ bảng đã cấp quyền trực tiếp (có tên trong card.assignees, tức bảng nối WorkCardAssignee) hoặc cấp cho team của họ (card.teamId). */
 export async function getAccessibleBoards(userId: string) {
   await ensureDefaultBoard(userId);
   await sweepOverdueCards();
