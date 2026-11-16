@@ -149,7 +149,7 @@ export async function getJourneyDashboard(user: CurrentUser) {
     getHabitsWithStats(user, today),
     db.workCard.findMany({
       where: {
-        assigneeUserId: user.id,
+        assignees: { some: { userId: user.id } },
         dueDate: { gte: todayDate, lt: tomorrowDate },
         list: { name: { not: "listDone" } },
       },
@@ -158,7 +158,7 @@ export async function getJourneyDashboard(user: CurrentUser) {
     }),
     db.workCard.findMany({
       where: {
-        assigneeUserId: user.id,
+        assignees: { some: { userId: user.id } },
         dueDate: { gte: todayDate, lt: tomorrowDate },
       },
       select: { dueDate: true, completedAt: true },
