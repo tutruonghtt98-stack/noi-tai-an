@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { Modal } from "@/components/ui/modal";
 import { createWorkCard } from "@/actions/work";
-import { AssigneePicker, type MemberOption } from "./assignee-picker";
+import { AssigneesPicker, type MemberOption } from "./assignee-picker";
 import { DEFAULT_LISTS } from "@/lib/work-types";
 
 export function NewTaskButton({
@@ -24,7 +24,7 @@ export function NewTaskButton({
   const [label, setLabel] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [assignee, setAssignee] = useState("");
+  const [assignees, setAssignees] = useState<string[]>([]);
   const [teamId, setTeamId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [status, setStatus] = useState(DEFAULT_LISTS[0]!.name);
@@ -34,7 +34,7 @@ export function NewTaskButton({
     setLabel("");
     setTitle("");
     setDescription("");
-    setAssignee("");
+    setAssignees([]);
     setTeamId("");
     setDueDate("");
     setStatus(DEFAULT_LISTS[0]!.name);
@@ -60,7 +60,7 @@ export function NewTaskButton({
                   label: label || undefined,
                   title,
                   description: description || undefined,
-                  assignee: assignee || undefined,
+                  assignees,
                   teamId: teamId || undefined,
                   dueDate: dueDate || undefined,
                 }),
@@ -117,8 +117,8 @@ export function NewTaskButton({
           </label>
           <label className="field">
             <span className="label">{w.cardAssignee}</span>
-            <AssigneePicker value={assignee} onChange={setAssignee} members={members} placeholder={w.cardAssigneePh} />
-            <span className="mt-1 block text-xs text-muted">{w.cardAssigneeHint}</span>
+            <AssigneesPicker value={assignees} onChange={setAssignees} members={members} placeholder={w.cardAssigneesPh} />
+            <span className="mt-1 block text-xs text-muted">{w.cardAssigneesHint}</span>
           </label>
           {teams.length > 0 && (
             <label className="field">

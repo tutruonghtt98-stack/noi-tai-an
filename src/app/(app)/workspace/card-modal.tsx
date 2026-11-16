@@ -16,11 +16,11 @@ import {
   updateWorkCardChecklist,
 } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
-import { AssigneePicker, type MemberOption } from "./assignee-picker";
+import { AssigneesPicker, type MemberOption } from "./assignee-picker";
 import type { WorkCardPriority } from "./kanban-board";
 import { utcToZonedDateTimeInput } from "@/lib/dates";
 import { reorderIds } from "@/lib/work-view";
-import type { ChecklistItem } from "@/lib/work-types";
+import type { ChecklistItem, CardAssignee } from "@/lib/work-types";
 
 type CardComment = { id: string; content: string; createdAt: string; userName: string | null; userImage: string | null };
 type CardAttachment = { id: string; url: string; label: string | null };
@@ -32,7 +32,7 @@ export type SerializedCard = {
   label: string | null;
   title: string;
   description: string | null;
-  assignee: string | null;
+  assignees: CardAssignee[];
   teamId: string | null;
   dueDate: string | null;
   startDate: string | null;
@@ -73,7 +73,7 @@ export function CardModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [label, setLabel] = useState("");
-  const [assignee, setAssignee] = useState("");
+  const [assignees, setAssignees] = useState<string[]>([]);
   const [teamId, setTeamId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -100,7 +100,7 @@ export function CardModal({
     setTitle(card.title);
     setDescription(card.description ?? "");
     setLabel(card.label ?? "");
-    setAssignee(card.assignee ?? "");
+    setAssignees(card.assignees.map((a) => a.email));
     setTeamId(card.teamId ?? "");
     setDueDate(card.dueDate ? utcToZonedDateTimeInput(new Date(card.dueDate), timezone) : "");
     setStartDate(card.startDate ? utcToZonedDateTimeInput(new Date(card.startDate), timezone) : "");
@@ -179,7 +179,7 @@ export function CardModal({
           label: label || undefined,
           title,
           description: description || undefined,
-          assignee: assignee || undefined,
+          assignees,
           teamId: teamId || undefined,
           dueDate: dueDate || undefined,
           startDate: startDate || undefined,
@@ -269,8 +269,8 @@ export function CardModal({
               <div className="grid gap-4">
                 <label className="field">
                   <span className="label">{w.cardAssignee}</span>
-                  <AssigneePicker value={assignee} onChange={setAssignee} members={members} placeholder={w.cardAssigneePh} disabled={!canDelete || locked} />
-                  <span className="mt-1 block text-xs text-muted">{w.cardAssigneeHint}</span>
+                  <AssigneesPicker value={assignees} onChange={setAssignees} members={members} placeholder={w.cardAssigneesPh} disabled={!canDelete || locked} />
+                  <span className="mt-1 block text-xs text-muted">{w.cardAssigneesHint}</span>
                 </label>
                 {canDelete && teams.length > 0 && (
                   <label className="field">

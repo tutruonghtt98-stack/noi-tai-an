@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/cn";
-import { Avatar } from "@/components/ui/avatar";
+import { AvatarStack } from "@/components/ui/avatar-stack";
 import { STATUS_BADGE_CLASS, STATUS_ICON, PRIORITY_BADGE_CLASS, dueLabel, type SerializedList } from "./kanban-board";
 import { CardModal, type SerializedCard } from "./card-modal";
 import type { MemberOption } from "./assignee-picker";
@@ -150,7 +150,13 @@ export function WorkListView({
                         </td>
                         <td className="px-3 py-2.5">{card.title}</td>
                         <td className="truncate max-w-xs px-3 py-2.5 text-muted">{card.description || "—"}</td>
-                        <td className="px-3 py-2.5">{card.assignee ? <Avatar name={card.assignee} size={22} /> : "—"}</td>
+                        <td className="px-3 py-2.5">
+                          {card.assignees.length ? (
+                            <AvatarStack people={card.assignees.map((a) => ({ name: a.name ?? a.email }))} size={22} moreLabel={w.moreAssigneesLabel} />
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td className="px-3 py-2.5 text-muted">{card.label || "—"}</td>
                         <td className="px-3 py-2.5 text-muted">{due ?? w.noDue}</td>
                         <td className="px-3 py-2.5">

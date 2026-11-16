@@ -8,7 +8,7 @@ import { fmt } from "@/lib/i18n/format";
 import { cn } from "@/lib/cn";
 import { moveWorkCard, reorderWorkCards } from "@/actions/work";
 import { reorderIds } from "@/lib/work-view";
-import { Avatar } from "@/components/ui/avatar";
+import { AvatarStack } from "@/components/ui/avatar-stack";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { daysBetween, isoInZone, todayISO } from "@/lib/dates";
 import { CardModal, type SerializedCard } from "./card-modal";
@@ -71,7 +71,9 @@ export function CardBody({ w, card, timezone }: { w: Dict["work"]["workspace"]; 
       )}
       <div className="mt-2.5 flex items-center justify-between gap-2">
         <span className="text-xs text-muted">{due ?? w.noDue}</span>
-        {card.assignee && <Avatar name={card.assignee} size={24} />}
+        {card.assignees.length > 0 && (
+          <AvatarStack people={card.assignees.map((a) => ({ name: a.name ?? a.email }))} size={24} moreLabel={w.moreAssigneesLabel} />
+        )}
       </div>
     </>
   );
