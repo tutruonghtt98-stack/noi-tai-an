@@ -195,6 +195,9 @@ export async function deleteWorkBoard(id: string) {
   });
 }
 
+/** Tối đa số người phụ trách trên một thẻ. */
+const MAX_CARD_ASSIGNEES = 10;
+
 const cardSchema = z.object({
   listId: z.string().min(1),
   label: z
@@ -210,15 +213,11 @@ const cardSchema = z.object({
     .max(2000)
     .optional()
     .transform((v) => v || null),
-  assignee: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email()
-    .max(160)
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => v || null),
+  assignees: z
+    .array(z.string().trim().toLowerCase().email().max(160))
+    .max(MAX_CARD_ASSIGNEES)
+    .default([])
+    .transform((arr) => [...new Set(arr)]),
   dueDate: z
     .string()
     .trim()
@@ -238,22 +237,43 @@ const cardSchema = z.object({
 });
 export type CardInput = z.input<typeof cardSchema>;
 
-async function notifyAssignee(assigneeEmail: string | null, actor: { id: string; name: string | null; email: string | null }, cardTitle: string) {
-  if (!assigneeEmail) return;
-  const target = await db.user.findUnique({ where: { email: assigneeEmail }, select: { id: true } });
-  if (!target || target.id === actor.id) return target?.id ?? null;
-  await db.notification.create({
-    data: {
-      userId: target.id,
-      actorId: actor.id,
-      type: "WORK_CARD_ASSIGNED",
-      title: `${actor.name ?? actor.email ?? "Ai đó"} đã gắn bạn vào một việc`,
-      body: cardTitle,
-      href: "/workspace",
-    },
-  });
-  return target.id;
+/** Báo lỗi thân thiện (thay vì VALIDATION chung) khi gửi quá số người phụ trách cho phép — đếm sau khi bỏ trùng không phân biệt hoa thường. */
+function assertAssigneeLimit(input: CardInput) {
+  const emails = Array.isArray(input.assignees) ? input.assignees : [];
+  const distinct = new Set(emails.map((e) => (typeof e === "string" ? e.trim().toLowerCase() : e)));
+  if (distinct.size > MAX_CARD_ASSIGNEES) throw new UserError("ASSIGNEE_LIMIT");
 }
+
+/** Gửi thông báo "đã gắn bạn vào một việc" cho từng người phụ trách có tài khoản, bỏ qua chính người thao tác. */
+async function notifyAssignees(
+  targets: { email: string; userId: string | null }[],
+  actor: { id: string; name: string | null; email: string | null },
+  cardTitle: string,
+) {
+  const userIds = new Set(targets.map((t) => t.userId).filter((id): id is string => !!id && id !== actor.id));
+  for (const userId of userIds) {
+    await db.notification.create({
+      data: {
+        userId,
+        actorId: actor.id,
+        type: "WORK_CARD_ASSIGNED",
+        title: `${actor.name ?? actor.email ?? "Ai đó"} đã gắn bạn vào một việc`,
+        body: cardTitle,
+        href: "/workspace",
+      },
+    });
+  }
+}
+
+/** Map từng email sang tài khoản trùng email (nếu có) bằng một truy vấn duy nhất; giữ nguyên thứ tự đầu vào. */
+async function resolveAssigneeIds(emails: string[]): Promise<{ email: string; userId: string | null }[]> {
+  if (emails.length === 0) return [];
+  const users = await db.user.findMany({ where: { email: { in: emails } }, select: { id: true, email: true } });
+  const byEmail = new Map(users.map((u) => [u.email, u.id]));
+  return emails.map((email) => ({ email, userId: byEmail.get(email) ?? null }));
+}
+
+const assigneeUserIds = (rows: { userId: string | null }[]) => rows.map((r) => r.userId).filter((id): id is string => !!id);
 
 async function resolveAssigneeId(email: string | null) {
   if (!email) return null;
@@ -282,12 +302,14 @@ function canActOnCard(
 export async function createWorkCard(input: CardInput) {
   return run(async () => {
     const user = await requireUser();
-    const { teamId: rawTeamId, ...data } = cardSchema.parse(input);
+    assertAssigneeLimit(input);
+    const { teamId: rawTeamId, assignees: assigneeEmails, ...data } = cardSchema.parse(input);
     const list = await db.workList.findUnique({ where: { id: data.listId }, select: { name: true, board: { select: { userId: true } } } });
     if (!list || !isBoardOwner(list.board, user.id)) throw new UserError("VALIDATION");
     const teamId = await resolveTeam(user.id, rawTeamId);
     const count = await db.workCard.count({ where: { listId: data.listId } });
-    const assigneeUserId = await resolveAssigneeId(data.assignee);
+    const resolved = await resolveAssigneeIds(assigneeEmails);
+    const toAssigneeIds = assigneeUserIds(resolved);
     const now = new Date();
     const dueDate = data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null;
     const startDate = data.startDate ? zonedDateTimeToUTC(data.startDate, user.timezone) : null;
@@ -298,13 +320,15 @@ export async function createWorkCard(input: CardInput) {
           dueDate,
           startDate,
           teamId,
-          assigneeUserId,
           sortOrder: count,
           checklist: [],
           completedAt: isDoneList(list.name) ? now : null,
           createdAt: now,
         },
       });
+      if (resolved.length > 0) {
+        await tx.workCardAssignee.createMany({ data: resolved.map((r) => ({ cardId: card.id, email: r.email, userId: r.userId })) });
+      }
       await recordWorkCardScoreEvent(tx, {
         cardId: card.id,
         title: card.title,
@@ -313,8 +337,9 @@ export async function createWorkCard(input: CardInput) {
         eventType: "CARD_CREATED",
         fromDueAt: null,
         toDueAt: dueDate,
-        fromAssigneeUserId: null,
-        toAssigneeUserId: card.assigneeUserId,
+        // Thẻ chưa tồn tại trước sự kiện này nên tập "trước" rỗng là đúng.
+        fromAssigneeIds: [],
+        toAssigneeIds,
         fromTeamId: null,
         toTeamId: card.teamId,
         fromStatus: null,
@@ -323,8 +348,8 @@ export async function createWorkCard(input: CardInput) {
         occurredAt: now,
       });
     });
-    if (assigneeUserId) await syncOverdueDiscipline(assigneeUserId, now);
-    await notifyAssignee(data.assignee, user, data.title);
+    for (const userId of toAssigneeIds) await syncOverdueDiscipline(userId, now);
+    await notifyAssignees(resolved, user, data.title);
     if (teamId) await notifyTeamShared(teamId, user, `${user.name ?? user.email ?? "Ai đó"} đã cấp quyền thẻ cho team của bạn`, data.title);
     revalidatePath("/workspace");
   });
@@ -336,15 +361,15 @@ export type CardUpdateInput = z.input<typeof cardUpdateSchema>;
 export async function updateWorkCard(id: string, input: CardUpdateInput) {
   return run(async () => {
     const user = await requireUser();
-    const { teamId: rawTeamId, ...data } = cardUpdateSchema.parse(input);
+    assertAssigneeLimit(input);
+    const { teamId: rawTeamId, assignees: assigneeEmails, ...data } = cardUpdateSchema.parse(input);
     const card = await db.workCard.findUnique({
       where: { id },
       select: {
         listId: true,
         label: true,
         title: true,
-        assignee: true,
-        assigneeUserId: true,
+        assignees: { select: { email: true, userId: true } },
         teamId: true,
         dueDate: true,
         completedAt: true,
@@ -363,9 +388,13 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
     const changingList = data.listId !== card.listId;
     const sortOrder = changingList ? await db.workCard.count({ where: { listId: data.listId } }) : undefined;
     // Chỉ chủ bảng mới được đổi người/team phụ trách của thẻ — người được cấp quyền chỉ cập nhật nội dung/tiến độ.
-    const assignee = isOwner ? data.assignee : card.assignee;
-    const assigneeChanged = isOwner && data.assignee !== card.assignee;
-    const assigneeUserId = isOwner ? await resolveAssigneeId(data.assignee) : card.assigneeUserId;
+    const nextResolved = isOwner ? await resolveAssigneeIds(assigneeEmails) : card.assignees;
+    // Diff theo email (email chưa khớp tài khoản không có userId để so).
+    const added = nextResolved.filter((n) => !card.assignees.some((c) => c.email === n.email));
+    const removed = card.assignees.filter((c) => !nextResolved.some((n) => n.email === c.email));
+    const assigneeChanged = isOwner && (added.length > 0 || removed.length > 0);
+    const fromAssigneeIds = assigneeUserIds(card.assignees);
+    const toAssigneeIds = assigneeUserIds(nextResolved);
     const teamId = isOwner ? await resolveTeam(user.id, rawTeamId) : card.teamId;
     const teamChanged = isOwner && teamId !== card.teamId;
     const dueDate = data.dueDate ? zonedDateTimeToUTC(data.dueDate, user.timezone) : null;
@@ -386,8 +415,8 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
               ? "TEAM_CHANGED"
               : "CARD_UPDATED";
 
-    if ((assigneeChanged || dueDateChanged || statusChanged) && card.assigneeUserId) {
-      await syncOverdueDiscipline(card.assigneeUserId);
+    if (assigneeChanged || dueDateChanged || statusChanged) {
+      for (const userId of fromAssigneeIds) await syncOverdueDiscipline(userId);
     }
 
     const occurredAt = new Date();
@@ -398,13 +427,17 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
           ...data,
           dueDate,
           startDate,
-          assignee,
-          assigneeUserId,
           teamId,
           ...(sortOrder != null ? { sortOrder } : {}),
           ...(completedAt !== undefined ? { completedAt } : {}),
         },
       });
+      if (removed.length > 0) {
+        await tx.workCardAssignee.deleteMany({ where: { cardId: id, email: { in: removed.map((r) => r.email) } } });
+      }
+      if (added.length > 0) {
+        await tx.workCardAssignee.createMany({ data: added.map((a) => ({ cardId: id, email: a.email, userId: a.userId })) });
+      }
       await recordWorkCardScoreEvent(tx, {
         cardId: id,
         title: data.title,
@@ -413,8 +446,8 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
         eventType,
         fromDueAt: card.dueDate,
         toDueAt: dueDate,
-        fromAssigneeUserId: card.assigneeUserId,
-        toAssigneeUserId: assigneeUserId,
+        fromAssigneeIds,
+        toAssigneeIds,
         fromTeamId: card.teamId,
         toTeamId: teamId,
         fromStatus: card.list.name,
@@ -424,9 +457,14 @@ export async function updateWorkCard(id: string, input: CardUpdateInput) {
         ...(completedNow ? { completedAt: completedAt ?? occurredAt } : {}),
       });
     });
-    if ((assigneeChanged || dueDateChanged || statusChanged) && assigneeUserId) await syncOverdueDiscipline(assigneeUserId, occurredAt);
-    if (completedNow && assigneeUserId) await syncJourneyAchievements(assigneeUserId);
-    if (assigneeChanged) await notifyAssignee(data.assignee, user, data.title);
+    if (assigneeChanged || dueDateChanged || statusChanged) {
+      for (const userId of toAssigneeIds) await syncOverdueDiscipline(userId, occurredAt);
+    }
+    if (completedNow) {
+      for (const userId of toAssigneeIds) await syncJourneyAchievements(userId);
+    }
+    // Chỉ báo cho người MỚI được thêm (notifyAssignees tự bỏ qua người thao tác và người chưa có tài khoản).
+    if (assigneeChanged) await notifyAssignees(added, user, data.title);
     if (teamChanged && teamId) await notifyTeamShared(teamId, user, `${user.name ?? user.email ?? "Ai đó"} đã cấp quyền thẻ cho team của bạn`, data.title);
     revalidatePath("/workspace");
     revalidatePath("/analytics");
@@ -492,7 +530,7 @@ export async function moveWorkCard(id: string, toListId: string) {
         label: true,
         dueDate: true,
         createdAt: true,
-        assigneeUserId: true,
+        assignees: { select: { userId: true } },
         teamId: true,
         completedAt: true,
         list: { select: { name: true, boardId: true, board: { select: { userId: true } } } },
@@ -517,7 +555,11 @@ export async function moveWorkCard(id: string, toListId: string) {
         ? "CARD_REOPENED"
         : "CARD_MOVED";
 
-    if (card.assigneeUserId) await syncOverdueDiscipline(card.assigneeUserId);
+    // Di chuyển thẻ KHÔNG đổi người phụ trách: tập trước = tập sau = người phụ trách hiện tại.
+    // Không được truyền fromAssigneeIds rỗng ở đây — sổ điểm sẽ hiểu nhầm mọi người là "vừa được gắn"
+    // (thưởng hoàn thành cùng ngày vô điều kiện, bỏ phạt trễ hạn).
+    const assigneeIds = assigneeUserIds(card.assignees);
+    for (const userId of assigneeIds) await syncOverdueDiscipline(userId);
     await db.$transaction(async (tx) => {
       await tx.workCard.update({ where: { id }, data: { listId: toListId, sortOrder: count, completedAt } });
       await recordWorkCardScoreEvent(tx, {
@@ -528,8 +570,8 @@ export async function moveWorkCard(id: string, toListId: string) {
         eventType,
         fromDueAt: card.dueDate,
         toDueAt: card.dueDate,
-        fromAssigneeUserId: card.assigneeUserId,
-        toAssigneeUserId: card.assigneeUserId,
+        fromAssigneeIds: assigneeIds,
+        toAssigneeIds: assigneeIds,
         fromTeamId: card.teamId,
         toTeamId: card.teamId,
         fromStatus: card.list.name,
@@ -539,8 +581,10 @@ export async function moveWorkCard(id: string, toListId: string) {
         ...(completedNow ? { completedAt: completedAt ?? occurredAt } : {}),
       });
     });
-    if (card.assigneeUserId) await syncOverdueDiscipline(card.assigneeUserId, occurredAt);
-    if (completedNow && card.assigneeUserId) await syncJourneyAchievements(card.assigneeUserId);
+    for (const userId of assigneeIds) await syncOverdueDiscipline(userId, occurredAt);
+    if (completedNow) {
+      for (const userId of assigneeIds) await syncJourneyAchievements(userId);
+    }
     revalidatePath("/workspace");
     revalidatePath("/analytics");
   });

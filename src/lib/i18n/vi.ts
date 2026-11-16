@@ -510,6 +510,7 @@ const vi = {
       cardAssigneePh: "ten@vidu.com",
       cardAssigneeHint: "Nếu email trùng với một tài khoản Nội Tại Ẩn, người đó sẽ nhận được thông báo.",
       cardAssigneeInvalid: "Email không hợp lệ",
+      cardAssigneeLimit: "Tối đa 10 người phụ trách mỗi việc",
       cardTeam: "Cấp quyền cho team (tuỳ chọn)",
       cardTeamNone: "Không chọn team",
       cardTeamHint: "Chỉ team này mới xem/thao tác được đúng thẻ này.",

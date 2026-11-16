@@ -50,7 +50,7 @@ export function AddCardButton({
                   listId,
                   label: label || undefined,
                   title,
-                  assignee: assignee || undefined,
+                  assignees: assignee ? [assignee] : [],
                   teamId: teamId || undefined,
                   dueDate: dueDate || undefined,
                 }),

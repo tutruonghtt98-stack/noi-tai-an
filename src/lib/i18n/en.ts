@@ -512,6 +512,7 @@ const en: Dict = {
       cardAssigneePh: "name@example.com",
       cardAssigneeHint: "If the email matches a Nội Tại Ẩn account, that person gets notified.",
       cardAssigneeInvalid: "Invalid email",
+      cardAssigneeLimit: "Up to 10 people per task",
       cardTeam: "Grant access to a team (optional)",
       cardTeamNone: "No team",
       cardTeamHint: "Only this team can view/act on this specific card.",
