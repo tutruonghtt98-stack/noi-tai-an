@@ -135,7 +135,6 @@ model User {
   workCustomers      WorkCustomer[]
   workBoards         WorkBoard[]
   assignedWorkBoards WorkBoard[]       @relation("WorkBoardAssignee")
-  assignedWorkCards  WorkCard[]        @relation("WorkCardAssignee")
   workCardAssignees  WorkCardAssignee[] @relation("WorkCardAssigneeUser")
   workCardComments   WorkCardComment[]
   notifications      Notification[]    @relation("NotificationUser")
@@ -402,8 +401,6 @@ model WorkCard {
   listId         String
   label          String?
   title          String
-  assignee       String? // email đã nhập (hiển thị dù chưa khớp tài khoản nào)
-  assigneeUserId String? // khớp với User.email nếu có tài khoản tương ứng
   teamId         String? // team được cấp quyền xem/thao tác thẻ này
   description    String?
   checklist      Json      @default("[]")
@@ -415,14 +412,12 @@ model WorkCard {
   createdAt      DateTime  @default(now())
 
   list         WorkList             @relation(fields: [listId], references: [id], onDelete: Cascade)
-  assigneeUser User?                @relation("WorkCardAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
   team         Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
   comments     WorkCardComment[]
   attachments  WorkCardAttachment[]
   assignees    WorkCardAssignee[]
 
   @@index([listId])
-  @@index([assigneeUserId])
   @@index([teamId])
 }
 
@@ -936,8 +931,6 @@ model WorkCardEvent {
   titleSnapshot         String
   fromDueAt             DateTime?
   toDueAt               DateTime?
-  fromAssigneeUserId    String?
-  toAssigneeUserId      String?
   fromAssigneeIds       Json      @default("[]")
   toAssigneeIds         Json      @default("[]")
   fromTeamId            String?
