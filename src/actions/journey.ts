@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
 import { toDbDate, todayISO } from "@/lib/dates";
 import { getJourneyDashboard } from "@/lib/journey-queries";
 import { getJourneyLevelGate } from "@/lib/journey-calendar";
 import { syncJourneyAchievements } from "@/lib/journey-achievements";
-import { JOURNEY_GOAL_DOMAINS, findGoalOption, weeklyCommitmentOptions, monthlyCommitmentLabels } from "@/lib/journey-goal-domains";
+import { JOURNEY_GOAL_DOMAINS, findGoalOption, weeklyCommitmentOptions, monthlyCommitmentLabels, parseJourneyCommitments } from "@/lib/journey-goal-domains";
 import { limitsFor } from "@/lib/plan";
 
 const optionIds = z.array(z.string().min(1).max(60)).max(12).optional();
@@ -120,6 +121,29 @@ export async function respondToJourneyOffer(accept: boolean, commitments?: Journ
     revalidatePath("/dashboard");
     revalidatePath("/journey");
     revalidatePath("/habits");
+  });
+}
+
+const wakeTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "INVALID_TIME");
+
+/** Sửa giờ thức dậy cam kết sau khi hành trình đã bắt đầu (lúc tạo chỉ hỏi 1 lần) — giữ nguyên các
+ * cam kết goals khác, chỉ ghi đè field wakeTime trong JSON commitments. */
+export async function updateJourneyWakeTime(wakeTime: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const parsed = wakeTimeSchema.parse(wakeTime);
+    const journey = await db.userJourney.findFirst({
+      where: { userId: user.id, status: "ACTIVE" },
+      orderBy: { joinedAt: "desc" },
+      select: { id: true, commitments: true },
+    });
+    if (!journey) throw new UserError("JOURNEY_NOT_ACTIVE");
+    const existing = parseJourneyCommitments(journey.commitments) ?? {};
+    await db.userJourney.update({
+      where: { id: journey.id },
+      data: { commitments: { ...existing, wakeTime: parsed } as Prisma.InputJsonValue },
+    });
+    revalidatePath("/journey");
   });
 }
 

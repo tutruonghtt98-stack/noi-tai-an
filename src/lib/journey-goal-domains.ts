@@ -139,7 +139,7 @@ export type JourneyCommitments = {
   committedAt?: string;
 };
 
-function parseJourneyCommitments(value: unknown): JourneyCommitments | null {
+export function parseJourneyCommitments(value: unknown): JourneyCommitments | null {
   if (!value || typeof value !== "object") return null;
   return value as JourneyCommitments;
 }

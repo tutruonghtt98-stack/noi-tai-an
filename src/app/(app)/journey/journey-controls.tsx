@@ -22,6 +22,7 @@ import {
   saveJourneyExpense,
   setJourneyRestDay,
   toggleJourneyWeeklyCommitment,
+  updateJourneyWakeTime,
 } from "@/actions/journey";
 import { useAction } from "@/lib/use-action";
 import { useI18n } from "@/lib/i18n/client";
@@ -312,6 +313,8 @@ export function JourneyWeeklyChallengeActions({
 }) {
   const router = useRouter();
   const { exec, pending } = useAction();
+  const [editingWakeTime, setEditingWakeTime] = useState(false);
+  const [wakeTimeInput, setWakeTimeInput] = useState(weekly?.wakeTime ?? "06:30");
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -326,6 +329,15 @@ export function JourneyWeeklyChallengeActions({
 
   const commitmentsDone = !weekly?.personalCommitments.length || weekly.personalCommitments.every((item) => item.done);
 
+  const saveWakeTime = () =>
+    exec(() => updateJourneyWakeTime(wakeTimeInput), {
+      success: "Đã lưu giờ thức dậy cam kết.",
+      onSuccess: () => {
+        setEditingWakeTime(false);
+        router.refresh();
+      },
+    });
+
   return (
     <>
       {weekly && (
@@ -333,11 +345,33 @@ export function JourneyWeeklyChallengeActions({
           {weekly.personalCommitments.length > 0 && !weekly.completed && (
             <p className="text-xs text-muted">Tick đủ cam kết cá nhân ở thẻ "Công việc cần làm" → tab Tuần trước khi xác nhận.</p>
           )}
-          {deadline && (
+          {editingWakeTime ? (
+            <div className="field">
+              <span className="label">Giờ thức dậy cam kết</span>
+              <div className="flex items-center gap-2">
+                <input type="time" className="input" value={wakeTimeInput} onChange={(event) => setWakeTimeInput(event.target.value)} disabled={pending} />
+                <button type="button" className="btn btn-soft" disabled={pending || !wakeTimeInput} onClick={saveWakeTime}>
+                  <Check className="size-4" aria-hidden /> Lưu
+                </button>
+                <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => setEditingWakeTime(false)}>
+                  Huỷ
+                </button>
+              </div>
+            </div>
+          ) : deadline ? (
             <p className="field">
               <span className="label">Khung giờ cam kết (xác nhận trước hoặc đúng giờ này)</span>
-              <span className="input flex items-center text-ink-2">{deadline} <span className="ml-1 text-xs text-muted">· giờ đã chọn lúc bắt đầu hành trình</span></span>
+              <span className="input flex items-center justify-between text-ink-2">
+                {deadline}
+                <button type="button" className="icon-btn icon-btn-plain size-7" aria-label="Sửa giờ thức dậy" title="Sửa giờ thức dậy" onClick={() => { setWakeTimeInput(deadline); setEditingWakeTime(true); }}>
+                  <Pencil className="size-3.5" aria-hidden />
+                </button>
+              </span>
             </p>
+          ) : (
+            <button type="button" className="btn btn-soft justify-self-start" onClick={() => setEditingWakeTime(true)}>
+              <AlarmClock className="size-4" aria-hidden /> Đặt giờ thức dậy cam kết
+            </button>
           )}
           <button
             type="button"
