@@ -707,6 +707,11 @@ const en: Dict = {
     dailyScoreLabel: "Daily Score",
     level: "LEVEL",
     saveReflection: "Save reflection",
+    missionRequired: "Complete at least 1 Core Mission before closing the day.",
+    reflectionRequired: "Fill in your reflection (at least your mood) before closing the day.",
+    journeyDayAlreadyClosed: "This day is already recorded — reload the page to see it.",
+    journeyNotActive: "This journey is not currently in progress.",
+    restAfterProgress: "You already completed a mission today, so this can't be marked a rest day.",
   },
 };
 
