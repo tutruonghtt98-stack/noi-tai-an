@@ -469,24 +469,6 @@ const reflectionSchema = z.object({
   improvement: z.string().trim().max(1000).default(""),
 });
 
-export async function saveJourneyReflection(input: z.input<typeof reflectionSchema>) {
-  return run(async () => {
-    const user = await requireUser();
-    const data = reflectionSchema.parse(input);
-    const dashboard = await getJourneyDashboard(user);
-    if (!dashboard?.dayRecord || dashboard.dayRecord.status !== "IN_PROGRESS") throw new UserError("JOURNEY_NOT_ACTIVE");
-
-    await db.journeyReflection.upsert({
-      where: { dayRecordId: dashboard.dayRecord.id },
-      update: data,
-      create: { dayRecordId: dashboard.dayRecord.id, ...data },
-    });
-
-    revalidatePath("/journey");
-    return undefined;
-  });
-}
-
 const expenseSchema = z.object({
   amountVnd: z.coerce.number().int().min(0).max(1_000_000_000),
   note: z.string().trim().max(200).optional(),

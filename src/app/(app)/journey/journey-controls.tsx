@@ -20,7 +20,6 @@ import {
   updateJourneyPersonalMission,
   completeJourneyWeeklyChallenge,
   saveJourneyExpense,
-  saveJourneyReflection,
   setJourneyRestDay,
   toggleJourneyWeeklyCommitment,
 } from "@/actions/journey";
@@ -494,14 +493,6 @@ export function JourneyReflectionCard({
         <label className="field sm:col-span-2"><span className="label">Một điều muốn điều chỉnh ngày mai</span><input className="input" value={improvement} onChange={(event) => setImprovement(event.target.value)} maxLength={1000} disabled={closed} /></label>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="btn btn-soft"
-          disabled={closed || pending}
-          onClick={() => exec(() => saveJourneyReflection({ mood, wins, lesson, gratitude, improvement }), { success: `${t.journey.saveReflection}.`, onSuccess: refresh })}
-        >
-          <Send className="size-4" aria-hidden /> {t.journey.saveReflection}
-        </button>
         <button
           type="button"
           className="btn btn-primary"
