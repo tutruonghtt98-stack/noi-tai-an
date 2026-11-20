@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, Check, ListChecks, MoonStar, Pencil, Plus, RotateCcw, Send, Sparkles, Trash2, Wallet } from "lucide-react";
+import { AlarmClock, Check, ListChecks, MoonStar, Pencil, Plus, Send, Sparkles, Trash2, Wallet } from "lucide-react";
 import { Empty } from "@/components/ui/empty";
 import { Modal } from "@/components/ui/modal";
 import { JourneyCommitmentForm } from "@/components/journey-commitment-form";
@@ -13,7 +13,7 @@ import {
   completeJourneyPersonalMission,
   completeJourneyDailyChallenge,
   completeJourneyDay,
-  completeJourneyMission,
+  completeJourneyWorkspaceCard,
   submitJourneyLevelReview,
   createJourneyPersonalMission,
   deleteJourneyPersonalMission,
@@ -27,23 +27,26 @@ import {
 import { useAction } from "@/lib/use-action";
 import { useI18n } from "@/lib/i18n/client";
 
-type Mission = {
+const WORK_LIST_LABEL: Record<string, string> = {
+  listToDo: "Cần làm",
+  listInProgress: "Đang làm",
+  listReview: "Xem lại",
+  listDone: "Hoàn thành",
+};
+
+type WorkspaceTask = {
   id: string;
   title: string;
-  description: string;
-  objective: string;
-  suggestedMinutes: number | null;
-  xpReward: number;
-  completionCriteria: string;
-  completed: boolean;
-  dayInLevel?: number;
+  dueDate: Date | null;
+  completedAt: Date | null;
+  listName: string;
+  boardName: string;
 };
 
 type PersonalMission = { id: string; title: string; description: string | null; category: string | null; suggestedMinutes: number | null; xpReward: number; completedAt: Date | null };
 
 export function JourneyControls({
-  missions,
-  recoveryMissions,
+  workspaceTasks,
   personalMissions,
   dailyChallenge,
   expense,
@@ -56,8 +59,7 @@ export function JourneyControls({
   today,
   weeklyCommitments,
 }: {
-  missions: Mission[];
-  recoveryMissions: Mission[];
+  workspaceTasks: WorkspaceTask[];
   personalMissions: PersonalMission[];
   dailyChallenge: { title: string; description: string; completionCriteria: string; xpReward: number; completed: boolean } | null;
   expense: { amountVnd: number; note: string | null } | null;
@@ -95,7 +97,7 @@ export function JourneyControls({
               <h2 id="core-missions" className="card-title text-xl">Công việc cần làm</h2>
             </div>
           </div>
-          {coreTab === "day" && <span className="tabular rounded-full bg-surface-2 px-2.5 py-1 text-sm font-medium">{missions.filter((mission) => mission.completed).length}/{missions.length}</span>}
+          {coreTab === "day" && <span className="tabular rounded-full bg-surface-2 px-2.5 py-1 text-sm font-medium">{workspaceTasks.filter((task) => task.listName !== "listToDo" && task.listName !== "listInProgress").length}/{workspaceTasks.length}</span>}
         </div>
 
         <div role="tablist" aria-label="Công việc cần làm" className="segmented mb-4">
@@ -111,31 +113,39 @@ export function JourneyControls({
                 Giờ thức dậy cố định: <span className="tabular font-semibold">{wakeTime}</span>
               </div>
             )}
-            {missions.length === 0 ? (
-              <Empty icon={ListChecks} text="Chưa có nội dung mission cho ngày này." />
+            {workspaceTasks.length === 0 ? (
+              <Empty icon={ListChecks} text={t.journey.emptyWorkspaceToday} />
             ) : (
               <ul className="divide-y divide-line">
-                {missions.map((mission) => (
-                  <li key={mission.id} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
-                    <button
-                      type="button"
-                      className={`icon-btn mt-0.5 shrink-0 ${mission.completed ? "bg-ink text-bg" : ""}`}
-                      aria-label={mission.completed ? "Đã hoàn thành" : `Hoàn thành: ${mission.title}`}
-                      disabled={closed || mission.completed || pending}
-                      onClick={() => exec(() => completeJourneyMission(mission.id), { success: "Đã ghi nhận nhiệm vụ.", onSuccess: refresh })}
-                    >
-                      <Check className="size-4" aria-hidden />
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                        <h3 className={`font-medium ${mission.completed ? "text-muted line-through" : ""}`}>{mission.title}</h3>
-                        <span className="tabular text-xs text-muted">{mission.suggestedMinutes ?? "-"} phút · {mission.xpReward} XP</span>
+                {workspaceTasks.map((task) => {
+                  const pendingReview = task.listName === "listReview";
+                  const done = pendingReview || task.completedAt != null;
+                  return (
+                    <li key={task.id} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
+                      <button
+                        type="button"
+                        className={`icon-btn mt-0.5 shrink-0 ${done ? "bg-ink text-bg" : ""}`}
+                        aria-label={pendingReview ? "Đang chờ duyệt" : done ? "Đã hoàn thành" : `Hoàn thành: ${task.title}`}
+                        disabled={closed || done || pending}
+                        onClick={() => exec(() => completeJourneyWorkspaceCard(task.id), { success: t.journey.workspaceTaskCompleted, onSuccess: refresh })}
+                      >
+                        <Check className="size-4" aria-hidden />
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                          <h3 className={`flex items-center gap-2 font-medium ${done && !pendingReview ? "text-muted line-through" : ""}`}>
+                            {task.title}
+                            {pendingReview && <span className="badge bg-ochre/15 text-ochre-ink">{t.journey.workspaceTaskPendingReview}</span>}
+                          </h3>
+                          <span className="tabular text-xs text-muted">
+                            {task.dueDate ? new Date(task.dueDate).toLocaleDateString("vi-VN") : "Không có hạn"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-muted">{task.boardName} · {WORK_LIST_LABEL[task.listName] ?? task.listName}</p>
                       </div>
-                      <p className="mt-1 text-sm leading-6 text-ink-2">{mission.description}</p>
-                      <p className="mt-1 text-xs text-muted">Hoàn thành khi: {mission.completionCriteria}</p>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
             {todayHabits.length > 0 && (
@@ -170,29 +180,6 @@ export function JourneyControls({
           </div>
         )}
       </section>
-
-      {recoveryMissions.length > 0 && (
-        <section className="card border-l-4 border-l-ochre" aria-labelledby="recovery-missions">
-          <div className="mb-4 flex items-center gap-3">
-            <span className="icon-btn icon-btn-plain text-ochre-ink"><RotateCcw className="size-5" aria-hidden /></span>
-            <div>
-              <p className="text-xs font-semibold uppercase text-muted">{t.journey.levelRecoveryEyebrow}</p>
-              <h2 id="recovery-missions" className="card-title text-xl">Nhiệm vụ còn thiếu trong chặng</h2>
-            </div>
-          </div>
-          <p className="text-sm text-ink-2">Hoàn thành những mission còn thiếu để đạt ngưỡng mở khóa Level. Không tạo thêm việc trong Workspace.</p>
-          <ul className="mt-3 divide-y divide-line border-y border-line">
-            {recoveryMissions.map((mission) => (
-              <li key={mission.id} className="flex items-start gap-3 py-3">
-                <button type="button" className="icon-btn mt-0.5 shrink-0" aria-label={`Hoàn thành: ${mission.title}`} disabled={closed || pending} onClick={() => exec(() => completeJourneyMission(mission.id), { success: "Đã ghi nhận mission phục hồi.", onSuccess: refresh })}>
-                  <Check className="size-4" aria-hidden />
-                </button>
-                <div><p className="font-medium">{mission.title}</p><p className="mt-1 text-sm text-ink-2">{mission.description}</p><p className="mt-1 text-xs text-muted">Ngày {mission.dayInLevel} · {mission.xpReward} XP</p></div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       <PersonalMissionControls missions={personalMissions} disabled={closed} />
 
@@ -265,7 +252,7 @@ export function JourneyControls({
           <button
             type="button"
             className="btn btn-soft"
-            disabled={pending || missions.some((mission) => mission.completed)}
+            disabled={pending || workspaceTasks.some((task) => task.listName !== "listToDo" && task.listName !== "listInProgress")}
             onClick={() => exec(() => setJourneyRestDay(restReason), { success: "Đã ghi nhận ngày nghỉ, không trừ điểm.", onSuccess: refresh })}
           >
             <MoonStar className="size-4" aria-hidden /> Ghi nhận ngày nghỉ

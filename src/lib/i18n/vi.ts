@@ -709,6 +709,9 @@ const vi = {
     journeyDayAlreadyClosed: "Ngày này đã được ghi nhận rồi, tải lại trang để xem.",
     journeyNotActive: "Hành trình hiện không ở trạng thái đang diễn ra.",
     restAfterProgress: "Đã có hoạt động hôm nay (thói quen hoặc việc Workspace) thì không ghi nhận được ngày nghỉ nữa.",
+    workspaceTaskCompleted: "Đã ghi nhận.",
+    workspaceTaskPendingReview: "Đang chờ duyệt",
+    emptyWorkspaceToday: "Chưa có việc Workspace nào đến hạn hôm nay.",
   },
 };
 
