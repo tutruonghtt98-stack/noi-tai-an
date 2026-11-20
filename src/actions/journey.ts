@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
+import { moveWorkCard } from "@/actions/work";
 import { toDbDate, todayISO } from "@/lib/dates";
 import { getJourneyDashboard } from "@/lib/journey-queries";
 import { getJourneyLevelGate } from "@/lib/journey-calendar";
@@ -587,6 +588,30 @@ export async function completeJourneyDay(reflection?: z.input<typeof reflectionS
     revalidatePath("/journey");
     revalidatePath("/dashboard");
     return undefined;
+  });
+}
+
+/** Tích nhanh 1 thẻ Workspace ngay từ Hành trình — chỉ chọn list đích rồi giao hẳn cho
+ * `moveWorkCard` xử lý (quyền, tính điểm kỷ luật, snapshot…), không tự ghi DB ở đây. */
+export async function completeJourneyWorkspaceCard(cardId: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const id = z.string().min(1).parse(cardId);
+
+    const card = await db.workCard.findUnique({
+      where: { id },
+      select: { listId: true, list: { select: { boardId: true, board: { select: { userId: true } } } } },
+    });
+    if (!card) throw new UserError("VALIDATION");
+
+    const isOwner = card.list.board.userId === user.id;
+    const targetList = await db.workList.findFirst({
+      where: { boardId: card.list.boardId, name: isOwner ? "listDone" : "listReview" },
+      select: { id: true },
+    });
+    if (!targetList) throw new UserError("VALIDATION");
+
+    return moveWorkCard(id, targetList.id);
   });
 }
 
