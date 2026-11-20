@@ -433,27 +433,33 @@ export async function submitJourneyLevelReview(input: z.input<typeof levelReview
     });
     if (!completedFinalDay) throw new UserError("LEVEL_REVIEW_NOT_READY");
 
-    const [totalMissions, completedMissions, monthlyChallenge, monthlyCompletion, completedTasks, onTimeTransactions] = await Promise.all([
-      db.journeyMission.count({ where: { levelId: dashboard.level.id, active: true } }),
-      db.journeyMissionCompletion.count({ where: { journeyId: dashboard.journey.id, mission: { levelId: dashboard.level.id, active: true } } }),
+    const totalUnits = dashboard.level.endDay - dashboard.level.startDay + 1;
+    const [completedUnits, monthlyChallenge, monthlyCompletion, completedTasks, onTimeTransactions] = await Promise.all([
+      db.journeyDayRecord.count({
+        where: {
+          journeyId: dashboard.journey.id,
+          journeyDay: { gte: dashboard.level.startDay, lte: dashboard.level.endDay },
+          status: { in: ["COMPLETED", "REST"] },
+        },
+      }),
       db.journeyMonthlyChallenge.findUnique({ where: { levelId: dashboard.level.id }, select: { id: true } }),
       db.journeyMonthlyChallengeCompletion.findFirst({ where: { journeyId: dashboard.journey.id, challenge: { levelId: dashboard.level.id }, passed: true }, select: { id: true } }),
       db.disciplineTransaction.count({ where: { journeyId: dashboard.journey.id, eventType: "WORK_COMPLETED_EARLY" } }),
       db.disciplineTransaction.count({ where: { journeyId: dashboard.journey.id, eventType: "WORK_COMPLETED_ON_TIME" } }),
     ]);
     const gate = getJourneyLevelGate({
-      completedMissions,
-      totalMissions,
+      completedUnits,
+      totalUnits,
       thresholdPercent: dashboard.level.completionThreshold,
       monthlyChallengeCompleted: !monthlyChallenge || !!monthlyCompletion,
       reviewPassed: false,
     });
-    if (!gate.missionsPassed || !gate.monthlyChallengePassed) throw new UserError("LEVEL_REQUIREMENTS_INCOMPLETE");
+    if (!gate.activityPassed || !gate.monthlyChallengePassed) throw new UserError("LEVEL_REQUIREMENTS_INCOMPLETE");
 
     const reportSnapshot = {
       completionRate: gate.completionRate,
-      completedMissions,
-      totalMissions,
+      completedUnits,
+      totalUnits,
       workspaceCompletedEarly: completedTasks,
       workspaceCompletedOnTime: onTimeTransactions,
       disciplinePoints: await db.disciplineTransaction.aggregate({ where: { journeyId: dashboard.journey.id }, _sum: { points: true } }).then((result) => result._sum.points ?? 0),
