@@ -41,16 +41,22 @@ export async function getJourneyDashboard(user: CurrentUser) {
         where: { programId: current.programId, startDay: { lte: current.currentDay }, endDay: { gte: current.currentDay } },
       });
       if (currentLevel && current.currentDay === currentLevel.endDay) {
-        const [totalMissions, completedMissions, monthlyChallenge, monthlyCompletion, review] = await Promise.all([
-          tx.journeyMission.count({ where: { levelId: currentLevel.id, active: true } }),
-          tx.journeyMissionCompletion.count({ where: { journeyId: current.id, mission: { levelId: currentLevel.id, active: true } } }),
+        const totalUnits = currentLevel.endDay - currentLevel.startDay + 1;
+        const [completedUnits, monthlyChallenge, monthlyCompletion, review] = await Promise.all([
+          tx.journeyDayRecord.count({
+            where: {
+              journeyId: current.id,
+              journeyDay: { gte: currentLevel.startDay, lte: currentLevel.endDay },
+              status: { in: ["COMPLETED", "REST"] },
+            },
+          }),
           tx.journeyMonthlyChallenge.findUnique({ where: { levelId: currentLevel.id }, select: { id: true } }),
           tx.journeyMonthlyChallengeCompletion.findFirst({ where: { journeyId: current.id, challenge: { levelId: currentLevel.id }, passed: true }, select: { id: true } }),
           tx.journeyLevelReview.findUnique({ where: { journeyId_levelId: { journeyId: current.id, levelId: currentLevel.id } }, select: { passed: true } }),
         ]);
         const gate = getJourneyLevelGate({
-          completedMissions,
-          totalMissions,
+          completedUnits,
+          totalUnits,
           thresholdPercent: currentLevel.completionThreshold,
           monthlyChallengeCompleted: !monthlyChallenge || !!monthlyCompletion,
           reviewPassed: !!review?.passed,
@@ -104,7 +110,7 @@ export async function getJourneyDashboard(user: CurrentUser) {
   if (journey.status === "COMPLETED") {
     await syncJourneyAchievements(user.id);
     const achievements = await db.journeyAchievement.findMany({ where: { journeyId: journey.id }, include: { definition: true }, orderBy: { awardedAt: "asc" } });
-      return { journey, today, level: null, dayRecord: null, missions: [], recoveryMissions: [], dailyChallenge: null, weeklyChallenge: null, monthlyChallenge: null, levelReview: null, achievements, habits: [], workspaceCards: [], dailyScore: 0, weekNumber: 0, completedWeeklyOptionIds: [] };
+      return { journey, today, level: null, dayRecord: null, dailyChallenge: null, weeklyChallenge: null, monthlyChallenge: null, levelReview: null, achievements, habits: [], workspaceCards: [], workspaceTasks: [], dailyScore: 0, weekNumber: 0, completedWeeklyOptionIds: [] };
   }
   const dayNumber = Math.min(journey.currentDay, journey.program.durationDays);
   const [level, dailyChallenge] = await Promise.all([
@@ -116,11 +122,10 @@ export async function getJourneyDashboard(user: CurrentUser) {
     }),
   ]);
 
-  if (!level) return { journey, today, level: null, dayRecord: null, missions: [], recoveryMissions: [], dailyChallenge: null, weeklyChallenge: null, monthlyChallenge: null, levelReview: null, achievements: [], habits: [], workspaceCards: [], dailyScore: 0, weekNumber: 0, completedWeeklyOptionIds: [] };
+  if (!level) return { journey, today, level: null, dayRecord: null, dailyChallenge: null, weeklyChallenge: null, monthlyChallenge: null, levelReview: null, achievements: [], habits: [], workspaceCards: [], workspaceTasks: [], dailyScore: 0, weekNumber: 0, completedWeeklyOptionIds: [] };
 
-  const dayInLevel = dayNumber - level.startDay + 1;
   const weekNumber = getJourneyWeekNumber(level.number, level.startDay, dayNumber);
-  const [dayRecord, missions, weeklyChallenge, monthlyChallenge, levelReview, habits, workspaceCards, workspaceDue, commitmentChecks] = await Promise.all([
+  const [dayRecord, weeklyChallenge, monthlyChallenge, levelReview, habits, workspaceCards, workspaceDue, commitmentChecks] = await Promise.all([
     db.journeyDayRecord.upsert({
       where: { journeyId_date: { journeyId: journey.id, date: todayDate } },
       update: {},
@@ -131,11 +136,6 @@ export async function getJourneyDashboard(user: CurrentUser) {
         ...(dailyChallenge ? { dailyChallengeId: dailyChallenge.id } : {}),
       },
       include: { reflection: true, expense: true },
-    }),
-    db.journeyMission.findMany({
-      where: { levelId: level.id, dayInLevel, active: true },
-      orderBy: { sequence: "asc" },
-      include: { completions: { where: { journeyId: journey.id }, select: { id: true, completedAt: true } } },
     }),
     db.journeyWeeklyChallenge.findUnique({
       where: { programId_weekNumber: { programId: journey.programId, weekNumber } },
@@ -181,22 +181,15 @@ export async function getJourneyDashboard(user: CurrentUser) {
     where: { journeyId: journey.id, OR: [{ dayRecordId: dayRecord.id }, { dayRecordId: null }] },
     orderBy: { createdAt: "asc" },
   });
-  const recoveryMissions = dayNumber === level.endDay
-    ? await db.journeyMission.findMany({
-        where: { levelId: level.id, active: true, completions: { none: { journeyId: journey.id } } },
-        orderBy: [{ dayInLevel: "asc" }, { sequence: "asc" }],
-        include: { completions: { where: { journeyId: journey.id }, select: { id: true, completedAt: true } } },
-      })
-    : [];
-
-  const missionCompletions = missions.filter((mission) => mission.completions.length > 0).length;
   const dueHabits = habits.filter((habit) => habit.stats.scheduledToday);
   const doneHabits = dueHabits.filter((habit) => habit.stats.doneToday);
   const dueWorkspace = workspaceDue.filter((card) => card.dueDate);
   const completedOnTime = dueWorkspace.filter((card) => card.completedAt && card.completedAt <= card.dueDate!).length;
   const dailyScore = calculateJourneyDailyScore({
-    missionsDone: missionCompletions,
-    missionsDue: missions.length,
+    // Không còn Nhiệm vụ chính: due = 0 khiến thành phần này bị loại và trọng số
+    // được chia lại cho thói quen/Workspace.
+    missionsDone: 0,
+    missionsDue: 0,
     habitsDone: doneHabits.length,
     habitsDue: dueHabits.length,
     workspaceOnTime: completedOnTime,
@@ -218,8 +211,6 @@ export async function getJourneyDashboard(user: CurrentUser) {
     today,
     level,
     dayRecord,
-    missions,
-    recoveryMissions,
     personalMissions,
     dailyChallenge,
     weeklyChallenge,
@@ -229,7 +220,45 @@ export async function getJourneyDashboard(user: CurrentUser) {
     achievements,
     habits,
     workspaceCards,
+    workspaceTasks: workspaceCards.map((card) => ({
+      id: card.id,
+      title: card.title,
+      dueDate: card.dueDate,
+      completedAt: card.completedAt,
+      listName: card.list.name,
+      boardName: card.list.board.name,
+    })),
     dailyScore,
     completedWeeklyOptionIds: commitmentChecks.map((c) => c.optionId),
   };
+}
+
+/**
+ * Tín hiệu "hôm nay đã có hoạt động" của Hành trình: có ít nhất 1 thói quen
+ * cam kết hôm nay đã làm, hoặc người dùng đã tích/gửi 1 việc Workspace hôm
+ * nay (WorkCardEvent chuyển sang "listReview"/"listDone" do chính họ thực hiện).
+ * Dùng WorkCardEvent thay vì completedAt vì người được giao không phải chủ bảng
+ * tích xong thì thẻ chỉ sang "Xem lại" — completedAt vẫn null.
+ */
+export async function hasJourneyActivityToday(
+  user: CurrentUser,
+  dashboard: NonNullable<Awaited<ReturnType<typeof getJourneyDashboard>>>,
+): Promise<boolean> {
+  const habitDone = dashboard.habits.some((habit) => habit.stats.scheduledToday && habit.stats.doneToday);
+  if (habitDone) return true;
+
+  // occurredAt là mốc thời gian thật, nên "hôm nay" phải tính theo múi giờ của
+  // hành trình: lấy cửa sổ rộng (đủ phủ mọi múi giờ UTC-12..UTC+14) rồi lọc lại
+  // bằng isoInZone, tránh lệch ngày ở các giờ đầu/cuối ngày địa phương.
+  const timeZone = dashboard.journey.timezone;
+  const today = todayISO(timeZone);
+  const events = await db.workCardEvent.findMany({
+    where: {
+      actorUserId: user.id,
+      occurredAt: { gte: toDbDate(addDays(today, -1)), lt: toDbDate(addDays(today, 2)) },
+      toStatus: { in: ["listReview", "listDone"] },
+    },
+    select: { occurredAt: true },
+  });
+  return events.some((event) => isoInZone(event.occurredAt, timeZone) === today);
 }
