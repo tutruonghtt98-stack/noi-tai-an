@@ -62,8 +62,8 @@ test("marks the journey complete after day 180 is completed", () => {
 
 test("requires all configured criteria before advancing a level", () => {
   const gate = getJourneyLevelGate({
-    completedMissions: 68,
-    totalMissions: 90,
+    completedUnits: 68,
+    totalUnits: 90,
     thresholdPercent: 75,
     monthlyChallengeCompleted: true,
     reviewPassed: true,
@@ -75,8 +75,8 @@ test("requires all configured criteria before advancing a level", () => {
 
 test("keeps the level available for recovery when any criterion is missing", () => {
   const gate = getJourneyLevelGate({
-    completedMissions: 60,
-    totalMissions: 90,
+    completedUnits: 60,
+    totalUnits: 90,
     thresholdPercent: 75,
     monthlyChallengeCompleted: false,
     reviewPassed: true,

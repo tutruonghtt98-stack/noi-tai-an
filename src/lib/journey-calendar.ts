@@ -15,22 +15,22 @@ export function getJourneyWeekNumber(levelNumber: number, levelStartDay: number,
 }
 
 export function getJourneyLevelGate(input: {
-  completedMissions: number;
-  totalMissions: number;
+  completedUnits: number;
+  totalUnits: number;
   thresholdPercent: number;
   monthlyChallengeCompleted: boolean;
   reviewPassed: boolean;
 }) {
-  const completionRate = input.totalMissions > 0
-    ? Math.round((Math.min(input.completedMissions, input.totalMissions) / input.totalMissions) * 100)
+  const completionRate = input.totalUnits > 0
+    ? Math.round((Math.min(input.completedUnits, input.totalUnits) / input.totalUnits) * 100)
     : 0;
-  const missionsPassed = completionRate >= input.thresholdPercent;
+  const activityPassed = completionRate >= input.thresholdPercent;
   return {
     completionRate,
-    missionsPassed,
+    activityPassed,
     monthlyChallengePassed: input.monthlyChallengeCompleted,
     reviewPassed: input.reviewPassed,
-    canAdvance: missionsPassed && input.monthlyChallengeCompleted && input.reviewPassed,
+    canAdvance: activityPassed && input.monthlyChallengeCompleted && input.reviewPassed,
   };
 }
 
