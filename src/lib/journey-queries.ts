@@ -258,7 +258,12 @@ export async function hasJourneyActivityToday(
       occurredAt: { gte: toDbDate(addDays(today, -1)), lt: toDbDate(addDays(today, 2)) },
       toStatus: { in: ["listReview", "listDone"] },
     },
-    select: { occurredAt: true },
+    select: { occurredAt: true, fromStatus: true, toStatus: true },
   });
-  return events.some((event) => isoInZone(event.occurredAt, timeZone) === today);
+  // toStatus được ghi trên MỌI sự kiện của thẻ (kể cả chỉ sửa tiêu đề/hạn khi thẻ
+  // đã nằm sẵn ở "Xem lại"/"Hoàn thành"), nên chỉ tính khi thẻ thực sự chuyển
+  // vào cột đó (fromStatus khác toStatus; tạo thẻ thẳng vào cột thì fromStatus = null).
+  return events.some(
+    (event) => event.fromStatus !== event.toStatus && isoInZone(event.occurredAt, timeZone) === today,
+  );
 }
