@@ -704,7 +704,7 @@ const vi = {
     journeyXp: "Điểm kinh nghiệm",
     dailyScoreLabel: "Điểm ngày",
     level: "CẤP",
-    missionRequired: "Cần hoàn thành ít nhất 1 Nhiệm vụ chính trước khi hoàn thành ngày.",
+    missionRequired: "Cần hoàn thành ít nhất 1 thói quen hoặc 1 việc Workspace đến hạn hôm nay trước khi hoàn thành ngày.",
     reflectionRequired: "Hãy điền nhật ký (ít nhất tâm trạng) trước khi hoàn thành ngày.",
     journeyDayAlreadyClosed: "Ngày này đã được ghi nhận rồi, tải lại trang để xem.",
     journeyNotActive: "Hành trình hiện không ở trạng thái đang diễn ra.",

@@ -23,7 +23,7 @@ export function useAction() {
       if (code === "CHALLENGE_CRITERIA_INCOMPLETE") return "Hãy tick đủ tất cả tiêu chí trước khi xác nhận.";
       if (code === "ATTACHMENT_LIMIT") return t.work.workspace.attachmentLimitReached;
       if (code === "ASSIGNEE_LIMIT") return t.work.workspace.cardAssigneeLimit;
-      if (code === "MISSION_REQUIRED") return t.journey.missionRequired;
+      if (code === "DAILY_ACTIVITY_REQUIRED") return t.journey.missionRequired;
       if (code === "REFLECTION_REQUIRED") return t.journey.reflectionRequired;
       if (code === "JOURNEY_DAY_ALREADY_CLOSED") return t.journey.journeyDayAlreadyClosed;
       if (code === "JOURNEY_NOT_ACTIVE") return t.journey.journeyNotActive;

@@ -8,7 +8,7 @@ import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
 import { moveWorkCard } from "@/actions/work";
 import { toDbDate, todayISO } from "@/lib/dates";
-import { getJourneyDashboard } from "@/lib/journey-queries";
+import { getJourneyDashboard, hasJourneyActivityToday } from "@/lib/journey-queries";
 import { getJourneyLevelGate } from "@/lib/journey-calendar";
 import { syncJourneyAchievements } from "@/lib/journey-achievements";
 import { JOURNEY_GOAL_DOMAINS, findGoalOption, weeklyCommitmentOptions, monthlyCommitmentLabels, parseJourneyCommitments } from "@/lib/journey-goal-domains";
@@ -572,10 +572,7 @@ export async function completeJourneyDay(reflection?: z.input<typeof reflectionS
       throw new UserError("REFLECTION_REQUIRED");
     }
 
-    const completedMissions = dashboard.journey.currentDay === dashboard.level?.endDay && dashboard.level
-      ? await db.journeyMissionCompletion.count({ where: { journeyId: dashboard.journey.id, mission: { levelId: dashboard.level.id, active: true } } })
-      : await db.journeyMissionCompletion.count({ where: { journeyId: dashboard.journey.id, dayRecordId: dashboard.dayRecord.id } });
-    if (completedMissions === 0) throw new UserError("MISSION_REQUIRED");
+    if (!(await hasJourneyActivityToday(user, dashboard))) throw new UserError("DAILY_ACTIVITY_REQUIRED");
 
     const today = toDbDate(todayISO(dashboard.journey.timezone));
     const result = await db.journeyDayRecord.updateMany({
@@ -624,8 +621,7 @@ export async function setJourneyRestDay(reason = "") {
     const dashboard = await getJourneyDashboard(user);
     if (!dashboard?.dayRecord || dashboard.dayRecord.status !== "IN_PROGRESS") throw new UserError("JOURNEY_NOT_ACTIVE");
 
-    const completedMissions = await db.journeyMissionCompletion.count({ where: { journeyId: dashboard.journey.id, dayRecordId: dashboard.dayRecord.id } });
-    if (completedMissions) throw new UserError("REST_AFTER_PROGRESS");
+    if (await hasJourneyActivityToday(user, dashboard)) throw new UserError("REST_AFTER_PROGRESS");
 
     const result = await db.journeyDayRecord.updateMany({
       where: { id: dashboard.dayRecord.id, status: "IN_PROGRESS" },
