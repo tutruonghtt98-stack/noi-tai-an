@@ -611,7 +611,9 @@ export async function completeJourneyWorkspaceCard(cardId: string) {
     });
     if (!targetList) throw new UserError("VALIDATION");
 
-    return moveWorkCard(id, targetList.id);
+    const res = await moveWorkCard(id, targetList.id);
+    if (!res.ok) throw new UserError(res.error);
+    return res.data;
   });
 }
 
