@@ -708,7 +708,7 @@ const vi = {
     reflectionRequired: "Hãy điền nhật ký (ít nhất tâm trạng) trước khi hoàn thành ngày.",
     journeyDayAlreadyClosed: "Ngày này đã được ghi nhận rồi, tải lại trang để xem.",
     journeyNotActive: "Hành trình hiện không ở trạng thái đang diễn ra.",
-    restAfterProgress: "Đã hoàn thành nhiệm vụ hôm nay thì không ghi nhận được ngày nghỉ nữa.",
+    restAfterProgress: "Đã có hoạt động hôm nay (thói quen hoặc việc Workspace) thì không ghi nhận được ngày nghỉ nữa.",
   },
 };
 
