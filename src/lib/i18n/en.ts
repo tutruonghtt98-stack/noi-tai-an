@@ -714,6 +714,7 @@ const en: Dict = {
     workspaceTaskCompleted: "Recorded.",
     workspaceTaskPendingReview: "Pending review",
     emptyWorkspaceToday: "No Workspace task due today yet.",
+    workspaceTaskNoDueDate: "No due date",
   },
 };
 

@@ -27,13 +27,6 @@ import {
 import { useAction } from "@/lib/use-action";
 import { useI18n } from "@/lib/i18n/client";
 
-const WORK_LIST_LABEL: Record<string, string> = {
-  listToDo: "Cần làm",
-  listInProgress: "Đang làm",
-  listReview: "Xem lại",
-  listDone: "Hoàn thành",
-};
-
 type WorkspaceTask = {
   id: string;
   title: string;
@@ -97,7 +90,7 @@ export function JourneyControls({
               <h2 id="core-missions" className="card-title text-xl">Công việc cần làm</h2>
             </div>
           </div>
-          {coreTab === "day" && <span className="tabular rounded-full bg-surface-2 px-2.5 py-1 text-sm font-medium">{workspaceTasks.filter((task) => task.listName !== "listToDo" && task.listName !== "listInProgress").length}/{workspaceTasks.length}</span>}
+          {coreTab === "day" && <span className="tabular rounded-full bg-surface-2 px-2.5 py-1 text-sm font-medium">{workspaceTasks.filter((task) => task.listName === "listReview" || task.completedAt != null).length}/{workspaceTasks.length}</span>}
         </div>
 
         <div role="tablist" aria-label="Công việc cần làm" className="segmented mb-4">
@@ -125,7 +118,7 @@ export function JourneyControls({
                       <button
                         type="button"
                         className={`icon-btn mt-0.5 shrink-0 ${done ? "bg-ink text-bg" : ""}`}
-                        aria-label={pendingReview ? "Đang chờ duyệt" : done ? "Đã hoàn thành" : `Hoàn thành: ${task.title}`}
+                        aria-label={pendingReview ? t.journey.workspaceTaskPendingReview : done ? "Đã hoàn thành" : `Hoàn thành: ${task.title}`}
                         disabled={closed || done || pending}
                         onClick={() => exec(() => completeJourneyWorkspaceCard(task.id), { success: t.journey.workspaceTaskCompleted, onSuccess: refresh })}
                       >
@@ -138,10 +131,10 @@ export function JourneyControls({
                             {pendingReview && <span className="badge bg-ochre/15 text-ochre-ink">{t.journey.workspaceTaskPendingReview}</span>}
                           </h3>
                           <span className="tabular text-xs text-muted">
-                            {task.dueDate ? new Date(task.dueDate).toLocaleDateString("vi-VN") : "Không có hạn"}
+                            {task.dueDate ? new Date(task.dueDate).toLocaleDateString("vi-VN") : t.journey.workspaceTaskNoDueDate}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs text-muted">{task.boardName} · {WORK_LIST_LABEL[task.listName] ?? task.listName}</p>
+                        <p className="mt-1 text-xs text-muted">{task.boardName} · {t.work.workspace[task.listName as keyof typeof t.work.workspace] ?? task.listName}</p>
                       </div>
                     </li>
                   );
@@ -252,7 +245,7 @@ export function JourneyControls({
           <button
             type="button"
             className="btn btn-soft"
-            disabled={pending || workspaceTasks.some((task) => task.listName !== "listToDo" && task.listName !== "listInProgress")}
+            disabled={pending || workspaceTasks.some((task) => task.listName === "listReview" || task.completedAt != null)}
             onClick={() => exec(() => setJourneyRestDay(restReason), { success: "Đã ghi nhận ngày nghỉ, không trừ điểm.", onSuccess: refresh })}
           >
             <MoonStar className="size-4" aria-hidden /> Ghi nhận ngày nghỉ

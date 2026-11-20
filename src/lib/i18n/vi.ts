@@ -712,6 +712,7 @@ const vi = {
     workspaceTaskCompleted: "Đã ghi nhận.",
     workspaceTaskPendingReview: "Đang chờ duyệt",
     emptyWorkspaceToday: "Chưa có việc Workspace nào đến hạn hôm nay.",
+    workspaceTaskNoDueDate: "Không có hạn",
   },
 };
 
