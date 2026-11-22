@@ -27,6 +27,7 @@ import {
 } from "@/actions/journey";
 import { useAction } from "@/lib/use-action";
 import { useI18n } from "@/lib/i18n/client";
+import { fmt } from "@/lib/i18n/format";
 
 type WorkspaceTask = {
   id: string;
@@ -149,13 +150,16 @@ export function JourneyControls({
                     <button
                       type="button"
                       className="btn btn-soft"
-                      disabled={pending}
+                      disabled={closed || pending}
                       onClick={() => exec(() => confirmWakeUpToday(), { success: t.journey.wakeUpConfirmed, onSuccess: refresh })}
                     >
                       <Check className="size-4" aria-hidden /> {t.journey.confirmWakeUp}
                     </button>
                   )}
                 </div>
+              )}
+              {wakeTime && !wakeConfirmedAt && (
+                <p className="text-xs text-muted">{fmt(t.journey.confirmWakeUpBy, { wakeTime })}</p>
               )}
             </div>
             {workspaceTasks.length === 0 ? (

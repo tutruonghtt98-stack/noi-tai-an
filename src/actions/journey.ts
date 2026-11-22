@@ -136,9 +136,28 @@ export async function updateJourneyWakeTime(wakeTime: string) {
     const journey = await db.userJourney.findFirst({
       where: { userId: user.id, status: "ACTIVE" },
       orderBy: { joinedAt: "desc" },
-      select: { id: true, commitments: true },
+      select: {
+        id: true,
+        commitments: true,
+        timezone: true,
+        days: {
+          where: { date: toDbDate(todayISO(user.timezone)), status: "IN_PROGRESS", wakeConfirmedAt: null },
+          select: { id: true },
+          take: 1,
+        },
+      },
     });
     if (!journey) throw new UserError("JOURNEY_NOT_ACTIVE");
+
+    // Chặn việc "né" deadline đã lỡ: nếu hôm nay chưa xác nhận và giờ cam kết hiện tại đã trôi qua,
+    // không cho đổi giờ cam kết nữa (tránh dời giờ cam kết ra muộn hơn rồi xác nhận lại ngay).
+    if (journey.days.length) {
+      const committedWakeTime = getCommittedWakeTime(journey.commitments);
+      if (committedWakeTime && timeInZone(new Date(), journey.timezone) > committedWakeTime) {
+        throw new UserError("WAKE_TIME_EDIT_TOO_LATE");
+      }
+    }
+
     const existing = parseJourneyCommitments(journey.commitments) ?? {};
     await db.userJourney.update({
       where: { id: journey.id },

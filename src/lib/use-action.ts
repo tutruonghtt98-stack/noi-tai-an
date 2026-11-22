@@ -29,6 +29,7 @@ export function useAction() {
       if (code === "JOURNEY_NOT_ACTIVE") return t.journey.journeyNotActive;
       if (code === "REST_AFTER_PROGRESS") return t.journey.restAfterProgress;
       if (code === "WAKE_UP_TOO_LATE") return t.journey.wakeUpTooLate;
+      if (code === "WAKE_TIME_EDIT_TOO_LATE") return t.journey.wakeTimeEditTooLate;
       return t.common.error;
     },
     [t],
