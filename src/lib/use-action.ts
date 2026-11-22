@@ -28,6 +28,7 @@ export function useAction() {
       if (code === "JOURNEY_DAY_ALREADY_CLOSED") return t.journey.journeyDayAlreadyClosed;
       if (code === "JOURNEY_NOT_ACTIVE") return t.journey.journeyNotActive;
       if (code === "REST_AFTER_PROGRESS") return t.journey.restAfterProgress;
+      if (code === "WAKE_UP_TOO_LATE") return t.journey.wakeUpTooLate;
       return t.common.error;
     },
     [t],

@@ -7,11 +7,11 @@ import type { Prisma } from "@/generated/prisma/client";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
 import { moveWorkCard } from "@/actions/work";
-import { toDbDate, todayISO } from "@/lib/dates";
+import { toDbDate, todayISO, timeInZone } from "@/lib/dates";
 import { getJourneyDashboard, hasJourneyActivityToday } from "@/lib/journey-queries";
 import { getJourneyLevelGate } from "@/lib/journey-calendar";
 import { syncJourneyAchievements } from "@/lib/journey-achievements";
-import { JOURNEY_GOAL_DOMAINS, findGoalOption, weeklyCommitmentOptions, monthlyCommitmentLabels, parseJourneyCommitments } from "@/lib/journey-goal-domains";
+import { JOURNEY_GOAL_DOMAINS, findGoalOption, weeklyCommitmentOptions, monthlyCommitmentLabels, parseJourneyCommitments, getCommittedWakeTime } from "@/lib/journey-goal-domains";
 import { limitsFor } from "@/lib/plan";
 
 const optionIds = z.array(z.string().min(1).max(60)).max(12).optional();
@@ -592,5 +592,29 @@ export async function setJourneyRestDay(reason = "") {
     revalidatePath("/journey");
     revalidatePath("/dashboard");
     return undefined;
+  });
+}
+
+/** Xác nhận "đã thức dậy" hôm nay — kiểm tra giờ thật ở server so với giờ cam kết
+ * (nếu có đặt), không tin giờ client gửi lên. No-op (trả false) nếu đã xác nhận rồi. */
+export async function confirmWakeUpToday() {
+  return run(async () => {
+    const user = await requireUser();
+    const dashboard = await getJourneyDashboard(user);
+    if (!dashboard?.dayRecord || dashboard.dayRecord.status !== "IN_PROGRESS") throw new UserError("JOURNEY_NOT_ACTIVE");
+
+    if (dashboard.dayRecord.wakeConfirmedAt) return false;
+
+    const wakeTime = getCommittedWakeTime(dashboard.journey.commitments);
+    if (wakeTime && timeInZone(new Date(), dashboard.journey.timezone) > wakeTime) {
+      throw new UserError("WAKE_UP_TOO_LATE");
+    }
+
+    await db.journeyDayRecord.update({
+      where: { id: dashboard.dayRecord.id },
+      data: { wakeConfirmedAt: new Date() },
+    });
+    revalidatePath("/journey");
+    return true;
   });
 }

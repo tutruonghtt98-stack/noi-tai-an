@@ -712,6 +712,7 @@ const en: Dict = {
     journeyDayAlreadyClosed: "This day is already recorded — reload the page to see it.",
     journeyNotActive: "This journey is not currently in progress.",
     restAfterProgress: "You already have activity today (a habit or a Workspace task), so this can't be marked a rest day.",
+    wakeUpTooLate: "You're past your committed time — can't confirm wake-up for today anymore.",
     workspaceTaskCompleted: "Recorded.",
     workspaceTaskPendingReview: "Pending review",
     emptyWorkspaceToday: "No Workspace task due today yet.",
