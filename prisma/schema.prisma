@@ -778,6 +778,7 @@ model JourneyDayRecord {
   dailyChallengeCompletedAt DateTime?
   restReason               String?
   completedAt              DateTime?
+  wakeConfirmedAt          DateTime?
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   journey                  UserJourney               @relation(fields: [journeyId], references: [id], onDelete: Cascade)
