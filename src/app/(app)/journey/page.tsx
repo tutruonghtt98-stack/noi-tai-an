@@ -112,18 +112,6 @@ export default async function JourneyPage() {
       orderBy: { dayNumber: "desc" },
     }),
   ]);
-  const missions = journey.missions.map((mission) => ({
-    id: mission.id,
-    title: mission.title,
-    description: mission.description,
-    objective: mission.objective,
-    suggestedMinutes: mission.suggestedMinutes,
-    xpReward: mission.xpReward,
-    completionCriteria: mission.completionCriteria,
-    completed: mission.completions.length > 0,
-  }));
-  const missionsDone = missions.filter((m) => m.completed).length;
-
   return (
     <>
       <JourneyMidnightRefresh timezone={journey.journey.timezone} today={journey.today} />
@@ -145,7 +133,7 @@ export default async function JourneyPage() {
           </div>
         </div>
         <div className="flex flex-1 flex-wrap gap-2.5 lg:justify-end">
-          <span className="chip"><span className="chip-num tabular">{missionsDone}/{missions.length}</span> mission hôm nay</span>
+          <span className="chip"><span className="chip-num tabular">{journey.workspaceTasks.filter((task) => task.listName === "listReview" || task.completedAt != null).length}/{journey.workspaceTasks.length}</span> việc Workspace hôm nay</span>
           <span className="chip"><span className="chip-num tabular">{journey.dailyScore}</span> điểm ngày</span>
           <span className="chip"><span className="chip-num tabular">{completedDays}</span> ngày hoàn thành</span>
         </div>
@@ -165,30 +153,19 @@ export default async function JourneyPage() {
         <div className="rounded-[1.5rem] bg-surface-2 p-5">
           <p className="text-sm font-medium text-ink-2">{t.journey.journeyXp}</p>
           <p className="tabular mt-4 text-4xl font-semibold tracking-tight"><CountUp value={xp._sum.xp ?? 0} /></p>
-          <p className="mt-3 text-sm text-muted">từ mission &amp; thử thách</p>
+          <p className="mt-3 text-sm text-muted">từ thử thách &amp; hoạt động</p>
         </div>
         <div className="rounded-[1.5rem] bg-surface-2 p-5">
           <p className="text-sm font-medium text-ink-2">{t.journey.dailyScoreLabel}</p>
           <p className="tabular mt-4 text-4xl font-semibold tracking-tight"><CountUp value={journey.dailyScore} suffix="%" /></p>
-          <p className="mt-3 text-sm text-muted">mission, thói quen, Workspace</p>
+          <p className="mt-3 text-sm text-muted">thói quen, Workspace</p>
         </div>
       </section>
 
       <div className="mt-[var(--gap)] grid gap-[var(--gap)] xl:grid-cols-[minmax(0,1fr)_20rem]">
         <StaggerReveal asChild={false} slide={{ direction: "up", offset: 16 }} holdDelay={60}>
           <JourneyControls
-            missions={missions}
-            recoveryMissions={journey.recoveryMissions.map((mission) => ({
-              id: mission.id,
-              title: mission.title,
-              description: mission.description,
-              objective: mission.objective,
-              suggestedMinutes: mission.suggestedMinutes,
-              xpReward: mission.xpReward,
-              completionCriteria: mission.completionCriteria,
-              completed: false,
-              dayInLevel: mission.dayInLevel,
-            }))}
+            workspaceTasks={journey.workspaceTasks}
             personalMissions={journey.personalMissions}
             dailyChallenge={journey.dailyChallenge ? {
               title: journey.dailyChallenge.title,
@@ -241,25 +218,6 @@ export default async function JourneyPage() {
               <blockquote id="daily-quote" className="mt-2 text-sm leading-6 text-ink-2">
                 “{quote?.quote ?? "Một bước nhỏ có chủ đích vẫn là một bước tiến."}”
               </blockquote>
-            </section>
-
-            <section className="card" aria-labelledby="journey-workspace">
-              <AsideCardHead eyebrow={t.journey.workspaceTasksEyebrow} title="Việc được giao hôm nay" />
-              {journey.workspaceCards.length ? (
-                <ul className="divide-y divide-line border-y border-line">
-                  {journey.workspaceCards.map((card) => (
-                    <li key={card.id}>
-                      <Link href={`/workspace?b=${card.list.board.id}&card=${card.id}`} className="block py-2 text-sm hover:underline">
-                        <span className="font-medium">{card.title}</span>
-                        <span className="mt-0.5 block text-xs text-muted">{card.list.board.name} · {card.list.name}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted">Không có task Workspace trực tiếp được giao đến hạn hôm nay.</p>
-              )}
-              <Link href="/workspace" className="mt-3 inline-flex text-sm font-medium underline underline-offset-4">Mở Workspace</Link>
             </section>
 
             <JourneyReflectionCard dayScore={journey.dailyScore} reflection={journey.dayRecord.reflection} dayStatus={journey.dayRecord.status} />

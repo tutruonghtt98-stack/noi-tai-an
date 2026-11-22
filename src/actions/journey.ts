@@ -148,45 +148,6 @@ export async function updateJourneyWakeTime(wakeTime: string) {
   });
 }
 
-export async function completeJourneyMission(missionId: string) {
-  return run(async () => {
-    const user = await requireUser();
-    const id = z.string().cuid().parse(missionId);
-    const dashboard = await getJourneyDashboard(user);
-    if (!dashboard?.level || !dashboard.dayRecord || dashboard.dayRecord.status !== "IN_PROGRESS") throw new UserError("JOURNEY_NOT_ACTIVE");
-
-    const mission = dashboard.missions.find((item) => item.id === id) ?? dashboard.recoveryMissions.find((item) => item.id === id);
-    if (!mission) throw new UserError("MISSION_NOT_AVAILABLE");
-    if (mission.completions.length) return false;
-
-    await db.$transaction(async (tx) => {
-      const completion = await tx.journeyMissionCompletion.upsert({
-        where: { journeyId_missionId: { journeyId: dashboard.journey.id, missionId: id } },
-        update: {},
-        create: { journeyId: dashboard.journey.id, dayRecordId: dashboard.dayRecord!.id, missionId: id },
-      });
-      await tx.journeyXPTransaction.upsert({
-        where: { idempotencyKey: `mission:${completion.id}` },
-        update: {},
-        create: {
-          userId: user.id,
-          journeyId: dashboard.journey.id,
-          missionCompletionId: completion.id,
-          eventType: "MISSION_COMPLETED",
-          xp: mission.xpReward,
-          reason: mission.title,
-          idempotencyKey: `mission:${completion.id}`,
-        },
-      });
-    });
-
-    await syncJourneyAchievements(user.id);
-    revalidatePath("/journey");
-    revalidatePath("/dashboard");
-    return true;
-  });
-}
-
 const personalMissionSchema = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(800).default(""),
