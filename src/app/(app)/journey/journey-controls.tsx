@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlarmClock, Check, ListChecks, MoonStar, Pencil, Plus, Send, Sparkles, Trash2, Wallet } from "lucide-react";
 import { Empty } from "@/components/ui/empty";
@@ -22,7 +22,6 @@ import {
   saveJourneyExpense,
   setJourneyRestDay,
   toggleJourneyWeeklyCommitment,
-  updateJourneyWakeTime,
 } from "@/actions/journey";
 import { useAction } from "@/lib/use-action";
 import { useI18n } from "@/lib/i18n/client";
@@ -289,75 +288,23 @@ export function JourneyControls({
 export function JourneyWeeklyChallengeActions({
   weekly,
 }: {
-  weekly: { title: string; completed: boolean; wakeTime: string | undefined } | null;
+  weekly: { title: string; completed: boolean } | null;
 }) {
   const router = useRouter();
   const { exec, pending } = useAction();
-  const [editingWakeTime, setEditingWakeTime] = useState(false);
-  const [wakeTimeInput, setWakeTimeInput] = useState(weekly?.wakeTime ?? "06:30");
-
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-  const nowHHMM = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  // Khung giờ cam kết = giờ thức dậy đã chọn lúc bắt đầu hành trình (không nhập lại mỗi tuần). Chưa đặt
-  // giờ thức dậy thì không chặn theo giờ.
-  const deadline = weekly?.wakeTime;
-  const withinDeadline = !deadline || nowHHMM <= deadline;
-
-  const saveWakeTime = () =>
-    exec(() => updateJourneyWakeTime(wakeTimeInput), {
-      success: "Đã lưu giờ thức dậy cam kết.",
-      onSuccess: () => {
-        setEditingWakeTime(false);
-        router.refresh();
-      },
-    });
 
   return (
     <>
       {weekly && (
         <div className="mt-3 grid gap-2">
-          {editingWakeTime ? (
-            <div className="field">
-              <span className="label">Giờ thức dậy cam kết</span>
-              <div className="flex items-center gap-2">
-                <input type="time" className="input" value={wakeTimeInput} onChange={(event) => setWakeTimeInput(event.target.value)} disabled={pending} />
-                <button type="button" className="btn btn-soft" disabled={pending || !wakeTimeInput} onClick={saveWakeTime}>
-                  <Check className="size-4" aria-hidden /> Lưu
-                </button>
-                <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => setEditingWakeTime(false)}>
-                  Huỷ
-                </button>
-              </div>
-            </div>
-          ) : deadline ? (
-            <p className="field">
-              <span className="label">Khung giờ cam kết (xác nhận trước hoặc đúng giờ này)</span>
-              <span className="input flex items-center justify-between text-ink-2">
-                {deadline}
-                <button type="button" className="icon-btn icon-btn-plain size-7" aria-label="Sửa giờ thức dậy" title="Sửa giờ thức dậy" onClick={() => { setWakeTimeInput(deadline); setEditingWakeTime(true); }}>
-                  <Pencil className="size-3.5" aria-hidden />
-                </button>
-              </span>
-            </p>
-          ) : (
-            <button type="button" className="btn btn-soft justify-self-start" onClick={() => setEditingWakeTime(true)}>
-              <AlarmClock className="size-4" aria-hidden /> Đặt giờ thức dậy cam kết
-            </button>
-          )}
           <button
             type="button"
             className="btn btn-soft justify-self-start"
-            disabled={weekly.completed || pending || !withinDeadline}
+            disabled={weekly.completed || pending}
             onClick={() => exec(() => completeJourneyWeeklyChallenge(), { success: "Đã ghi nhận thử thách tuần.", onSuccess: () => router.refresh() })}
           >
             <Check className="size-4" aria-hidden /> {weekly.completed ? "Đã hoàn thành" : "Tự xác nhận hoàn thành tuần"}
           </button>
-          {!weekly.completed && deadline && !withinDeadline && <p className="text-xs text-danger">Đã quá khung giờ cam kết ({deadline}), không thể xác nhận cho tuần này.</p>}
-          {!weekly.completed && deadline && withinDeadline && <p className="text-xs text-muted">Có thể xác nhận đến {deadline} hôm nay.</p>}
         </div>
       )}
     </>
