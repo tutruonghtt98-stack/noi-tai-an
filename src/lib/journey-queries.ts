@@ -243,6 +243,9 @@ export async function hasJourneyActivityToday(
   user: CurrentUser,
   dashboard: NonNullable<Awaited<ReturnType<typeof getJourneyDashboard>>>,
 ): Promise<boolean> {
+  // Xác nhận thức dậy hôm nay (rẻ nhất, không cần query) — kiểm tra đầu tiên, trước nhánh WorkCardEvent.
+  if (dashboard.dayRecord?.wakeConfirmedAt != null) return true;
+
   const habitDone = dashboard.habits.some((habit) => habit.stats.scheduledToday && habit.stats.doneToday);
   if (habitDone) return true;
 
