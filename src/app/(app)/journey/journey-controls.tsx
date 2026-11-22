@@ -86,11 +86,11 @@ export function JourneyControls({
           <div className="flex items-center gap-3">
             <span className="icon-btn icon-btn-plain text-accent-ink"><ListChecks className="size-5" aria-hidden /></span>
             <div>
-              <p className="text-xs font-semibold uppercase text-muted">{t.journey.coreMissionsEyebrow}</p>
+              <p className="text-xs font-semibold uppercase text-muted">{t.journey.workspaceTasksEyebrow}</p>
               <h2 id="core-missions" className="card-title text-xl">Công việc cần làm</h2>
             </div>
           </div>
-          {coreTab === "day" && <span className="tabular rounded-full bg-surface-2 px-2.5 py-1 text-sm font-medium">{workspaceTasks.filter((task) => task.listName === "listReview" || task.completedAt != null).length}/{workspaceTasks.length}</span>}
+          {coreTab === "day" && <span className="tabular rounded-full bg-surface-2 px-2.5 py-1 text-sm font-medium">{workspaceTasks.length} {t.journey.workspaceTasksTodayLabel}</span>}
         </div>
 
         <div role="tablist" aria-label="Công việc cần làm" className="segmented mb-4">
@@ -516,7 +516,7 @@ export function JourneyReflectionCard({
           <Check className="size-4" aria-hidden /> Hoàn thành ngày
         </button>
       </div>
-      {!closed && <p className="mt-2 text-xs text-muted">Bấm "Hoàn thành ngày" sẽ tự lưu lại các ô trên — cần hoàn thành ít nhất một Core Mission trước đó.</p>}
+      {!closed && <p className="mt-2 text-xs text-muted">Bấm "Hoàn thành ngày" sẽ tự lưu lại các ô trên. {t.journey.missionRequired}</p>}
       {closed && <p className="mt-2 text-sm text-muted">Ngày này đã được ghi nhận: {dayStatus === "REST" ? "nghỉ hợp lệ" : dayStatus === "MISSED" ? "bỏ lỡ" : "hoàn thành"}.</p>}
     </section>
   );

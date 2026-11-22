@@ -133,7 +133,7 @@ export default async function JourneyPage() {
           </div>
         </div>
         <div className="flex flex-1 flex-wrap gap-2.5 lg:justify-end">
-          <span className="chip"><span className="chip-num tabular">{journey.workspaceTasks.filter((task) => task.listName === "listReview" || task.completedAt != null).length}/{journey.workspaceTasks.length}</span> việc Workspace hôm nay</span>
+          <span className="chip"><span className="chip-num tabular">{journey.workspaceTasks.length}</span> {t.journey.workspaceTasksTodayLabel}</span>
           <span className="chip"><span className="chip-num tabular">{journey.dailyScore}</span> điểm ngày</span>
           <span className="chip"><span className="chip-num tabular">{completedDays}</span> ngày hoàn thành</span>
         </div>

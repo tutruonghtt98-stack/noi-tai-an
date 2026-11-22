@@ -707,6 +707,7 @@ const en: Dict = {
     dailyScoreLabel: "Daily Score",
     level: "LEVEL",
     missionRequired: "Complete at least 1 habit or 1 Workspace task due today before closing the day.",
+    workspaceTasksTodayLabel: "Workspace tasks today",
     reflectionRequired: "Fill in your reflection (at least your mood) before closing the day.",
     journeyDayAlreadyClosed: "This day is already recorded — reload the page to see it.",
     journeyNotActive: "This journey is not currently in progress.",

@@ -110,7 +110,7 @@ export async function getJourneyDashboard(user: CurrentUser) {
   if (journey.status === "COMPLETED") {
     await syncJourneyAchievements(user.id);
     const achievements = await db.journeyAchievement.findMany({ where: { journeyId: journey.id }, include: { definition: true }, orderBy: { awardedAt: "asc" } });
-      return { journey, today, level: null, dayRecord: null, dailyChallenge: null, weeklyChallenge: null, monthlyChallenge: null, levelReview: null, achievements, habits: [], workspaceCards: [], workspaceTasks: [], dailyScore: 0, weekNumber: 0, completedWeeklyOptionIds: [] };
+      return { journey, today, level: null, dayRecord: null, dailyChallenge: null, weeklyChallenge: null, monthlyChallenge: null, levelReview: null, achievements, habits: [], workspaceTasks: [], dailyScore: 0, weekNumber: 0, completedWeeklyOptionIds: [] };
   }
   const dayNumber = Math.min(journey.currentDay, journey.program.durationDays);
   const [level, dailyChallenge] = await Promise.all([
@@ -122,7 +122,7 @@ export async function getJourneyDashboard(user: CurrentUser) {
     }),
   ]);
 
-  if (!level) return { journey, today, level: null, dayRecord: null, dailyChallenge: null, weeklyChallenge: null, monthlyChallenge: null, levelReview: null, achievements: [], habits: [], workspaceCards: [], workspaceTasks: [], dailyScore: 0, weekNumber: 0, completedWeeklyOptionIds: [] };
+  if (!level) return { journey, today, level: null, dayRecord: null, dailyChallenge: null, weeklyChallenge: null, monthlyChallenge: null, levelReview: null, achievements: [], habits: [], workspaceTasks: [], dailyScore: 0, weekNumber: 0, completedWeeklyOptionIds: [] };
 
   const weekNumber = getJourneyWeekNumber(level.number, level.startDay, dayNumber);
   const [dayRecord, weeklyChallenge, monthlyChallenge, levelReview, habits, workspaceCards, workspaceDue, commitmentChecks] = await Promise.all([
@@ -219,7 +219,6 @@ export async function getJourneyDashboard(user: CurrentUser) {
     levelReview,
     achievements,
     habits,
-    workspaceCards,
     workspaceTasks: workspaceCards.map((card) => ({
       id: card.id,
       title: card.title,
