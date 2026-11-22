@@ -200,10 +200,6 @@ export default async function JourneyPage() {
                     weekly={{
                       title: journey.weeklyChallenge.title,
                       completed: !!journey.weeklyChallenge.completions[0]?.completedAt,
-                      personalCommitments: weeklyCommitmentOptions(journey.journey.commitments).map((g) => ({
-                        label: g.label,
-                        done: journey.completedWeeklyOptionIds.includes(g.optionId),
-                      })),
                       wakeTime: getCommittedWakeTime(journey.journey.commitments),
                     }}
                   />

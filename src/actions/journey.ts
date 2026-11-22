@@ -283,13 +283,6 @@ export async function completeJourneyWeeklyChallenge() {
     }
     if (challenge.completions[0]?.completedAt) return false;
 
-    // Cam kết cá nhân nhịp WEEKLY (chọn lúc bắt đầu hành trình) là bắt buộc — đã tick đủ ở thẻ
-    // "Công việc cần làm" (tab Tuần) chưa, kiểm tra thẳng trên server qua JourneyCommitmentCheck,
-    // không nhận mảng tick từ client nữa.
-    const requiredOptionIds = weeklyCommitmentOptions(dashboard.journey.commitments).map((g) => g.optionId);
-    const doneSet = new Set(dashboard.completedWeeklyOptionIds);
-    if (requiredOptionIds.some((id) => !doneSet.has(id))) throw new UserError("CHALLENGE_CRITERIA_INCOMPLETE");
-
     await db.$transaction(async (tx) => {
       const completion = await tx.journeyWeeklyChallengeCompletion.upsert({
         where: { journeyId_challengeId: { journeyId: dashboard.journey.id, challengeId: challenge.id } },

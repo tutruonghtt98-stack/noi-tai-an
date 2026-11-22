@@ -289,7 +289,7 @@ export function JourneyControls({
 export function JourneyWeeklyChallengeActions({
   weekly,
 }: {
-  weekly: { title: string; completed: boolean; personalCommitments: { label: string; done: boolean }[]; wakeTime: string | undefined } | null;
+  weekly: { title: string; completed: boolean; wakeTime: string | undefined } | null;
 }) {
   const router = useRouter();
   const { exec, pending } = useAction();
@@ -307,8 +307,6 @@ export function JourneyWeeklyChallengeActions({
   const deadline = weekly?.wakeTime;
   const withinDeadline = !deadline || nowHHMM <= deadline;
 
-  const commitmentsDone = !weekly?.personalCommitments.length || weekly.personalCommitments.every((item) => item.done);
-
   const saveWakeTime = () =>
     exec(() => updateJourneyWakeTime(wakeTimeInput), {
       success: "Đã lưu giờ thức dậy cam kết.",
@@ -322,9 +320,6 @@ export function JourneyWeeklyChallengeActions({
     <>
       {weekly && (
         <div className="mt-3 grid gap-2">
-          {weekly.personalCommitments.length > 0 && !weekly.completed && (
-            <p className="text-xs text-muted">Tick đủ cam kết cá nhân ở thẻ "Công việc cần làm" → tab Tuần trước khi xác nhận.</p>
-          )}
           {editingWakeTime ? (
             <div className="field">
               <span className="label">Giờ thức dậy cam kết</span>
@@ -356,14 +351,13 @@ export function JourneyWeeklyChallengeActions({
           <button
             type="button"
             className="btn btn-soft justify-self-start"
-            disabled={weekly.completed || pending || !withinDeadline || !commitmentsDone}
+            disabled={weekly.completed || pending || !withinDeadline}
             onClick={() => exec(() => completeJourneyWeeklyChallenge(), { success: "Đã ghi nhận thử thách tuần.", onSuccess: () => router.refresh() })}
           >
             <Check className="size-4" aria-hidden /> {weekly.completed ? "Đã hoàn thành" : "Tự xác nhận hoàn thành tuần"}
           </button>
-          {!weekly.completed && !commitmentsDone && <p className="text-xs text-muted">Tick đủ cam kết cá nhân của tuần trước khi xác nhận.</p>}
-          {!weekly.completed && commitmentsDone && deadline && !withinDeadline && <p className="text-xs text-danger">Đã quá khung giờ cam kết ({deadline}), không thể xác nhận cho tuần này.</p>}
-          {!weekly.completed && commitmentsDone && deadline && withinDeadline && <p className="text-xs text-muted">Có thể xác nhận đến {deadline} hôm nay.</p>}
+          {!weekly.completed && deadline && !withinDeadline && <p className="text-xs text-danger">Đã quá khung giờ cam kết ({deadline}), không thể xác nhận cho tuần này.</p>}
+          {!weekly.completed && deadline && withinDeadline && <p className="text-xs text-muted">Có thể xác nhận đến {deadline} hôm nay.</p>}
         </div>
       )}
     </>
