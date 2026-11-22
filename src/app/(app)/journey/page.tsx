@@ -180,6 +180,7 @@ export default async function JourneyPage() {
             levelQuestions={journey.level.reflectionQuestions}
             levelReview={journey.levelReview}
             wakeTime={getCommittedWakeTime(journey.journey.commitments)}
+            wakeConfirmedAt={journey.dayRecord.wakeConfirmedAt}
             habits={journey.habits}
             today={journey.today}
             weeklyCommitments={weeklyCommitmentOptions(journey.journey.commitments).map((g) => ({
@@ -200,7 +201,6 @@ export default async function JourneyPage() {
                     weekly={{
                       title: journey.weeklyChallenge.title,
                       completed: !!journey.weeklyChallenge.completions[0]?.completedAt,
-                      wakeTime: getCommittedWakeTime(journey.journey.commitments),
                     }}
                   />
                 </>

@@ -14,10 +14,12 @@ import {
   completeJourneyDailyChallenge,
   completeJourneyDay,
   completeJourneyWorkspaceCard,
+  confirmWakeUpToday,
   submitJourneyLevelReview,
   createJourneyPersonalMission,
   deleteJourneyPersonalMission,
   updateJourneyPersonalMission,
+  updateJourneyWakeTime,
   completeJourneyWeeklyChallenge,
   saveJourneyExpense,
   setJourneyRestDay,
@@ -47,6 +49,7 @@ export function JourneyControls({
   levelQuestions,
   levelReview,
   wakeTime,
+  wakeConfirmedAt,
   habits,
   today,
   weeklyCommitments,
@@ -60,6 +63,7 @@ export function JourneyControls({
   levelQuestions: string[];
   levelReview: { answers: unknown; passed: boolean } | null;
   wakeTime: string | undefined;
+  wakeConfirmedAt: Date | null;
   habits: HabitView[];
   today: ISODate;
   weeklyCommitments: { optionId: string; label: string; done: boolean }[];
@@ -73,10 +77,21 @@ export function JourneyControls({
   const savedAnswers = Array.isArray(levelReview?.answers) ? levelReview.answers.filter((answer): answer is string => typeof answer === "string") : [];
   const [reviewAnswers, setReviewAnswers] = useState<string[]>(savedAnswers);
   const [coreTab, setCoreTab] = useState<"day" | "week">("day");
+  const [editingWakeTime, setEditingWakeTime] = useState(false);
+  const [wakeTimeInput, setWakeTimeInput] = useState(wakeTime ?? "06:30");
   const closed = dayStatus !== "IN_PROGRESS";
   const todayHabits = habits.filter((h) => h.stats.scheduledToday);
 
   const refresh = () => router.refresh();
+
+  const saveWakeTime = () =>
+    exec(() => updateJourneyWakeTime(wakeTimeInput), {
+      success: "Đã lưu giờ thức dậy cam kết.",
+      onSuccess: () => {
+        setEditingWakeTime(false);
+        refresh();
+      },
+    });
 
   return (
     <div className="grid gap-[var(--gap)]">
@@ -99,12 +114,50 @@ export function JourneyControls({
 
         {coreTab === "day" ? (
           <div role="tabpanel">
-            {wakeTime && (
-              <div className="mb-4 flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">
-                <AlarmClock className="size-4 shrink-0 text-accent-ink" aria-hidden />
-                Giờ thức dậy cố định: <span className="tabular font-semibold">{wakeTime}</span>
-              </div>
-            )}
+            <div className="mb-4 grid gap-2">
+              {editingWakeTime ? (
+                <div className="field">
+                  <span className="label">Giờ thức dậy cam kết</span>
+                  <div className="flex items-center gap-2">
+                    <input type="time" className="input" value={wakeTimeInput} onChange={(event) => setWakeTimeInput(event.target.value)} disabled={pending} />
+                    <button type="button" className="btn btn-soft" disabled={pending || !wakeTimeInput} onClick={saveWakeTime}>
+                      <Check className="size-4" aria-hidden /> Lưu
+                    </button>
+                    <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => setEditingWakeTime(false)}>
+                      Huỷ
+                    </button>
+                  </div>
+                </div>
+              ) : !wakeTime ? (
+                <button type="button" className="btn btn-soft justify-self-start" onClick={() => setEditingWakeTime(true)}>
+                  <AlarmClock className="size-4" aria-hidden /> Đặt giờ thức dậy cam kết
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">
+                  <AlarmClock className="size-4 shrink-0 text-accent-ink" aria-hidden />
+                  <span className="flex-1">
+                    Giờ thức dậy cố định: <span className="tabular font-semibold">{wakeTime}</span>
+                  </span>
+                  {!wakeConfirmedAt && (
+                    <button type="button" className="icon-btn icon-btn-plain size-7" aria-label="Sửa giờ thức dậy" title="Sửa giờ thức dậy" onClick={() => { setWakeTimeInput(wakeTime); setEditingWakeTime(true); }}>
+                      <Pencil className="size-3.5" aria-hidden />
+                    </button>
+                  )}
+                  {wakeConfirmedAt ? (
+                    <span className="badge bg-jade/15 text-jade-ink" aria-disabled>{t.journey.wakeUpConfirmed}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-soft"
+                      disabled={pending}
+                      onClick={() => exec(() => confirmWakeUpToday(), { success: t.journey.wakeUpConfirmed, onSuccess: refresh })}
+                    >
+                      <Check className="size-4" aria-hidden /> {t.journey.confirmWakeUp}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             {workspaceTasks.length === 0 ? (
               <Empty icon={ListChecks} text={t.journey.emptyWorkspaceToday} />
             ) : (
