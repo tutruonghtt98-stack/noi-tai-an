@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Calendar, GripVertical, ListChecks, MessageSquare, Paperclip, Users, X } from "lucide-react";
+import { Calendar, Flag, GripVertical, ListChecks, MessageSquare, Paperclip, Users, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/cn";
@@ -257,7 +257,7 @@ export function CardModal({
                 </select>
               </label>
               <label className="field">
-                <span className="label">{w.priorityTitle}</span>
+                <span className="label inline-flex items-center gap-1.5"><Flag className="size-3.5" aria-hidden /> {w.priorityTitle}</span>
                 <select className="input" value={priority} onChange={(e) => setPriority(e.target.value as WorkCardPriority)} disabled={locked}>
                   <option value="LOW">{w.priorityLow}</option>
                   <option value="NORMAL">{w.priorityNormal}</option>

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useId, useImperativeHandle, useRef, useState, type Ref } from "react";
-import { X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/avatar";
 import { useI18n } from "@/lib/i18n/client";
@@ -155,11 +155,20 @@ export function AssigneesPicker({
 
   const removeEmail = (email: string) => onChange(value.filter((v) => v.toLowerCase() !== email.toLowerCase()));
 
+  /** Bật/tắt 1 người trong danh sách gợi ý — không đóng dropdown, để chọn liên tiếp nhiều người. */
+  const toggleMember = (email: string) => {
+    if (value.some((v) => v.toLowerCase() === email.toLowerCase())) {
+      removeEmail(email);
+    } else {
+      setInvalid(false);
+      setQuery("");
+      onChange([...value, email.toLowerCase()]);
+    }
+  };
+
   const q = query.trim().toLowerCase();
   const filtered = members.filter(
-    (m) =>
-      !value.some((v) => v.toLowerCase() === (m.email ?? "").toLowerCase()) &&
-      (!q || (m.name ?? "").toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q)),
+    (m) => !q || (m.name ?? "").toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q),
   );
 
   return (
@@ -231,21 +240,35 @@ export function AssigneesPicker({
       )}
       {open && filtered.length > 0 && (
         <ul role="listbox" className="rise absolute z-20 mt-1.5 max-h-60 w-full overflow-y-auto rounded-2xl border border-line bg-surface p-1.5 shadow-pop">
-          {filtered.map((m) => (
-            <li key={m.id}>
-              <button
-                type="button"
-                className={cn("flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left hover:bg-surface-2")}
-                onClick={() => addEmail(m.email ?? "")}
-              >
-                <Avatar name={m.name ?? m.email ?? "?"} size={28} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{m.name ?? m.email}</span>
-                  {m.name && <span className="block truncate text-xs text-muted">{m.email}</span>}
-                </span>
-              </button>
-            </li>
-          ))}
+          {filtered.map((m) => {
+            const selected = value.some((v) => v.toLowerCase() === (m.email ?? "").toLowerCase());
+            return (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={cn("flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left hover:bg-surface-2")}
+                  onClick={() => toggleMember(m.email ?? "")}
+                >
+                  <Avatar name={m.name ?? m.email ?? "?"} size={28} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{m.name ?? m.email}</span>
+                    {m.name && <span className="block truncate text-xs text-muted">{m.email}</span>}
+                  </span>
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "flex size-5 shrink-0 items-center justify-center rounded-full border",
+                      selected ? "border-ink bg-ink text-bg" : "border-line",
+                    )}
+                  >
+                    {selected && <Check className="size-3" aria-hidden />}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
