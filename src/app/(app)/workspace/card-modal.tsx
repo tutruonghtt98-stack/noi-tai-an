@@ -551,8 +551,8 @@ function PrioritySelect({
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
       >
-        <span className={cn("inline-flex items-center gap-1.5 font-medium", PRIORITY_TEXT_CLASS[value])}>
-          <Icon className="size-4" aria-hidden /> {priorityLabel[value]}
+        <span className={cn("flex min-w-0 flex-1 items-center gap-1.5 font-medium", PRIORITY_TEXT_CLASS[value])}>
+          <Icon className="size-4 shrink-0" aria-hidden /> <span className="truncate">{priorityLabel[value]}</span>
         </span>
         <ChevronDown className="size-4 shrink-0 text-muted" aria-hidden />
       </button>
@@ -574,7 +574,7 @@ function PrioritySelect({
                   }}
                 >
                   <OptIcon className="size-4 shrink-0" aria-hidden />
-                  <span className="flex-1 font-medium">{priorityLabel[p]}</span>
+                  <span className="flex-1 truncate font-medium">{priorityLabel[p]}</span>
                   {selected && <Check className="size-3.5 shrink-0" aria-hidden />}
                 </button>
               </li>
@@ -623,8 +623,8 @@ function ColumnSelect({
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
       >
-        <span className={cn("inline-flex items-center gap-1.5 font-medium", currentTextClass)}>
-          <CurrentIcon className="size-4" aria-hidden /> {current?.name ?? ""}
+        <span className={cn("flex min-w-0 flex-1 items-center gap-1.5 font-medium", currentTextClass)}>
+          <CurrentIcon className="size-4 shrink-0" aria-hidden /> <span className="truncate">{current?.name ?? ""}</span>
         </span>
         <ChevronDown className="size-4 shrink-0 text-muted" aria-hidden />
       </button>
@@ -647,7 +647,7 @@ function ColumnSelect({
                   }}
                 >
                   <Icon className="size-4 shrink-0" aria-hidden />
-                  <span className="flex-1 font-medium">{l.name}</span>
+                  <span className="flex-1 truncate font-medium">{l.name}</span>
                   {selected && <Check className="size-3.5 shrink-0" aria-hidden />}
                 </button>
               </li>
