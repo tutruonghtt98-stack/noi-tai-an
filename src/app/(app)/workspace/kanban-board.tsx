@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, AlertTriangle, ArrowDown, CheckCircle2, Circle, Clock, Eye, Check, GripVertical, Minus, type LucideIcon } from "lucide-react";
+import { AlertCircle, CheckCircle2, Circle, Clock, Eye, Check, Flag, GripVertical, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { fmt } from "@/lib/i18n/format";
@@ -26,9 +26,9 @@ export const PRIORITY_BADGE_CLASS: Record<WorkCardPriority, string> = {
   URGENT: "bg-danger/15 text-danger",
 };
 export const PRIORITY_ICON: Record<WorkCardPriority, LucideIcon> = {
-  LOW: ArrowDown,
-  NORMAL: Minus,
-  URGENT: AlertTriangle,
+  LOW: Flag,
+  NORMAL: Flag,
+  URGENT: Flag,
 };
 
 export const STATUS_BADGE_CLASS: Record<string, string> = {
