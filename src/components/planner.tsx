@@ -264,29 +264,35 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
     <div>
       <div className="no-scrollbar -mx-[var(--pad)] overflow-x-auto px-[var(--pad)]">
         <div className="min-w-[720px]">
-          <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] gap-1.5 pb-2">
+          <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b border-line pb-2">
             <span />
             {days.map((d, i) => {
-              const n = tasks.filter((x) => x.date === d && !x.startTime && !x.done).length;
+              const isToday = d === today;
               return (
-                <div key={d} className={cn("rounded-xl px-2 py-1.5 text-center", d === today ? "bg-ink text-bg" : "bg-surface-2")}>
-                  <p className="text-xs font-medium opacity-80">{labels[i]}</p>
-                  <p className="tabular text-lg font-semibold leading-tight">{Number(d.slice(8))}</p>
-                  {n > 0 && <p className="text-[0.6875rem] opacity-70">+{n}</p>}
+                <div key={d} className={cn("text-center", i > 0 && "border-l border-line")}>
+                  <p className={cn("text-xs font-medium uppercase", isToday ? "text-accent-ink" : "text-muted")}>{labels[i]}</p>
+                  <p
+                    className={cn(
+                      "tabular mx-auto mt-1 flex size-8 items-center justify-center rounded-full text-lg font-semibold leading-none",
+                      isToday ? "bg-accent-ink text-bg" : "",
+                    )}
+                  >
+                    {Number(d.slice(8))}
+                  </p>
                 </div>
               );
             })}
           </div>
 
-          <div ref={clip} className="relative overflow-hidden rounded-xl" style={{ height: VIEW_H }}>
+          <div ref={clip} className="relative overflow-hidden" style={{ height: VIEW_H }}>
             {/* Toàn bộ 24 giờ — trượt dọc để giờ hiện tại luôn nằm giữa */}
             <div
-              className="absolute inset-x-0 top-0 grid grid-cols-[48px_repeat(7,minmax(0,1fr))] gap-1.5 transition-transform duration-[1200ms] ease-linear motion-reduce:transition-none"
+              className="absolute inset-x-0 top-0 grid grid-cols-[48px_repeat(7,minmax(0,1fr))] transition-transform duration-[1200ms] ease-linear motion-reduce:transition-none"
               style={{ height: 24 * HOUR_PX, transform: `translateY(${shift}px)` }}
             >
               <div className="relative">
                 {hours.map((h) => (
-                  <span key={h} className="tabular absolute right-1 -translate-y-1/2 text-xs text-muted" style={{ top: h * HOUR_PX }}>
+                  <span key={h} className="tabular absolute right-2 -translate-y-1/2 text-xs text-muted" style={{ top: h * HOUR_PX }}>
                     {String(h % 24).padStart(2, "0")}:00
                   </span>
                 ))}
@@ -320,18 +326,15 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                   gi = gj;
                 }
                 return (
-                  <div
-                    key={d}
-                    className={cn("relative", dayIndex > 0 && "border-l border-line", d === today ? "bg-accent-soft/40" : "bg-surface-2/50")}
-                  >
+                  <div key={d} className={cn("relative bg-surface", dayIndex > 0 && "border-l border-line")}>
                     {hours.map((h) => (
-                      <span key={h} className="absolute inset-x-0 border-t border-dashed border-line" style={{ top: h * HOUR_PX }} aria-hidden />
+                      <span key={h} className="absolute inset-x-0 border-t border-line/60" style={{ top: h * HOUR_PX }} aria-hidden />
                     ))}
                     {laned.map((x, i) => {
                       const c = x.color ?? PALETTE[i % PALETTE.length]!;
                       const past = now != null && (d < today || (d === today && x.start + x.dur < now));
                       const boxClassName = cn(
-                        "absolute overflow-hidden rounded-md border-l-[3px] px-1.5 py-1 text-left text-[0.6875rem] leading-tight",
+                        "absolute overflow-hidden rounded-[4px] px-1.5 py-1 text-left text-[0.6875rem] leading-tight text-white",
                         (x.done || past) && "opacity-55",
                         (x.href || x.cardId) && "hover:brightness-95",
                       );
@@ -341,13 +344,12 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                         left: `calc(${(x.lane / x.laneCount) * 100}% + ${x.lane === 0 ? 2 : 1}px)`,
                         width: `calc(${100 / x.laneCount}% - ${x.lane === 0 ? 4 : 3}px)`,
                         zIndex: x.lane + 1,
-                        background: softVar(c),
-                        borderColor: colorVar(c),
+                        background: colorVar(c),
                       };
                       const content = (
                         <>
                           <span className={cn("block truncate font-semibold", x.done && "line-through")}>{x.title}</span>
-                          <span className="tabular text-ink-2">{x.startTime}</span>
+                          <span className="tabular opacity-90">{x.startTime}</span>
                         </>
                       );
                       return x.cardId ? (
@@ -369,22 +371,11 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
               })}
             </div>
 
-            {/* Vạch thời gian cố định ở giữa, chạy ngang qua cả tuần */}
-            <div className="pointer-events-none absolute inset-x-0 z-10" style={{ top: VIEW_H / 2 }} aria-hidden>
-              <span className="absolute left-[54px] right-0 h-0.5 -translate-y-1/2 bg-rose/50" />
-              {(() => {
-                const idx = days.indexOf(today);
-                if (idx < 0 || offset !== 0) return null;
-                return (
-                  <span
-                    className="absolute h-[3px] -translate-y-1/2 rounded-full bg-rose"
-                    style={{ left: `calc(54px + (100% - 54px - 6 * 6px) / 7 * ${idx} + ${idx} * 6px)`, width: `calc((100% - 54px - 6 * 6px) / 7)` }}
-                  />
-                );
-              })()}
-              <span className="tabular absolute left-0 -translate-y-1/2 whitespace-nowrap rounded-full bg-rose px-1.5 py-0.5 text-[0.6875rem] font-semibold text-[#1d1c1a] shadow-card">
-                {now != null ? hh(center) : "--:--"}
-              </span>
+            {/* Vạch thời gian cố định ở giữa, chạy ngang qua cả tuần — kiểu Google Calendar: 1 chấm đỏ
+                nhỏ ở mép trái + 1 đường kẻ đỏ mảnh chạy suốt chiều ngang. */}
+            <div className="pointer-events-none absolute inset-x-0 z-10" style={{ top: VIEW_H / 2 }} aria-hidden title={now != null ? hh(center) : undefined}>
+              <span className="absolute left-[44px] top-1/2 size-2 -translate-y-1/2 rounded-full bg-rose" />
+              <span className="absolute left-[48px] right-0 h-px -translate-y-1/2 bg-rose" />
             </div>
             {/* Làm mờ mép trên / dưới */}
             <div className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-surface to-transparent" aria-hidden />
