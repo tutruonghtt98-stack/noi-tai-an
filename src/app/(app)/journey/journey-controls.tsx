@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlarmClock, Check, ListChecks, MoonStar, Pencil, Plus, Send, Sparkles, Trash2, Wallet } from "lucide-react";
 import { Empty } from "@/components/ui/empty";
@@ -28,6 +27,7 @@ import {
 import { useAction } from "@/lib/use-action";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
+import { WorkCardTrigger } from "../workspace/work-card-trigger";
 
 type WorkspaceTask = {
   id: string;
@@ -118,7 +118,7 @@ export function JourneyControls({
                       >
                         <Check className="size-4" aria-hidden />
                       </button>
-                      <Link href={`/workspace?card=${task.id}`} className="min-w-0 flex-1">
+                      <WorkCardTrigger cardId={task.id} className="min-w-0 flex-1 text-left">
                         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                           <h3 className={`flex items-center gap-2 font-medium ${done && !pendingReview ? "text-muted line-through" : ""}`}>
                             {task.title}
@@ -129,7 +129,7 @@ export function JourneyControls({
                           </span>
                         </div>
                         <p className="mt-1 text-xs text-muted">{task.boardName} · {t.work.workspace[task.listName as keyof typeof t.work.workspace] ?? task.listName}</p>
-                      </Link>
+                      </WorkCardTrigger>
                     </li>
                   );
                 })}

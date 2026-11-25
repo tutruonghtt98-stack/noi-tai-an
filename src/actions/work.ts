@@ -5,9 +5,11 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
 import { DEFAULT_LISTS, getCardComments } from "@/lib/work-queries";
-import { getUserTeamIds } from "@/lib/department-queries";
+import { getUserTeamIds, getUserTeams, getUserWorkspaceMembers } from "@/lib/department-queries";
 import { zonedDateTimeToUTC } from "@/lib/dates";
+import { getI18n } from "@/lib/i18n";
 import type { Prisma } from "@/generated/prisma/client";
+import type { ChecklistItem } from "@/lib/work-types";
 import { recordWorkCardScoreEvent, syncOverdueDiscipline } from "@/lib/journey-score-ledger";
 import { syncJourneyAchievements } from "@/lib/journey-achievements";
 
@@ -606,6 +608,69 @@ export async function deleteWorkCard(id: string) {
     if (!card || !isBoardOwner(card.list.board, user.id)) throw new UserError("VALIDATION");
     await db.workCard.delete({ where: { id } });
     revalidatePath("/workspace");
+  });
+}
+
+// ---------- Mở Chi tiết thẻ từ nơi khác (Hành trình, Tổng quan...) ----------
+
+/** Gom mọi dữ liệu CardModal cần cho 1 thẻ cụ thể — để các trang khác (Hành trình, Tổng quan) mở
+ * popup Chi tiết thẻ ngay tại chỗ, không cần điều hướng sang Workspace. */
+export async function getWorkCardModalData(cardId: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const row = await db.workCard.findUnique({
+      where: { id: cardId },
+      include: {
+        assignees: { select: { email: true, userId: true, user: { select: { name: true } } } },
+        list: {
+          select: {
+            id: true,
+            boardId: true,
+            board: {
+              select: { userId: true, lists: { select: { id: true, name: true }, orderBy: { sortOrder: "asc" } } },
+            },
+          },
+        },
+      },
+    });
+    if (!row) throw new UserError("NOT_FOUND");
+    const userTeamIds = await getUserTeamIds(user.id);
+    if (!canActOnCard({ assignees: row.assignees, teamId: row.teamId, list: { board: row.list.board } }, user.id, userTeamIds)) {
+      throw new UserError("VALIDATION");
+    }
+    const canDelete = isBoardOwner(row.list.board, user.id);
+    const { t } = await getI18n();
+    const w = t.work.workspace;
+    const lists = row.list.board.lists.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name, rawName: l.name }));
+    const doneListId = row.list.board.lists.find((l) => l.name === "listDone")?.id;
+    const reviewListId = row.list.board.lists.find((l) => l.name === "listReview")?.id;
+    const [teamsRaw, members] = await Promise.all([getUserTeams(user.id), getUserWorkspaceMembers(user.id)]);
+    const teams = teamsRaw.map((team) => ({ id: team.id, name: team.department ? `${team.department.name} / ${team.name}` : team.name }));
+    return {
+      card: {
+        id: row.id,
+        boardId: row.list.boardId,
+        listId: row.listId,
+        label: row.label,
+        title: row.title,
+        description: row.description,
+        assignees: row.assignees.map((a) => ({ email: a.email, userId: a.userId, name: a.user?.name ?? null })),
+        teamId: row.teamId,
+        reviewerEmail: row.reviewerEmail,
+        dueDate: row.dueDate ? row.dueDate.toISOString() : null,
+        startDate: row.startDate ? row.startDate.toISOString() : null,
+        priority: row.priority,
+        sortOrder: row.sortOrder,
+        checklist: Array.isArray(row.checklist) ? (row.checklist as unknown as ChecklistItem[]) : [],
+      },
+      lists,
+      teams,
+      members,
+      reviewListId,
+      doneListId,
+      canDelete,
+      timezone: user.timezone,
+    };
   });
 }
 

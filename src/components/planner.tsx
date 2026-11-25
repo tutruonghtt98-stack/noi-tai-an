@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
 import { colorVar, softVar } from "@/lib/colors";
 import { cn } from "@/lib/cn";
+import { WorkCardTrigger } from "@/app/(app)/workspace/work-card-trigger";
 
 export type PlannerTask = {
   id: string;
@@ -15,8 +16,10 @@ export type PlannerTask = {
   estimateMin: number | null;
   done: boolean;
   color: string | null;
-  /** Có thì khối lịch trình bấm được, điều hướng tới (vd: thẻ/bảng Workspace liên quan). */
+  /** Có thì khối lịch trình bấm được, điều hướng tới (vd: bảng Workspace liên quan). */
   href?: string;
+  /** Có thì khối lịch trình bấm được, mở ngay popup Chi tiết thẻ (ưu tiên hơn href nếu cả 2 đều có). */
+  cardId?: string;
 };
 
 const PALETTE = ["ochre", "mist", "jade", "rose"];
@@ -148,9 +151,9 @@ function DayTrack({ tasks, now }: { tasks: PlannerTask[]; now: number | null }) 
           {placed.map((p) => {
             const past = now != null && p.end < now;
             const boxClassName = cn(
-              "absolute flex h-[68px] items-center gap-3 overflow-hidden rounded-[1.25rem] px-4",
+              "absolute flex h-[68px] items-center gap-3 overflow-hidden rounded-[1.25rem] px-4 text-left",
               (p.done || past) && "opacity-55",
-              p.href && "transition-transform hover:-translate-y-0.5 hover:shadow-card",
+              (p.href || p.cardId) && "transition-transform hover:-translate-y-0.5 hover:shadow-card",
             );
             const boxStyle = { left: p.start * PX_PER_HOUR + 2, width: p.w - 6, top: 36 + p.lane * ROW, background: softVar(p.c) };
             const content = (
@@ -167,7 +170,11 @@ function DayTrack({ tasks, now }: { tasks: PlannerTask[]; now: number | null }) 
                 </span>
               </>
             );
-            return p.href ? (
+            return p.cardId ? (
+              <WorkCardTrigger key={p.id} cardId={p.cardId} className={boxClassName} style={boxStyle} title={`${p.startTime} · ${p.title}`}>
+                {content}
+              </WorkCardTrigger>
+            ) : p.href ? (
               <Link key={p.id} href={p.href} className={boxClassName} style={boxStyle} title={`${p.startTime} · ${p.title}`}>
                 {content}
               </Link>
@@ -283,9 +290,9 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                       const c = x.color ?? PALETTE[i % PALETTE.length]!;
                       const past = now != null && (d < today || (d === today && x.start + x.dur < now));
                       const boxClassName = cn(
-                        "absolute overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-[0.6875rem] leading-tight",
+                        "absolute overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-left text-[0.6875rem] leading-tight",
                         (x.done || past) && "opacity-55",
-                        x.href && "hover:brightness-95",
+                        (x.href || x.cardId) && "hover:brightness-95",
                       );
                       const boxStyle = {
                         top: x.start * HOUR_PX + 1,
@@ -302,7 +309,11 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                           <span className="tabular text-ink-2">{x.startTime}</span>
                         </>
                       );
-                      return x.href ? (
+                      return x.cardId ? (
+                        <WorkCardTrigger key={x.id} cardId={x.cardId} title={`${x.startTime} · ${x.title}`} className={boxClassName} style={boxStyle}>
+                          {content}
+                        </WorkCardTrigger>
+                      ) : x.href ? (
                         <Link key={x.id} href={x.href} title={`${x.startTime} · ${x.title}`} className={boxClassName} style={boxStyle}>
                           {content}
                         </Link>

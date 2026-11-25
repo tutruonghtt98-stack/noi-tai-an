@@ -74,7 +74,7 @@ export default async function DashboardPage() {
   const cardDeadlines = boards
     .flatMap((b) => b.lists.flatMap((l) => l.cards.map((c) => ({ ...c, boardId: b.id }))))
     .filter((c) => c.dueDate)
-    .map((c) => ({ id: `card:${c.id}`, name: c.title, dueDate: c.dueDate!, href: `/workspace?b=${c.boardId}&card=${c.id}` }))
+    .map((c) => ({ id: `card:${c.id}`, cardId: c.id, name: c.title, dueDate: c.dueDate! }))
     .filter((c) => inWeek(c.dueDate));
 
   const hour = hourInZone(user.timezone);
@@ -256,7 +256,7 @@ export default async function DashboardPage() {
               estimateMin: 90,
               done: false,
               color: "mist",
-              href: c.href,
+              cardId: c.cardId,
             })),
           ]}
         />
