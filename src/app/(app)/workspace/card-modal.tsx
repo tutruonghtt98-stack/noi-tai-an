@@ -516,7 +516,7 @@ export function CardModal({
 
 /** Dropdown tuỳ chỉnh cho mức độ ưu tiên — mỗi lựa chọn có icon + màu riêng, điều mà thẻ
  * <option> gốc của trình duyệt không hỗ trợ. */
-function PrioritySelect({
+export function PrioritySelect({
   value,
   onChange,
   disabled,

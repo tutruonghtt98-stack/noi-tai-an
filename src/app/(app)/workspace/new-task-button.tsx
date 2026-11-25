@@ -1,13 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { AlignLeft, Calendar, Check, ChevronDown, Columns3, Plus, Tag, Users } from "lucide-react";
+import { AlignLeft, Calendar, Check, ChevronDown, Columns3, Flag, Plus, Users } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/cn";
 import { Modal } from "@/components/ui/modal";
 import { createWorkCard } from "@/actions/work";
-import { AssigneesPicker, type AssigneesPickerHandle, type MemberOption } from "./assignee-picker";
-import { STATUS_ICON, STATUS_TEXT_CLASS } from "./kanban-board";
+import { AssigneePicker, AssigneesPicker, type AssigneesPickerHandle, type MemberOption } from "./assignee-picker";
+import { PrioritySelect } from "./card-modal";
+import { STATUS_ICON, STATUS_TEXT_CLASS, type WorkCardPriority } from "./kanban-board";
 import { DEFAULT_LISTS } from "@/lib/work-types";
 
 export function NewTaskButton({
@@ -23,24 +24,26 @@ export function NewTaskButton({
   const w = t.work.workspace;
   const { exec, pending } = useAction();
   const [open, setOpen] = useState(false);
-  const [label, setLabel] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
   const assigneesRef = useRef<AssigneesPickerHandle>(null);
+  const [reviewerEmail, setReviewerEmail] = useState("");
   const [teamId, setTeamId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [status, setStatus] = useState(DEFAULT_LISTS[0]!.name);
+  const [priority, setPriority] = useState<WorkCardPriority>("NORMAL");
   const [boardId, setBoardId] = useState(boards[0]?.id ?? "");
 
   const reset = () => {
-    setLabel("");
     setTitle("");
     setDescription("");
     setAssignees([]);
+    setReviewerEmail("");
     setTeamId("");
     setDueDate("");
     setStatus(DEFAULT_LISTS[0]!.name);
+    setPriority("NORMAL");
     setBoardId(boards[0]?.id ?? "");
   };
 
@@ -63,12 +66,13 @@ export function NewTaskButton({
               () =>
                 createWorkCard({
                   listId,
-                  label: label || undefined,
                   title,
                   description: description || undefined,
                   assignees: finalAssignees,
+                  reviewerEmail: reviewerEmail || undefined,
                   teamId: teamId || undefined,
                   dueDate: dueDate || undefined,
+                  priority,
                 }),
               {
                 success: w.cardAdded,
@@ -103,8 +107,8 @@ export function NewTaskButton({
               <StatusSelect value={status} onChange={setStatus} />
             </label>
             <label className="field">
-              <span className="label inline-flex items-center gap-1.5"><Tag className="size-3.5" aria-hidden /> {w.cardLabel}</span>
-              <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={w.cardLabelPh} maxLength={30} />
+              <span className="label inline-flex items-center gap-1.5"><Flag className="size-3.5" aria-hidden /> {w.priorityTitle}</span>
+              <PrioritySelect value={priority} onChange={setPriority} />
             </label>
           </div>
           <div className="rounded-xl border border-line p-4">
@@ -116,6 +120,11 @@ export function NewTaskButton({
                 <span className="label">{w.cardAssignee}</span>
                 <AssigneesPicker ref={assigneesRef} value={assignees} onChange={setAssignees} members={members} placeholder={w.cardAssigneesPh} />
                 <span className="mt-1 block text-xs text-muted">{w.cardAssigneesHint}</span>
+              </label>
+              <label className="field">
+                <span className="label">{w.cardReviewer}</span>
+                <AssigneePicker value={reviewerEmail} onChange={setReviewerEmail} members={members} placeholder={w.cardReviewerPh} />
+                <span className="mt-1 block text-xs text-muted">{w.cardReviewerHint}</span>
               </label>
               {teams.length > 0 && (
                 <label className="field">
