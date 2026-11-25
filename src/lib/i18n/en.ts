@@ -583,7 +583,6 @@ const en: Dict = {
       priorityUrgent: "Urgent",
       newTask: "+ New task",
       newTaskTitle: "New task",
-      newTaskBoardLabel: "Board",
     },
   },
   departments: {

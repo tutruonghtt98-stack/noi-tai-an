@@ -103,18 +103,6 @@ export function NewTaskButton({
               ))}
             </select>
           </label>
-          {boards.length > 1 && (
-            <label className="field">
-              <span className="label">{w.newTaskBoardLabel}</span>
-              <select className="input" value={boardId} onChange={(e) => setBoardId(e.target.value)}>
-                {boards.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
           <label className="field">
             <span className="label">{w.cardLabel}</span>
             <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={w.cardLabelPh} maxLength={30} />

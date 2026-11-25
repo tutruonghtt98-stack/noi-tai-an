@@ -581,7 +581,6 @@ const vi = {
       priorityUrgent: "Khẩn cấp",
       newTask: "+ Thêm việc",
       newTaskTitle: "Thêm việc mới",
-      newTaskBoardLabel: "Bảng",
     },
   },
   departments: {
