@@ -114,6 +114,20 @@ function DayTrack({ tasks, now }: { tasks: PlannerTask[]; now: number | null }) 
     return () => ro.disconnect();
   }, []);
 
+  // Vị trí các khối việc hoàn toàn do transform tính tay — khối này không bao giờ được tự cuộn.
+  // Trình duyệt vẫn coi nó là 1 "scroll container" (overflow-hidden) và tự cuộn khi focus quay lại
+  // 1 khối việc bên trong sau khi đóng popup Chi tiết thẻ (CardModal là <dialog>, đóng xong trả
+  // focus về đúng nút vừa bấm) — cuộn đó làm lệch cả dải giờ, trông như "mất hết việc".
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollLeft !== 0) el.scrollLeft = 0;
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
   const placed = useMemo(() => {
     const minSpan = 180 / PX_PER_HOUR; // khối tối thiểu 180px
     const laneEnds: number[] = [];
@@ -227,11 +241,24 @@ const VIEW_H = 440;
 function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; days: string[]; labels: string[]; today: string; now: number | null }) {
   const { t } = useI18n();
   const [offset, setOffset] = useState(0); // lệch so với "bây giờ" (giờ)
+  const clip = useRef<HTMLDivElement>(null);
   const scheduled = tasks.filter((x) => x.startTime);
   const hours = Array.from({ length: 25 }, (_, h) => h);
   const center = Math.min(24, Math.max(0, (now ?? 12) + offset));
   const shift = VIEW_H / 2 - center * HOUR_PX;
   const hh = (v: number) => `${String(Math.floor(v) % 24).padStart(2, "0")}:${String(Math.floor((v % 1) * 60)).padStart(2, "0")}`;
+
+  // Cùng lý do với DayTrack: vị trí ở đây do transform tính tay, khối này không bao giờ được tự
+  // cuộn — trình duyệt vẫn có thể tự cuộn dọc khi focus quay lại 1 khối việc sau khi đóng popup.
+  useEffect(() => {
+    const el = clip.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollTop !== 0) el.scrollTop = 0;
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div>
@@ -251,7 +278,7 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
             })}
           </div>
 
-          <div className="relative overflow-hidden rounded-xl" style={{ height: VIEW_H }}>
+          <div ref={clip} className="relative overflow-hidden rounded-xl" style={{ height: VIEW_H }}>
             {/* Toàn bộ 24 giờ — trượt dọc để giờ hiện tại luôn nằm giữa */}
             <div
               className="absolute inset-x-0 top-0 grid grid-cols-[48px_repeat(7,minmax(0,1fr))] gap-1.5 transition-transform duration-[1200ms] ease-linear motion-reduce:transition-none"
