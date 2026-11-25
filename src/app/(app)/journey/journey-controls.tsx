@@ -325,22 +325,24 @@ export function JourneyWakeUpCard({
           <AlarmClock className="size-4" aria-hidden /> Đặt giờ thức dậy cam kết
         </button>
       ) : (
-        <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">
-          <AlarmClock className="size-4 shrink-0 text-accent-ink" aria-hidden />
-          <span className="flex-1">
-            Giờ thức dậy cố định: <span className="tabular font-semibold">{wakeTime}</span>
-          </span>
-          {!wakeConfirmedAt && (
-            <button type="button" className="icon-btn icon-btn-plain size-7" aria-label="Sửa giờ thức dậy" title="Sửa giờ thức dậy" onClick={() => { setWakeTimeInput(wakeTime); setEditingWakeTime(true); }}>
-              <Pencil className="size-3.5" aria-hidden />
-            </button>
-          )}
+        <div className="grid gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">
+          <div className="flex items-center gap-2">
+            <AlarmClock className="size-4 shrink-0 text-accent-ink" aria-hidden />
+            <span className="flex-1 whitespace-nowrap">
+              Giờ thức dậy cố định: <span className="tabular font-semibold">{wakeTime}</span>
+            </span>
+            {!wakeConfirmedAt && (
+              <button type="button" className="icon-btn icon-btn-plain size-7" aria-label="Sửa giờ thức dậy" title="Sửa giờ thức dậy" onClick={() => { setWakeTimeInput(wakeTime); setEditingWakeTime(true); }}>
+                <Pencil className="size-3.5" aria-hidden />
+              </button>
+            )}
+          </div>
           {wakeConfirmedAt ? (
-            <span className="badge bg-jade/15 text-jade-ink" aria-disabled>{t.journey.wakeUpConfirmed}</span>
+            <span className="badge justify-self-start bg-jade/15 text-jade-ink" aria-disabled>{t.journey.wakeUpConfirmed}</span>
           ) : (
             <button
               type="button"
-              className="btn btn-soft"
+              className="btn btn-soft justify-self-start"
               disabled={closed || pending}
               onClick={() => exec(() => confirmWakeUpToday(), { success: t.journey.wakeUpConfirmed, onSuccess: refresh })}
             >
