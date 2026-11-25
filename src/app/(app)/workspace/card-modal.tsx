@@ -103,7 +103,14 @@ export function CardModal({
     if (!d) return;
     if (open && !d.open) d.showModal();
     if (!open && d.open) d.close();
-  }, [open]);
+    // mounted: khi gọi từ WorkCardTrigger, CardModal mount lần đầu với open đã sẵn true (data và
+    // open được set cùng lúc) — ref chỉ thật sự gắn vào DOM ở lần render SAU (sau khi cổng portal
+    // vào document.body xong), nhưng hiệu ứng này chỉ phụ thuộc [open] nên không chạy lại ở lần
+    // render đó vì open không đổi. Thêm mounted vào dependency để buộc chạy lại đúng lúc ref có
+    // giá trị, nếu không showModal() sẽ không bao giờ được gọi (dialog hiện ra nhờ CSS display:flex
+    // không điều kiện, nhưng không có backdrop/top-layer thật, và bấm ra ngoài đóng lại như click
+    // thường vì không có ::backdrop chắn).
+  }, [open, mounted]);
 
   useEffect(() => {
     if (!card) return;
