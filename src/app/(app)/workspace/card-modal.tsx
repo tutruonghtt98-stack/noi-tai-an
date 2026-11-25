@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlignLeft, Calendar, Check, ChevronDown, Columns3, Flag, GripVertical, ListChecks, MessageSquare, Paperclip, Users, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
@@ -71,6 +72,12 @@ export function CardModal({
   const w = t.work.workspace;
   const { exec, pending } = useAction();
   const ref = useRef<HTMLDialogElement>(null);
+  // Portal ra document.body: nếu nơi gọi CardModal nằm trong 1 container có transform (vd dải
+  // giờ trong Lịch trình), trình duyệt coi đó là containing block của cả dialog lẫn ::backdrop,
+  // khiến panel/lớp phủ bị giam trong khung nhỏ đó thay vì phủ kín màn hình (trông như 1 mảng
+  // trắng mờ che 1 góc) thay vì trượt vào từ bên phải toàn màn hình như thiết kế.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [label, setLabel] = useState("");
@@ -203,7 +210,9 @@ export function CardModal({
   // Thẻ đã được duyệt (nằm ở cột Hoàn thành) — chỉ chủ bảng mới được sửa, người khác chỉ xem.
   const locked = !canDelete && !!doneListId && column === doneListId;
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <dialog
       ref={ref}
       className="side-panel"
@@ -510,7 +519,8 @@ export function CardModal({
           </div>
         </>
       )}
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }
 
