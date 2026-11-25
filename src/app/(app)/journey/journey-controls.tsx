@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlarmClock, Check, ListChecks, MoonStar, Pencil, Plus, Send, Sparkles, Trash2, Wallet } from "lucide-react";
 import { Empty } from "@/components/ui/empty";
@@ -107,7 +108,7 @@ export function JourneyControls({
                   const pendingReview = task.listName === "listReview";
                   const done = pendingReview || task.completedAt != null;
                   return (
-                    <li key={task.id} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
+                    <li key={task.id} className="flex items-start gap-4 rounded-xl py-4 first:pt-0 last:pb-0 hover:bg-surface-2/60">
                       <button
                         type="button"
                         className={`icon-btn mt-0.5 shrink-0 ${done ? "bg-ink text-bg" : ""}`}
@@ -117,7 +118,7 @@ export function JourneyControls({
                       >
                         <Check className="size-4" aria-hidden />
                       </button>
-                      <div className="min-w-0 flex-1">
+                      <Link href={`/workspace?card=${task.id}`} className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                           <h3 className={`flex items-center gap-2 font-medium ${done && !pendingReview ? "text-muted line-through" : ""}`}>
                             {task.title}
@@ -128,7 +129,7 @@ export function JourneyControls({
                           </span>
                         </div>
                         <p className="mt-1 text-xs text-muted">{task.boardName} · {t.work.workspace[task.listName as keyof typeof t.work.workspace] ?? task.listName}</p>
-                      </div>
+                      </Link>
                     </li>
                   );
                 })}
