@@ -245,7 +245,7 @@ export default async function DashboardPage() {
               startTime: timeInZone(b.dueDate, user.timezone),
               estimateMin: 90,
               done: false,
-              color: "rose",
+              color: "accent",
               href: b.href,
             })),
             ...cardDeadlines.map((c) => ({
@@ -255,7 +255,7 @@ export default async function DashboardPage() {
               startTime: timeInZone(c.dueDate, user.timezone),
               estimateMin: 90,
               done: false,
-              color: "mist",
+              color: "accent",
               cardId: c.cardId,
             })),
           ]}
