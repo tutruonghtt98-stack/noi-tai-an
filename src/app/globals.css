@@ -614,15 +614,18 @@ dialog.side-panel {
   padding: 0;
   border: none;
   border-left: 1px solid var(--line);
+}
+/* display chỉ bật khi thật sự [open] — nếu để display:flex vô điều kiện, 1 CardModal từng mở rồi
+   đóng (vd mở từ Lịch trình/Hành trình, nơi component không unmount sau khi đóng) vẫn hiện ra như
+   1 khối trắng trống rỗng dù không còn "open" và nội dung bên trong đã gỡ hết. */
+dialog.side-panel[open] {
   display: flex;
   flex-direction: column;
+  animation: panel-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 dialog.side-panel::backdrop {
   background: var(--overlay);
   backdrop-filter: blur(2px);
-}
-dialog.side-panel[open] {
-  animation: panel-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @keyframes panel-in {
   from { opacity: 0; transform: translateX(16px); }
