@@ -30,6 +30,11 @@ export const PRIORITY_ICON: Record<WorkCardPriority, LucideIcon> = {
   NORMAL: Flag,
   URGENT: Flag,
 };
+export const PRIORITY_TEXT_CLASS: Record<WorkCardPriority, string> = {
+  LOW: "text-jade-ink",
+  NORMAL: "text-ochre-ink",
+  URGENT: "text-danger",
+};
 
 export const STATUS_BADGE_CLASS: Record<string, string> = {
   muted: "bg-muted/15 text-ink-2",

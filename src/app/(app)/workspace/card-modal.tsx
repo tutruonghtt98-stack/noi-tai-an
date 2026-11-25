@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Calendar, Flag, GripVertical, ListChecks, MessageSquare, Paperclip, Users, X } from "lucide-react";
+import { AlignLeft, Calendar, Check, ChevronDown, Columns3, Flag, GripVertical, ListChecks, MessageSquare, Paperclip, Users, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/cn";
@@ -17,7 +17,7 @@ import {
 } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
 import { AssigneePicker, AssigneesPicker, type AssigneesPickerHandle, type MemberOption } from "./assignee-picker";
-import type { WorkCardPriority } from "./kanban-board";
+import { PRIORITY_ICON, PRIORITY_TEXT_CLASS, type WorkCardPriority } from "./kanban-board";
 import { utcToZonedDateTimeInput } from "@/lib/dates";
 import { reorderIds } from "@/lib/work-view";
 import type { ChecklistItem, CardAssignee } from "@/lib/work-types";
@@ -235,7 +235,7 @@ export function CardModal({
               />
             </label>
             <label className="field">
-              <span className="label">{w.cardDescription}</span>
+              <span className="label inline-flex items-center gap-1.5"><AlignLeft className="size-3.5" aria-hidden /> {w.cardDescription}</span>
               <textarea
                 className="input"
                 value={description}
@@ -248,7 +248,7 @@ export function CardModal({
             </label>
             <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <label className="field">
-                <span className="label">{w.fieldColumn}</span>
+                <span className="label inline-flex items-center gap-1.5"><Columns3 className="size-3.5" aria-hidden /> {w.fieldColumn}</span>
                 <select className="input" value={column} onChange={(e) => setColumn(e.target.value)} disabled={locked}>
                   {lists.map((l) => (
                     <option key={l.id} value={l.id}>
@@ -259,11 +259,7 @@ export function CardModal({
               </label>
               <label className="field">
                 <span className="label inline-flex items-center gap-1.5"><Flag className="size-3.5" aria-hidden /> {w.priorityTitle}</span>
-                <select className="input" value={priority} onChange={(e) => setPriority(e.target.value as WorkCardPriority)} disabled={locked}>
-                  <option value="LOW">{w.priorityLow}</option>
-                  <option value="NORMAL">{w.priorityNormal}</option>
-                  <option value="URGENT">{w.priorityUrgent}</option>
-                </select>
+                <PrioritySelect value={priority} onChange={setPriority} disabled={locked} />
               </label>
             </div>
 
@@ -519,5 +515,77 @@ export function CardModal({
         </>
       )}
     </dialog>
+  );
+}
+
+/** Dropdown tuỳ chỉnh cho mức độ ưu tiên — mỗi lựa chọn có icon + màu riêng, điều mà thẻ
+ * <option> gốc của trình duyệt không hỗ trợ. */
+function PrioritySelect({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: WorkCardPriority;
+  onChange: (v: WorkCardPriority) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useI18n();
+  const w = t.work.workspace;
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const options: WorkCardPriority[] = ["LOW", "NORMAL", "URGENT"];
+  const priorityLabel: Record<WorkCardPriority, string> = { LOW: w.priorityLow, NORMAL: w.priorityNormal, URGENT: w.priorityUrgent };
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const Icon = PRIORITY_ICON[value];
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        className="input flex w-full items-center justify-between gap-2 text-left"
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className={cn("inline-flex items-center gap-1.5 font-medium", PRIORITY_TEXT_CLASS[value])}>
+          <Icon className="size-4" aria-hidden /> {priorityLabel[value]}
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-muted" aria-hidden />
+      </button>
+      {open && (
+        <ul role="listbox" className="rise absolute z-20 mt-1.5 w-full overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-pop">
+          {options.map((p) => {
+            const OptIcon = PRIORITY_ICON[p];
+            const selected = p === value;
+            return (
+              <li key={p}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={cn("flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left hover:bg-surface-2", PRIORITY_TEXT_CLASS[p])}
+                  onClick={() => {
+                    onChange(p);
+                    setOpen(false);
+                  }}
+                >
+                  <OptIcon className="size-4 shrink-0" aria-hidden />
+                  <span className="flex-1 font-medium">{priorityLabel[p]}</span>
+                  {selected && <Check className="size-3.5 shrink-0" aria-hidden />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
