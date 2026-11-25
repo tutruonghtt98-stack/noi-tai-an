@@ -291,25 +291,39 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                   </span>
                 ))}
               </div>
-              {days.map((d) => {
-                // Việc trùng giờ trong cùng ngày được chia thành các "làn" đứng cạnh nhau thay vì chồng lên nhau
-                // (chồng lên thì khối render sau sẽ che mất khối trước, không bấm được).
+              {days.map((d, dayIndex) => {
+                // Việc trùng giờ trong cùng ngày được chia thành các "làn" đứng cạnh nhau, mỗi làn
+                // chia đều bề rộng ngày (kiểu Google Calendar) thay vì chồng lệch (cascade) khó đọc.
                 const dayTasks = scheduled
                   .filter((x) => x.date === d)
                   .map((x) => ({ ...x, start: toH(x.startTime!), dur: Math.max(0.5, (x.estimateMin ?? 60) / 60) }))
                   .sort((a, b) => a.start - b.start);
-                const laneEnds: number[] = [];
-                const laned = dayTasks.map((x) => {
-                  let lane = laneEnds.findIndex((e) => e <= x.start);
-                  if (lane === -1) lane = laneEnds.length;
-                  laneEnds[lane] = x.start + x.dur;
-                  return { ...x, lane };
-                });
-                // Xếp kiểu "cascade": mỗi làn lệch sang phải một chút và nằm trên làn trước — ô vẫn gần đủ
-                // rộng để đọc được thông tin, phần không bị che của làn dưới vẫn bấm được.
-                const CASCADE_STEP = 16; // %
+                const laned: ((typeof dayTasks)[number] & { lane: number; laneCount: number })[] = [];
+                let gi = 0;
+                while (gi < dayTasks.length) {
+                  // Gom 1 "cụm" việc chồng giờ liên tiếp nhau (bắc cầu: A chồng B, B chồng C → cùng cụm).
+                  let groupEnd = dayTasks[gi]!.start + dayTasks[gi]!.dur;
+                  let gj = gi + 1;
+                  while (gj < dayTasks.length && dayTasks[gj]!.start < groupEnd) {
+                    groupEnd = Math.max(groupEnd, dayTasks[gj]!.start + dayTasks[gj]!.dur);
+                    gj++;
+                  }
+                  const laneEnds: number[] = [];
+                  const group = dayTasks.slice(gi, gj).map((x) => {
+                    let lane = laneEnds.findIndex((e) => e <= x.start);
+                    if (lane === -1) lane = laneEnds.length;
+                    laneEnds[lane] = x.start + x.dur;
+                    return { ...x, lane };
+                  });
+                  const laneCount = laneEnds.length;
+                  for (const x of group) laned.push({ ...x, laneCount });
+                  gi = gj;
+                }
                 return (
-                  <div key={d} className={cn("relative rounded-xl", d === today ? "bg-accent-soft/40" : "bg-surface-2/50")}>
+                  <div
+                    key={d}
+                    className={cn("relative", dayIndex > 0 && "border-l border-line", d === today ? "bg-accent-soft/40" : "bg-surface-2/50")}
+                  >
                     {hours.map((h) => (
                       <span key={h} className="absolute inset-x-0 border-t border-dashed border-line" style={{ top: h * HOUR_PX }} aria-hidden />
                     ))}
@@ -317,15 +331,15 @@ function WeekGrid({ tasks, days, labels, today, now }: { tasks: PlannerTask[]; d
                       const c = x.color ?? PALETTE[i % PALETTE.length]!;
                       const past = now != null && (d < today || (d === today && x.start + x.dur < now));
                       const boxClassName = cn(
-                        "absolute overflow-hidden rounded-lg border-l-4 px-1.5 py-1 text-left text-[0.6875rem] leading-tight",
+                        "absolute overflow-hidden rounded-md border-l-[3px] px-1.5 py-1 text-left text-[0.6875rem] leading-tight",
                         (x.done || past) && "opacity-55",
                         (x.href || x.cardId) && "hover:brightness-95",
                       );
                       const boxStyle = {
                         top: x.start * HOUR_PX + 1,
                         height: x.dur * HOUR_PX - 2,
-                        left: `calc(${x.lane * CASCADE_STEP}% + 2px)`,
-                        right: 2,
+                        left: `calc(${(x.lane / x.laneCount) * 100}% + ${x.lane === 0 ? 2 : 1}px)`,
+                        width: `calc(${100 / x.laneCount}% - ${x.lane === 0 ? 4 : 3}px)`,
                         zIndex: x.lane + 1,
                         background: softVar(c),
                         borderColor: colorVar(c),
