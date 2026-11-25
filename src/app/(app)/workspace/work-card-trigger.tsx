@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { getWorkCardModalData } from "@/actions/work";
 import { CardModal, type SerializedCard } from "./card-modal";
 import type { MemberOption } from "./assignee-picker";
@@ -32,7 +31,6 @@ export function WorkCardTrigger({
   title?: string;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const [data, setData] = useState<ModalData | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -48,10 +46,11 @@ export function WorkCardTrigger({
     }
   };
 
-  const close = () => {
-    setOpen(false);
-    router.refresh();
-  };
+  // Không gọi router.refresh() ở đây: trang chủ (Hành trình, Tổng quan...) được bọc trong hiệu ứng
+  // xuất hiện (StaggerReveal) dựa vào "đã từng vào khung nhìn" — ép toàn trang render lại làm hiệu
+  // ứng đó phát lại từ đầu (mờ/nhoè/trượt), trông như cả mảng trắng xoà lên. Đánh đổi: nếu vừa sửa
+  // thẻ trong popup này, trang chủ không tự cập nhật ngay — cần tải lại trang mới thấy thay đổi.
+  const close = () => setOpen(false);
 
   return (
     <>
