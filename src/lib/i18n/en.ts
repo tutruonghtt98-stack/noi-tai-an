@@ -694,6 +694,7 @@ const en: Dict = {
   journey: {
     coreMissionsEyebrow: "CORE MISSIONS",
     weeklyChallengeEyebrow: "WEEKLY CHALLENGE",
+    wakeUpCardEyebrow: "WAKE-UP ON TIME",
     wakeUpCardTitle: "Wake-up-on-time challenge",
     dailyChallengeEyebrow: "DAILY CHALLENGE",
     personalMissionsEyebrow: "PERSONAL MISSIONS",

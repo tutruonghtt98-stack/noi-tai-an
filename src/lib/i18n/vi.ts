@@ -692,6 +692,7 @@ const vi = {
   journey: {
     coreMissionsEyebrow: "NHIỆM VỤ CHÍNH",
     weeklyChallengeEyebrow: "THỬ THÁCH TUẦN",
+    wakeUpCardEyebrow: "DẬY ĐÚNG GIỜ",
     wakeUpCardTitle: "Thử thách dậy đúng giờ",
     dailyChallengeEyebrow: "THỬ THÁCH NGÀY",
     personalMissionsEyebrow: "NHIỆM VỤ CÁ NHÂN",

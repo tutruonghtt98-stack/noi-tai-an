@@ -191,7 +191,7 @@ export default async function JourneyPage() {
         <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
           <aside className="grid content-start gap-[var(--gap)]">
             <section className="card" aria-labelledby="weekly-challenge">
-              <AsideCardHead eyebrow={t.journey.weeklyChallengeEyebrow} title={t.journey.wakeUpCardTitle} />
+              <AsideCardHead eyebrow={t.journey.wakeUpCardEyebrow} title={t.journey.wakeUpCardTitle} />
               <JourneyWakeUpCard
                 wakeTime={getCommittedWakeTime(journey.journey.commitments)}
                 wakeConfirmedAt={journey.dayRecord.wakeConfirmedAt}
