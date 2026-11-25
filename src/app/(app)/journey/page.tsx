@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/session";
 import { getJourneyDashboard } from "@/lib/journey-queries";
 import { syncOverdueDiscipline } from "@/lib/journey-score-ledger";
 import { PageHeader } from "@/components/page-header";
-import { JourneyWeeklyChallengeActions, JourneyControls, JourneyReflectionCard, StartJourneyButton } from "./journey-controls";
+import { JourneyWakeUpCard, JourneyControls, JourneyReflectionCard, StartJourneyButton } from "./journey-controls";
 import { ProgressBar, ProgressRing } from "@/components/ui/progress-ring";
 import { CountUp } from "@/components/ui/count-up";
 import { SplitChars } from "@/components/ui/split-chars";
@@ -179,8 +179,6 @@ export default async function JourneyPage() {
             isLevelEnd={dayNumber === journey.level.endDay}
             levelQuestions={journey.level.reflectionQuestions}
             levelReview={journey.levelReview}
-            wakeTime={getCommittedWakeTime(journey.journey.commitments)}
-            wakeConfirmedAt={journey.dayRecord.wakeConfirmedAt}
             habits={journey.habits}
             today={journey.today}
             weeklyCommitments={weeklyCommitmentOptions(journey.journey.commitments).map((g) => ({
@@ -193,18 +191,12 @@ export default async function JourneyPage() {
         <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
           <aside className="grid content-start gap-[var(--gap)]">
             <section className="card" aria-labelledby="weekly-challenge">
-              <AsideCardHead eyebrow={t.journey.weeklyChallengeEyebrow} title={journey.weeklyChallenge?.title ?? "Chưa có thử thách tuần"} />
-              {journey.weeklyChallenge && (
-                <>
-                  <p className="text-sm leading-6 text-ink-2">{journey.weeklyChallenge.description}</p>
-                  <JourneyWeeklyChallengeActions
-                    weekly={{
-                      title: journey.weeklyChallenge.title,
-                      completed: !!journey.weeklyChallenge.completions[0]?.completedAt,
-                    }}
-                  />
-                </>
-              )}
+              <AsideCardHead eyebrow={t.journey.weeklyChallengeEyebrow} title={t.journey.wakeUpCardTitle} />
+              <JourneyWakeUpCard
+                wakeTime={getCommittedWakeTime(journey.journey.commitments)}
+                wakeConfirmedAt={journey.dayRecord.wakeConfirmedAt}
+                closed={journey.dayRecord.status !== "IN_PROGRESS"}
+              />
             </section>
 
             <section className="card" aria-labelledby="daily-quote">

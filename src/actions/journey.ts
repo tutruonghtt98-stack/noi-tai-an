@@ -290,48 +290,6 @@ export async function completeJourneyDailyChallenge() {
   });
 }
 
-export async function completeJourneyWeeklyChallenge() {
-  return run(async () => {
-    const user = await requireUser();
-    const dashboard = await getJourneyDashboard(user);
-    const challenge = dashboard?.weeklyChallenge;
-    // Thử thách tuần không gắn với trạng thái "ngày hôm nay" — chỉ cần hành trình đang hoạt động
-    // và thử thách của tuần hiện tại tồn tại. Không chặn chỉ vì ngày hôm nay đã được khép lại.
-    if (!dashboard || !challenge || !dashboard.dayRecord) {
-      throw new UserError("CHALLENGE_NOT_AVAILABLE");
-    }
-    if (challenge.completions[0]?.completedAt) return false;
-
-    await db.$transaction(async (tx) => {
-      const completion = await tx.journeyWeeklyChallengeCompletion.upsert({
-        where: { journeyId_challengeId: { journeyId: dashboard.journey.id, challengeId: challenge.id } },
-        update: {},
-        create: { journeyId: dashboard.journey.id, challengeId: challenge.id, progress: 100, completedAt: new Date(), snapshot: { selfReported: true } },
-      });
-      if (!completion.completedAt) {
-        await tx.journeyWeeklyChallengeCompletion.update({ where: { id: completion.id }, data: { progress: 100, completedAt: new Date(), snapshot: { selfReported: true } } });
-      }
-      await tx.journeyXPTransaction.upsert({
-        where: { idempotencyKey: `weekly-challenge:${dashboard.journey.id}:${challenge.id}` },
-        update: {},
-        create: {
-          userId: user.id,
-          journeyId: dashboard.journey.id,
-          eventType: "WEEKLY_CHALLENGE_COMPLETED",
-          xp: challenge.xpReward,
-          reason: challenge.title,
-          idempotencyKey: `weekly-challenge:${dashboard.journey.id}:${challenge.id}`,
-        },
-      });
-    });
-
-    await syncJourneyAchievements(user.id);
-    revalidatePath("/journey");
-    revalidatePath("/dashboard");
-    return true;
-  });
-}
-
 export async function completeJourneyMonthlyChallenge(checkedCriteria: string[]) {
   return run(async () => {
     const user = await requireUser();
