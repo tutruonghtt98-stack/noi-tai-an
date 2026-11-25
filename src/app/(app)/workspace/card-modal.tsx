@@ -17,7 +17,7 @@ import {
 } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
 import { AssigneePicker, AssigneesPicker, type AssigneesPickerHandle, type MemberOption } from "./assignee-picker";
-import { PRIORITY_ICON, PRIORITY_TEXT_CLASS, type WorkCardPriority } from "./kanban-board";
+import { PRIORITY_ICON, PRIORITY_TEXT_CLASS, STATUS_ICON, STATUS_TEXT_CLASS, type WorkCardPriority } from "./kanban-board";
 import { utcToZonedDateTimeInput } from "@/lib/dates";
 import { reorderIds } from "@/lib/work-view";
 import type { ChecklistItem, CardAssignee } from "@/lib/work-types";
@@ -58,7 +58,7 @@ export function CardModal({
   open: boolean;
   card: SerializedCard | null;
   listId: string;
-  lists: { id: string; name: string }[];
+  lists: { id: string; name: string; rawName: string }[];
   teams?: { id: string; name: string }[];
   members?: MemberOption[];
   reviewListId?: string;
@@ -249,13 +249,7 @@ export function CardModal({
             <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <label className="field">
                 <span className="label inline-flex items-center gap-1.5"><Columns3 className="size-3.5" aria-hidden /> {w.fieldColumn}</span>
-                <select className="input" value={column} onChange={(e) => setColumn(e.target.value)} disabled={locked}>
-                  {lists.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
+                <ColumnSelect lists={lists} value={column} onChange={setColumn} disabled={locked} />
               </label>
               <label className="field">
                 <span className="label inline-flex items-center gap-1.5"><Flag className="size-3.5" aria-hidden /> {w.priorityTitle}</span>
@@ -579,6 +573,79 @@ function PrioritySelect({
                 >
                   <OptIcon className="size-4 shrink-0" aria-hidden />
                   <span className="flex-1 font-medium">{priorityLabel[p]}</span>
+                  {selected && <Check className="size-3.5 shrink-0" aria-hidden />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Dropdown tuỳ chỉnh cho cột (trạng thái) — mỗi cột có icon + màu riêng theo đúng quy ước
+ * dùng chung với Kanban/Danh sách (STATUS_ICON/STATUS_TEXT_CLASS), điều <option> gốc không làm được. */
+function ColumnSelect({
+  lists,
+  value,
+  onChange,
+  disabled,
+}: {
+  lists: { id: string; name: string; rawName: string }[];
+  value: string;
+  onChange: (id: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const current = lists.find((l) => l.id === value);
+  const CurrentIcon = (current && STATUS_ICON[current.rawName]) || Columns3;
+  const currentTextClass = (current && STATUS_TEXT_CLASS[current.rawName]) || "";
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        className="input flex w-full items-center justify-between gap-2 text-left"
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className={cn("inline-flex items-center gap-1.5 font-medium", currentTextClass)}>
+          <CurrentIcon className="size-4" aria-hidden /> {current?.name ?? ""}
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-muted" aria-hidden />
+      </button>
+      {open && (
+        <ul role="listbox" className="rise absolute z-20 mt-1.5 w-full overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-pop">
+          {lists.map((l) => {
+            const Icon = STATUS_ICON[l.rawName] || Columns3;
+            const textClass = STATUS_TEXT_CLASS[l.rawName] || "";
+            const selected = l.id === value;
+            return (
+              <li key={l.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={cn("flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left hover:bg-surface-2", textClass)}
+                  onClick={() => {
+                    onChange(l.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Icon className="size-4 shrink-0" aria-hidden />
+                  <span className="flex-1 font-medium">{l.name}</span>
                   {selected && <Check className="size-3.5 shrink-0" aria-hidden />}
                 </button>
               </li>

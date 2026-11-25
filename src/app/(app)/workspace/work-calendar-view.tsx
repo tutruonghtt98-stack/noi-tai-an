@@ -42,7 +42,7 @@ export function WorkCalendarView({
   const rows = flattenCards(lists);
   const { byDate, undated } = groupCardsByDate(rows, timezone);
   const boardListsRaw = (openCard && boardListsByBoardId[openCard.card.boardId]) || [];
-  const boardLists = boardListsRaw.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name }));
+  const boardLists = boardListsRaw.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name, rawName: l.name }));
   const doneListId = boardListsRaw.find((l) => l.name === "listDone")?.id;
   const reviewListId = boardListsRaw.find((l) => l.name === "listReview")?.id;
   const canDelete = openCard ? (canManageByBoardId[openCard.card.boardId] ?? false) : true;

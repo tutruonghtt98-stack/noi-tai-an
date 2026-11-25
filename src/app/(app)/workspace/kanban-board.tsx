@@ -43,6 +43,13 @@ export const STATUS_BADGE_CLASS: Record<string, string> = {
   jade: "bg-jade/15 text-jade-ink",
   danger: "bg-danger/15 text-danger",
 };
+export const STATUS_TEXT_CLASS: Record<string, string> = {
+  listToDo: "text-ink-2",
+  listInProgress: "text-mist-ink",
+  listReview: "text-ochre-ink",
+  listDone: "text-jade-ink",
+  listOverdue: "text-danger",
+};
 export const STATUS_ICON: Record<string, LucideIcon> = {
   listToDo: Circle,
   listInProgress: Clock,
@@ -135,7 +142,7 @@ export function KanbanBoard({
   }, [openCardId]);
 
   const boardListsRaw = (openCard && boardListsByBoardId[openCard.card.boardId]) || [];
-  const boardLists = boardListsRaw.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name }));
+  const boardLists = boardListsRaw.map((l) => ({ id: l.id, name: w[l.name as keyof typeof w] ?? l.name, rawName: l.name }));
   const doneListId = boardListsRaw.find((l) => l.name === "listDone")?.id;
   const reviewListId = boardListsRaw.find((l) => l.name === "listReview")?.id;
   const canDelete = openCard ? (canManageByBoardId[openCard.card.boardId] ?? false) : true;
