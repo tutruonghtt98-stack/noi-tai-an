@@ -234,19 +234,21 @@ export function CardModal({
                 disabled={locked}
               />
             </label>
-            <label className="field">
-              <span className="label inline-flex items-center gap-1.5"><AlignLeft className="size-3.5" aria-hidden /> {w.cardDescription}</span>
-              <textarea
-                className="input"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={w.cardDescriptionPh}
-                maxLength={2000}
-                rows={3}
-                disabled={locked}
-              />
-            </label>
-            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-line p-4">
+              <label className="field">
+                <span className="label inline-flex items-center gap-1.5"><AlignLeft className="size-3.5" aria-hidden /> {w.cardDescription}</span>
+                <textarea
+                  className="input"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={w.cardDescriptionPh}
+                  maxLength={2000}
+                  rows={3}
+                  disabled={locked}
+                />
+              </label>
+            </div>
+            <div className="grid min-w-0 gap-4 rounded-xl border border-line p-4 sm:grid-cols-2">
               <label className="field">
                 <span className="label inline-flex items-center gap-1.5"><Columns3 className="size-3.5" aria-hidden /> {w.fieldColumn}</span>
                 <ColumnSelect lists={lists} value={column} onChange={setColumn} disabled={locked} />
@@ -257,7 +259,7 @@ export function CardModal({
               </label>
             </div>
 
-            <div>
+            <div className="rounded-xl border border-line p-4">
               <p className="label mb-2 inline-flex items-center gap-1.5">
                 <Users className="size-3.5" aria-hidden /> {w.peopleTitle}
               </p>
@@ -289,7 +291,7 @@ export function CardModal({
               </div>
             </div>
 
-            <div>
+            <div className="rounded-xl border border-line p-4">
               <p className="label mb-2 inline-flex items-center gap-1.5">
                 <Calendar className="size-3.5" aria-hidden /> {w.timelineTitle}
               </p>
@@ -305,7 +307,7 @@ export function CardModal({
               </div>
             </div>
 
-            <div>
+            <div className="rounded-xl border border-line p-4">
               <p className="label mb-2 inline-flex items-center gap-1.5">
                 <ListChecks className="size-3.5" aria-hidden /> {w.checklistTitle}
                 {checklist.length > 0 && <span className="tabular text-muted">({checklist.filter((i) => i.done).length}/{checklist.length})</span>}
@@ -380,7 +382,7 @@ export function CardModal({
               )}
             </div>
 
-            <div>
+            <div className="rounded-xl border border-line p-4">
               <p className="label mb-2 inline-flex items-center gap-1.5">
                 <Paperclip className="size-3.5" aria-hidden /> {w.attachmentsTitle}
                 {attachments.length > 0 && <span className="tabular text-muted">({attachments.length})</span>}
@@ -432,7 +434,7 @@ export function CardModal({
               )}
             </div>
 
-            <div>
+            <div className="rounded-xl border border-line p-4">
               <p className="label mb-2 inline-flex items-center gap-1.5">
                 <MessageSquare className="size-3.5" aria-hidden /> {w.commentsTitle}
                 {comments.length > 0 && <span className="tabular text-muted">({comments.length})</span>}
