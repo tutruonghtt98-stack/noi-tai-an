@@ -594,12 +594,19 @@ dialog.modal[open] {
   to { opacity: 1; transform: none; }
 }
 
-/* Panel chi tiết thẻ Workspace — trượt vào từ bên phải thay vì hộp thoại giữa màn hình. */
+/* Panel chi tiết thẻ Workspace — trượt vào từ bên phải thay vì hộp thoại giữa màn hình.
+   Ghim bằng inset (top/right/bottom đều 0) thay vì margin auto + height: 100dvh — dialog được mở
+   bằng showModal() đặt layout 1 lần tại thời điểm mở; trên mobile, nếu lúc đó thanh địa chỉ của
+   trình duyệt đang thu/giãn (do trang vừa được cuộn), "dvh" chụp nhanh 1 chiều cao không đúng và
+   không tự chỉnh lại sau đó, để lại khoảng trắng phía trên/dưới panel. Dùng inset để 2 cạnh trên/
+   dưới luôn bám đúng mép khung nhìn thật của trình duyệt, không phụ thuộc giá trị dvh chụp 1 lần. */
 dialog.side-panel {
-  margin: 0 0 0 auto;
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
   width: min(28rem, 100vw);
-  height: 100dvh;
-  max-height: 100dvh;
+  height: auto;
+  max-height: none;
   border-radius: 0;
   background: var(--surface);
   color: var(--ink);
