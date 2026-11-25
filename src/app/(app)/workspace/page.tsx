@@ -50,6 +50,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
           description: card.description,
           assignees: card.assignees,
           teamId: card.teamId,
+          reviewerEmail: card.reviewerEmail,
           dueDate: card.dueDate ? card.dueDate.toISOString() : null,
           startDate: card.startDate ? card.startDate.toISOString() : null,
           priority: card.priority,

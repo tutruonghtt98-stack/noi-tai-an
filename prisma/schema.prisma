@@ -403,6 +403,7 @@ model WorkCard {
   title          String
   teamId         String? // team được cấp quyền xem/thao tác thẻ này
   description    String?
+  reviewerEmail  String? // người duyệt thẻ (riêng, khác với danh sách người phụ trách)
   checklist      Json      @default("[]")
   dueDate        DateTime?
   startDate      DateTime?

@@ -1,4 +1,4 @@
-export type ChecklistItem = { id: string; text: string; done: boolean; description?: string };
+export type ChecklistItem = { id: string; text: string; done: boolean };
 
 export type CardAssignee = { email: string; userId: string | null; name: string | null };
 

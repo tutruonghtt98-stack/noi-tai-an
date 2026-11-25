@@ -16,7 +16,7 @@ import {
   updateWorkCardChecklist,
 } from "@/actions/work";
 import { Avatar } from "@/components/ui/avatar";
-import { AssigneesPicker, type AssigneesPickerHandle, type MemberOption } from "./assignee-picker";
+import { AssigneePicker, AssigneesPicker, type AssigneesPickerHandle, type MemberOption } from "./assignee-picker";
 import type { WorkCardPriority } from "./kanban-board";
 import { utcToZonedDateTimeInput } from "@/lib/dates";
 import { reorderIds } from "@/lib/work-view";
@@ -34,6 +34,7 @@ export type SerializedCard = {
   description: string | null;
   assignees: CardAssignee[];
   teamId: string | null;
+  reviewerEmail: string | null;
   dueDate: string | null;
   startDate: string | null;
   priority: WorkCardPriority;
@@ -76,6 +77,7 @@ export function CardModal({
   const [assignees, setAssignees] = useState<string[]>([]);
   const assigneesRef = useRef<AssigneesPickerHandle>(null);
   const [teamId, setTeamId] = useState("");
+  const [reviewerEmail, setReviewerEmail] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [priority, setPriority] = useState<WorkCardPriority>("NORMAL");
@@ -103,6 +105,7 @@ export function CardModal({
     setLabel(card.label ?? "");
     setAssignees(card.assignees.map((a) => a.email));
     setTeamId(card.teamId ?? "");
+    setReviewerEmail(card.reviewerEmail ?? "");
     setDueDate(card.dueDate ? utcToZonedDateTimeInput(new Date(card.dueDate), timezone) : "");
     setStartDate(card.startDate ? utcToZonedDateTimeInput(new Date(card.startDate), timezone) : "");
     setPriority(card.priority);
@@ -148,9 +151,6 @@ export function CardModal({
     persistChecklist([...checklist, { id: crypto.randomUUID(), text, done: false }]);
     setNewItem("");
   };
-  const setItemDescription = (id: string, description: string) =>
-    setChecklist(checklist.map((i) => (i.id === id ? { ...i, description: description || undefined } : i)));
-
   const addAttachment = () => {
     const url = newAttachmentUrl.trim();
     if (!url) return;
@@ -185,6 +185,7 @@ export function CardModal({
           description: description || undefined,
           assignees: finalAssignees,
           teamId: teamId || undefined,
+          reviewerEmail: reviewerEmail || undefined,
           dueDate: dueDate || undefined,
           startDate: startDate || undefined,
           priority,
@@ -276,6 +277,11 @@ export function CardModal({
                   <AssigneesPicker ref={assigneesRef} value={assignees} onChange={setAssignees} members={members} placeholder={w.cardAssigneesPh} disabled={!canDelete || locked} />
                   <span className="mt-1 block text-xs text-muted">{w.cardAssigneesHint}</span>
                 </label>
+                <label className="field">
+                  <span className="label">{w.cardReviewer}</span>
+                  <AssigneePicker value={reviewerEmail} onChange={setReviewerEmail} members={members} placeholder={w.cardReviewerPh} disabled={locked} />
+                  <span className="mt-1 block text-xs text-muted">{w.cardReviewerHint}</span>
+                </label>
                 {canDelete && teams.length > 0 && (
                   <label className="field">
                     <span className="label">{w.cardTeam}</span>
@@ -321,7 +327,6 @@ export function CardModal({
                   {checklist.map((item) => (
                     <li
                       key={item.id}
-                      className="flex flex-col gap-1"
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
                         if (!draggedItemId || draggedItemId === item.id) return;
@@ -359,15 +364,6 @@ export function CardModal({
                           </button>
                         )}
                       </div>
-                      <input
-                        className="input ml-6 !h-8 text-xs"
-                        value={item.description ?? ""}
-                        onChange={(e) => setItemDescription(item.id, e.target.value)}
-                        onBlur={() => persistChecklist(checklist)}
-                        placeholder={w.subtaskDescriptionPh}
-                        maxLength={300}
-                        disabled={locked}
-                      />
                     </li>
                   ))}
                 </ul>
