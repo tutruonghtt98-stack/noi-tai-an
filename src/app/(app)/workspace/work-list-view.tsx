@@ -93,7 +93,7 @@ export function WorkListView({
             (list.cards.length === 0 ? (
               <p className="mt-3 text-sm text-muted">{w.emptyList}</p>
             ) : (
-              <div className="mt-3 overflow-hidden rounded-lg border-2 border-line">
+              <div className="mt-3 overflow-hidden rounded-lg border border-line">
               <table className="w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="divide-x divide-line bg-surface-2 text-xs text-muted">
