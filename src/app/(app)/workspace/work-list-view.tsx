@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
+import { AlignLeft, Calendar, ChevronDown, ChevronRight, Flag, GripVertical, Tag, Type, Users } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/cn";
@@ -93,19 +93,20 @@ export function WorkListView({
             (list.cards.length === 0 ? (
               <p className="mt-3 text-sm text-muted">{w.emptyList}</p>
             ) : (
-              <table className="mt-3 w-full text-left text-sm">
+              <div className="mt-3 overflow-hidden rounded-lg border-2 border-line">
+              <table className="w-full border-collapse text-left text-sm">
                 <thead>
-                  <tr className="rounded-lg bg-surface-2 text-xs text-muted">
-                    <th className="w-8 rounded-l-lg px-1 py-2" />
-                    <th className="px-3 py-2">{w.colTitle}</th>
-                    <th className="px-3 py-2">{w.colDescription}</th>
-                    <th className="px-3 py-2">{w.colAssignee}</th>
-                    <th className="px-3 py-2">{w.typeTitle}</th>
-                    <th className="px-3 py-2">{w.timelineTitle}</th>
-                    <th className="rounded-r-lg px-3 py-2">{w.colPriority}</th>
+                  <tr className="divide-x divide-line bg-surface-2 text-xs text-muted">
+                    <th className="w-8 px-1 py-2.5" />
+                    <th className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><Type className="size-3.5" aria-hidden /> {w.colTitle}</span></th>
+                    <th className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><AlignLeft className="size-3.5" aria-hidden /> {w.colDescription}</span></th>
+                    <th className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><Users className="size-3.5" aria-hidden /> {w.colAssignee}</span></th>
+                    <th className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><Tag className="size-3.5" aria-hidden /> {w.typeTitle}</span></th>
+                    <th className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><Calendar className="size-3.5" aria-hidden /> {w.timelineTitle}</span></th>
+                    <th className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><Flag className="size-3.5" aria-hidden /> {w.colPriority}</span></th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-line">
                   {list.cards.map((card) => {
                     const due = dueLabel(w, card.dueDate, timezone);
                     return (
@@ -113,7 +114,7 @@ export function WorkListView({
                         key={card.id}
                         role="button"
                         tabIndex={0}
-                        className="cursor-pointer border-b border-line/60 last:border-0 hover:bg-surface-2/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink"
+                        className="cursor-pointer divide-x divide-line hover:bg-surface-2/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink"
                         onClick={() => open(card)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
@@ -169,6 +170,7 @@ export function WorkListView({
                   })}
                 </tbody>
               </table>
+              </div>
             ))}
         </div>
         );
