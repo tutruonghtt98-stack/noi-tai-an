@@ -326,7 +326,7 @@ export function JourneyWakeUpCard({
         </button>
       ) : (
         <>
-          <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">
+          <div className="flex w-full items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">
             <AlarmClock className="size-4 shrink-0 text-accent-ink" aria-hidden />
             <span className="flex-1 whitespace-nowrap">
               Giờ thức dậy cố định: <span className="tabular font-semibold">{wakeTime}</span>
@@ -337,7 +337,7 @@ export function JourneyWakeUpCard({
               </button>
             )}
           </div>
-          <div className="rounded-xl bg-surface-2 px-3 py-2">
+          <div className="w-full rounded-xl bg-surface-2 px-3 py-2">
             {wakeConfirmedAt ? (
               <span className="badge bg-jade/15 text-jade-ink" aria-disabled>{t.journey.wakeUpConfirmed}</span>
             ) : (
