@@ -2,8 +2,6 @@ import { db } from "@/lib/db";
 import { verifyWebhook } from "@/lib/payments/payos";
 import { markOrderPaid } from "@/lib/payments/orders";
 
-export const dynamic = "force-dynamic";
-
 /**
  * Webhook PayOS. Đăng ký URL này trong my.payos.vn → Kênh thanh toán → Webhook:
  *   https://ten-mien.vn/api/payments/payos

@@ -16,6 +16,11 @@ import { weeklyCommitmentOptions, getCommittedWakeTime } from "@/lib/journey-goa
 import { JourneyMidnightRefresh } from "./midnight-refresh";
 import { getI18n } from "@/lib/i18n";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Hành trình 180 ngày" };
 
 function AsideCardHead({ eyebrow, title }: { eyebrow: string; title: string }) {

@@ -13,6 +13,11 @@ import { DEPT_DOT } from "../colors";
 import { AddDepartmentButton } from "./add-department-form";
 import { DepartmentRowControls } from "./department-row-controls";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Phòng ban" };
 
 export default async function DepartmentListPage({ searchParams }: { searchParams: Promise<{ w?: string }> }) {

@@ -14,6 +14,11 @@ import { WorkspaceLiveSync } from "./live-sync";
 import { parseWorkView, poolListsByName } from "@/lib/work-view";
 import type { ChecklistItem } from "@/lib/work-types";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Workspace" };
 
 export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ card?: string; v?: string }> }) {

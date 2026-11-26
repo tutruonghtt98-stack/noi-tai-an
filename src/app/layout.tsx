@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
-import { cookies } from "next/headers";
 import "./globals.css";
-import { getOptionalUser } from "@/lib/session";
-import { dictionaries, getLocale } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18n";
 import { I18nProvider } from "@/lib/i18n/client";
 import { ToastProvider } from "@/components/ui/toast";
 import { SpotlightCursor } from "@/components/spotlight-cursor";
@@ -32,16 +30,15 @@ export const viewport: Viewport = {
   ],
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [user, locale, jar] = await Promise.all([getOptionalUser(), getLocale(), cookies()]);
-  const theme = (user?.theme ?? jar.get("theme")?.value ?? "SYSTEM").toLowerCase();
-  const accent = user?.accent ?? "ochre";
-  const density = user?.density ?? "comfortable";
-
+// Mặc định ẩn danh: khớp đúng tông/màu/mật độ CSS gốc (:root không có các data-*
+// này vẫn ra kết quả giống hệt). Cho phép layout gốc prerender tĩnh thay vì SSR
+// mỗi request. Người dùng đã đăng nhập được áp lại tuỳ chỉnh thật trong
+// (app)/layout.tsx — xem PreferenceSync ở đó.
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={locale} data-theme={theme} data-accent={accent} data-density={density} className={font.variable}>
+    <html lang="vi" data-theme="system" data-accent="ochre" data-density="comfortable" className={font.variable}>
       <body className="min-h-dvh">
-        <I18nProvider value={{ t: dictionaries[locale], locale }}>
+        <I18nProvider value={{ t: dictionaries.vi, locale: "vi" }}>
           <ToastProvider>{children}</ToastProvider>
         </I18nProvider>
         <SpotlightCursor />

@@ -8,6 +8,11 @@ import { expireStaleOrders } from "@/lib/payments/orders";
 import { OrderActions } from "./actions";
 import { cn } from "@/lib/cn";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Quản trị · Giao dịch" };
 
 const STATUS: Record<OrderStatus, string> = { PENDING: "Chờ", PAID: "Đã thanh toán", CANCELLED: "Đã huỷ", EXPIRED: "Hết hạn" };

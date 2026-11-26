@@ -6,6 +6,11 @@ import { addDays, isoInZone, rangeISO, toDbDate } from "@/lib/dates";
 import { expireStaleOrders } from "@/lib/payments/orders";
 import { ChartCard, ColumnChart, BarList } from "@/components/charts";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Quản trị" };
 
 function Kpi({ label, value, note }: { label: string; value: string; note?: string }) {

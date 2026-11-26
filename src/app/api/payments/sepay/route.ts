@@ -2,8 +2,6 @@ import { timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db";
 import { markOrderPaid } from "@/lib/payments/orders";
 
-export const dynamic = "force-dynamic";
-
 type SepayHook = {
   id: number;
   gateway: string;

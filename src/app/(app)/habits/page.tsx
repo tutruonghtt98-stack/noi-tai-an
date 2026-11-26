@@ -9,6 +9,11 @@ import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/ui/empty";
 import { ProgressRing } from "@/components/ui/progress-ring";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Thói quen" };
 
 export default async function HabitsPage() {

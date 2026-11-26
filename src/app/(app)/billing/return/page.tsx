@@ -4,6 +4,11 @@ import { db } from "@/lib/db";
 import { getPaymentStatus } from "@/lib/payments/payos";
 import { markOrderPaid } from "@/lib/payments/orders";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 /**
  * PayOS chuyển người dùng về đây sau khi thanh toán/huỷ.
  * Không tin tham số trên URL — luôn tra lại trạng thái từ PayOS (dự phòng khi webhook chậm).

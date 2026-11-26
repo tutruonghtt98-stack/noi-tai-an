@@ -9,6 +9,11 @@ import { SegmentLinks } from "@/components/ui/segment-links";
 import { ColumnChart, BarList } from "@/components/charts";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Phân tích" };
 
 const PERIODS = [7, 30, 90, 365] as const;

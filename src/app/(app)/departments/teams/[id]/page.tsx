@@ -12,6 +12,11 @@ import { AddTeamMemberButton } from "./add-team-member-form";
 import { RemoveTeamMemberButton } from "./remove-team-member-button";
 import { EditTeamButton } from "./edit-team-form";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Nhóm" };
 
 export default async function TeamDetailPage({ params }: { params: Promise<{ id: string }> }) {

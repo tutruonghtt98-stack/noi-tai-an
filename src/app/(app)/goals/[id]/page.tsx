@@ -14,6 +14,11 @@ import { ActionItem, AddTask } from "@/components/tasks";
 import { ProjectCard, NewProject } from "./projects";
 import { colorVar, inkVar, softVar } from "@/lib/colors";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Mục tiêu" };
 
 export default async function GoalDetailPage({ params }: { params: Promise<{ id: string }> }) {

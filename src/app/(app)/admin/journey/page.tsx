@@ -5,6 +5,11 @@ import { requireAdmin } from "@/lib/session";
 import { PageHeader } from "@/components/page-header";
 import { AchievementEditor, DailyChallengeEditor, LevelEditor, MissionEditor, MonthlyEditor, QuoteEditor, RulesEditor, WeeklyEditor } from "./editor";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Quản lý STILL / BETTER" };
 
 export default async function AdminJourneyPage({ searchParams }: { searchParams: Promise<{ level?: string; day?: string }> }) {

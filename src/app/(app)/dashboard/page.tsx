@@ -26,6 +26,11 @@ import { cn } from "@/lib/cn";
 import { JourneyOffer } from "@/components/journey-offer";
 import { getJourneyDashboard } from "@/lib/journey-queries";
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: "Tổng quan" };
 
 function CardHead({ title, href, label }: { title: string; href?: string; label?: string }) {

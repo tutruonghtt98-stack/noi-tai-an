@@ -1,8 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
-
 /** Thông báo chưa đọc gần nhất — để trình duyệt hỏi định kỳ và phát âm thanh khi có thông báo mới. */
 export async function GET() {
   const session = await auth();

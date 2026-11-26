@@ -2,8 +2,6 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { toDbDate, todayISO } from "@/lib/dates";
 
-export const dynamic = "force-dynamic";
-
 /** Lịch trình hôm nay (việc có giờ bắt đầu, chưa xong) — để trình duyệt hẹn giờ nhắc. */
 export async function GET() {
   const session = await auth();
