@@ -43,6 +43,13 @@ export const STATUS_BADGE_CLASS: Record<string, string> = {
   jade: "bg-jade/15 text-jade-ink",
   danger: "bg-danger/15 text-danger",
 };
+export const STATUS_BORDER_CLASS: Record<string, string> = {
+  muted: "border-muted/40",
+  mist: "border-mist/50",
+  ochre: "border-ochre/50",
+  jade: "border-jade/50",
+  danger: "border-danger/40",
+};
 export const STATUS_TEXT_CLASS: Record<string, string> = {
   listToDo: "text-ink-2",
   listInProgress: "text-mist-ink",

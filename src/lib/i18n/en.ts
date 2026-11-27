@@ -831,6 +831,8 @@ const en: Dict = {
       calendarUndated: "No due date",
       calendarPrevMonth: "Previous month",
       calendarNextMonth: "Next month",
+      calendarToday: "Today",
+      calendarMore: "+{n} more",
       emptyBoards: "No boards yet. Create your first one to get started.",
       emptyList: "No cards yet.",
       cardDetailTitle: "Card details",

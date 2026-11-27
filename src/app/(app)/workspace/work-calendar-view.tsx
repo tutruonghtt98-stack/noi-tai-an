@@ -2,13 +2,16 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
+import { fmt } from "@/lib/i18n/format";
 import { cn } from "@/lib/cn";
-import type { ISODate } from "@/lib/dates";
-import { DOT, type SerializedList } from "./kanban-board";
+import { timeInZone, type ISODate } from "@/lib/dates";
+import { STATUS_BADGE_CLASS, STATUS_BORDER_CLASS, type SerializedList } from "./kanban-board";
 import { CardModal, type SerializedCard } from "./card-modal";
 import type { MemberOption } from "./assignee-picker";
 import { buildMonthCells, flattenCards, groupCardsByDate, type FlatRow } from "@/lib/work-view";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
+
+const VISIBLE_PER_DAY = 3;
 
 export function WorkCalendarView({
   lists,
@@ -40,6 +43,7 @@ export function WorkCalendarView({
   const month = base.getUTCMonth() + 1;
 
   const cells = buildMonthCells(year, month, weekStartsOn);
+  const rowCount = cells.length / 7;
   const rows = flattenCards(lists);
   const { byDate, undated } = groupCardsByDate(rows, timezone);
   const boardListsRaw = (openCard && boardListsByBoardId[openCard.card.boardId]) || [];
@@ -48,34 +52,61 @@ export function WorkCalendarView({
   const reviewListId = boardListsRaw.find((l) => l.name === "listReview")?.id;
   const canDelete = openCard ? (canManageByBoardId[openCard.card.boardId] ?? false) : true;
 
-  const title = new Intl.DateTimeFormat(locale === "en" ? "en-US" : "vi-VN", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+  const dtLocale = locale === "en" ? "en-US" : "vi-VN";
+  const title = new Intl.DateTimeFormat(dtLocale, { month: "long", year: "numeric", timeZone: "UTC" }).format(
     new Date(Date.UTC(year, month - 1, 1)),
   );
+  const rangeStart = new Intl.DateTimeFormat(dtLocale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, 1)));
+  const rangeEnd = new Intl.DateTimeFormat(dtLocale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(
+    new Date(Date.UTC(year, month, 0)),
+  );
+  const todayMonthAbbr = new Intl.DateTimeFormat(dtLocale, { month: "short", timeZone: "UTC" }).format(new Date(`${today}T00:00:00Z`));
   const weekOrder = [0, 1, 2, 3, 4, 5, 6].map((i) => (i + weekStartsOn) % 7);
 
-  const chip = (row: FlatRow<SerializedCard>) => (
-    <button
-      key={row.card.id}
-      type="button"
-      className="flex w-full items-center gap-1.5 truncate rounded-md border border-line bg-surface px-1.5 py-1 text-left text-xs"
-      onClick={() => setOpenCard({ card: row.card, listId: row.card.listId })}
-    >
-      <span className={`size-1.5 shrink-0 rounded-full ${DOT[row.listColor] ?? "bg-muted"}`} aria-hidden />
-      <span className="truncate">{row.card.title}</span>
-    </button>
-  );
+  const chip = (row: FlatRow<SerializedCard>) => {
+    const time = row.card.dueDate ? timeInZone(new Date(row.card.dueDate), timezone) : null;
+    return (
+      <button
+        key={row.card.id}
+        type="button"
+        className={cn(
+          "flex w-full items-center justify-between gap-1 truncate rounded-md border px-1.5 py-1 text-left text-xs font-medium",
+          STATUS_BADGE_CLASS[row.listColor],
+          STATUS_BORDER_CLASS[row.listColor],
+        )}
+        onClick={() => setOpenCard({ card: row.card, listId: row.card.listId })}
+      >
+        <span className="truncate">{row.card.title}</span>
+        {time && <span className="hidden shrink-0 tabular opacity-80 sm:inline">{time}</span>}
+      </button>
+    );
+  };
 
   return (
     <>
       <div className="wsx-panel">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <button type="button" aria-label={w.calendarPrevMonth} className="btn btn-soft !p-2" onClick={() => setMonthOffset((n) => n - 1)}>
-            <ChevronLeft className="size-4" aria-hidden />
-          </button>
-          <span className="rounded-full bg-surface-2 px-4 py-2 text-sm font-medium capitalize">{title}</span>
-          <button type="button" aria-label={w.calendarNextMonth} className="btn btn-soft !p-2" onClick={() => setMonthOffset((n) => n + 1)}>
-            <ChevronRight className="size-4" aria-hidden />
-          </button>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex w-14 shrink-0 flex-col items-center rounded-xl border border-line bg-surface-2 py-1.5">
+              <span className="text-[0.625rem] font-semibold uppercase text-muted">{todayMonthAbbr}</span>
+              <span className="tabular text-lg font-semibold leading-tight">{Number(today.slice(8))}</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold capitalize">{title}</h2>
+              <p className="text-xs text-muted">{rangeStart} – {rangeEnd}</p>
+            </div>
+          </div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-line p-1">
+            <button type="button" aria-label={w.calendarPrevMonth} className="icon-btn icon-btn-plain size-8" onClick={() => setMonthOffset((n) => n - 1)}>
+              <ChevronLeft className="size-4" aria-hidden />
+            </button>
+            <button type="button" className="rounded-full px-3 py-1 text-sm font-medium hover:bg-surface-2" onClick={() => setMonthOffset(0)}>
+              {w.calendarToday}
+            </button>
+            <button type="button" aria-label={w.calendarNextMonth} className="icon-btn icon-btn-plain size-8" onClick={() => setMonthOffset((n) => n + 1)}>
+              <ChevronRight className="size-4" aria-hidden />
+            </button>
+          </div>
         </div>
 
         {undated.length > 0 && (
@@ -85,28 +116,41 @@ export function WorkCalendarView({
           </div>
         )}
 
-        <div className="grid grid-cols-7 gap-1.5 text-sm sm:gap-2">
+        <div className="grid grid-cols-7 text-sm">
           {weekOrder.map((d) => (
-            <span key={d} className="pb-1 text-center text-xs font-medium text-ink-2">
+            <span key={d} className="pb-2 text-center text-xs font-medium text-ink-2">
               {t.habits.weekdays[d]}
             </span>
           ))}
-          <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={70}>
+        </div>
+        <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={70}>
+        <div className="grid grid-cols-7 overflow-hidden rounded-xl border border-line text-sm">
           {cells.map((iso, i) => {
-            if (!iso) return <span key={`e${i}`} className="min-h-20 rounded-lg border border-transparent" aria-hidden />;
+            const col = i % 7;
+            const row = Math.floor(i / 7);
+            const cellBorder = cn(col !== 6 && "border-r", row !== rowCount - 1 && "border-b", "border-line");
+            if (!iso) return <span key={`e${i}`} className={cn("min-h-24 bg-surface-2/40", cellBorder)} aria-hidden />;
             const dayRows = byDate[iso] ?? [];
+            const isToday = iso === today;
+            const visible = dayRows.slice(0, VISIBLE_PER_DAY);
+            const overflow = dayRows.length - visible.length;
             return (
-              <div
-                key={iso}
-                className={cn("wsx-cell flex min-h-20 flex-col gap-1 p-1.5", iso === today && "ring-2 ring-ink ring-offset-2 ring-offset-surface")}
-              >
-                <span className="tabular px-0.5 text-xs text-muted">{Number(iso.slice(8))}</span>
-                {dayRows.map(chip)}
+              <div key={iso} className={cn("flex min-h-24 flex-col gap-1 bg-surface p-1.5", cellBorder)}>
+                <span
+                  className={cn(
+                    "tabular inline-flex size-5 items-center justify-center self-start rounded-full text-xs",
+                    isToday ? "bg-ink font-semibold text-bg" : "text-muted",
+                  )}
+                >
+                  {Number(iso.slice(8))}
+                </span>
+                {visible.map(chip)}
+                {overflow > 0 && <span className="px-1.5 text-xs text-muted">{fmt(w.calendarMore, { n: overflow })}</span>}
               </div>
             );
           })}
-          </StaggerReveal>
         </div>
+        </StaggerReveal>
       </div>
 
       <CardModal

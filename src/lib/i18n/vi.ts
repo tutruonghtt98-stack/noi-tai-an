@@ -829,6 +829,8 @@ const vi = {
       calendarUndated: "Chưa có hạn",
       calendarPrevMonth: "Tháng trước",
       calendarNextMonth: "Tháng sau",
+      calendarToday: "Hôm nay",
+      calendarMore: "+{n} nữa",
       emptyBoards: "Chưa có bảng nào. Tạo bảng đầu tiên để bắt đầu.",
       emptyList: "Chưa có thẻ nào.",
       cardDetailTitle: "Chi tiết thẻ",
