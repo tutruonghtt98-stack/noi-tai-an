@@ -353,20 +353,20 @@ export function JourneyWakeUpCard({
               </button>
             )}
           </div>
-          <div className="w-full rounded-xl bg-surface-2 px-3 py-2">
-            {wakeConfirmedAt ? (
+          {wakeConfirmedAt ? (
+            <div className="flex w-full items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">
               <span className="badge bg-jade/15 text-jade-ink" aria-disabled>{t.journey.wakeUpConfirmed}</span>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-soft"
-                disabled={closed || pending}
-                onClick={() => exec(() => confirmWakeUpToday(), { success: t.journey.wakeUpConfirmed, onSuccess: refresh })}
-              >
-                <Check className="size-4" aria-hidden /> {t.journey.confirmWakeUp}
-              </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-soft w-full rounded-xl"
+              disabled={closed || pending}
+              onClick={() => exec(() => confirmWakeUpToday(), { success: t.journey.wakeUpConfirmed, onSuccess: refresh })}
+            >
+              <Check className="size-4" aria-hidden /> {t.journey.confirmWakeUp}
+            </button>
+          )}
         </>
       )}
       {wakeTime && !wakeConfirmedAt && (
