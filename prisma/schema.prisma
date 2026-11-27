@@ -179,6 +179,10 @@ model User {
   departmentMemberships DepartmentMember[] @relation("DepartmentMembership")
   ledTeams              Team[]             @relation("TeamLeader")
   teamMemberships       TeamMember[]       @relation("TeamMembership")
+
+  financeTransactions   FinanceTransaction[]
+  financeRecurringRules FinanceRecurringRule[]
+  financeBudgets        FinanceBudget[]
 }
 
 model Account {
@@ -1407,4 +1411,67 @@ model ChallengeInvite {
 
   @@unique([challengeId, inviteeId])
   @@index([inviteeId, status])
+}
+
+// ---------- Tài chính cá nhân ----------
+
+enum FinanceTransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum FinanceRecurringCycle {
+  WEEKLY
+  MONTHLY
+}
+
+model FinanceTransaction {
+  id              String                  @id @default(cuid())
+  userId          String
+  type            FinanceTransactionType
+  amountVnd       Int
+  category        String?                 // bắt buộc ở tầng action cho EXPENSE, tự do cho INCOME
+  accountName     String?
+  note            String?
+  occurredAt      DateTime                @db.Date
+  recurringRuleId String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recurringRule   FinanceRecurringRule?   @relation(fields: [recurringRuleId], references: [id], onDelete: SetNull)
+
+  @@index([userId, type, occurredAt])
+  @@index([userId, category, occurredAt])
+}
+
+model FinanceRecurringRule {
+  id            String                  @id @default(cuid())
+  userId        String
+  type          FinanceTransactionType
+  amountVnd     Int
+  category      String?
+  accountName   String?
+  note          String?
+  cycle         FinanceRecurringCycle   @default(MONTHLY)
+  startDate     DateTime                @db.Date
+  nextRunDate   DateTime                @db.Date
+  active        Boolean                 @default(true)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  FinanceTransaction[]
+
+  @@index([userId, active, nextRunDate])
+}
+
+model FinanceBudget {
+  id              String   @id @default(cuid())
+  userId          String
+  category        String
+  monthlyLimitVnd Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
 }
