@@ -13,14 +13,18 @@ export const metadata: Metadata = {
 };
 
 const saving = { PRO: yearlySaving("PRO"), TEAM: yearlySaving("TEAM") };
-const configured = paymentConfigured();
 
 export default function PricingPage() {
   return (
     // Giá/gói thật phụ thuộc session (đã đăng nhập? gói hiện tại?) và ngôn ngữ
     // — tách riêng để phần khung trang còn lại prerender tĩnh thật. Fallback
     // dùng nội dung tiếng Việt, ẩn danh — đúng với tuyệt đại đa số khách.
-    <Suspense fallback={<PricingBody t={dictionaries.vi.billing} signedIn={false} current={null} />}>
+    // paymentConfigured() KHÔNG được gọi ở module scope: nó chỉ đọc biến môi
+    // trường, nên nếu đặt ngoài PricingContent, Cache Components sẽ coi đó là
+    // "giá trị tĩnh" và đóng băng kết quả ngay lúc build — sai với biến môi
+    // trường thật lúc chạy (đã từng gây lỗi "cổng thanh toán chưa cấu hình"
+    // dù env đã set đúng). Phải tính bên trong phần phụ thuộc cookie/session.
+    <Suspense fallback={<PricingBody t={dictionaries.vi.billing} signedIn={false} current={null} configured={false} />}>
       <PricingContent />
     </Suspense>
   );
@@ -29,11 +33,12 @@ export default function PricingPage() {
 async function PricingContent() {
   const [user, { t, locale }] = await Promise.all([getOptionalUser(), getI18n()]);
   const current = user ? effectivePlan(user) : null;
+  const configured = paymentConfigured();
   return (
     // Ghi đè locale 'vi' tĩnh của root layout cho đúng người dùng thật (vd. đã
     // chọn 'en') — PricingPlans đọc useI18n() nên cần context khớp với t ở trên.
     <I18nProvider value={{ t, locale }}>
-      <PricingBody t={t.billing} signedIn={!!user} current={current} />
+      <PricingBody t={t.billing} signedIn={!!user} current={current} configured={configured} />
     </I18nProvider>
   );
 }
@@ -42,10 +47,12 @@ function PricingBody({
   t,
   signedIn,
   current,
+  configured,
 }: {
   t: (typeof dictionaries)["vi"]["billing"];
   signedIn: boolean;
   current: ReturnType<typeof effectivePlan> | null;
+  configured: boolean;
 }) {
   return (
     <>
