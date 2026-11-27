@@ -46,6 +46,15 @@ export function addDays(iso: ISODate, n: number): ISODate {
   return fromDbDate(d);
 }
 
+export function addMonths(iso: ISODate, n: number): ISODate {
+  const d = toDbDate(iso);
+  const day = d.getUTCDate();
+  const target = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(day, lastDay));
+  return fromDbDate(target);
+}
+
 export function dayOfWeek(iso: ISODate): number {
   return toDbDate(iso).getUTCDay();
 }
