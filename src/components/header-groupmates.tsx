@@ -5,7 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 export function HeaderGroupmates({ people }: { people: { id: string; name: string | null; image: string | null }[] }) {
   if (!people.length) return null;
   return (
-    <Link href="/community" className="hidden items-center -space-x-2 sm:flex" aria-label="Cộng đồng">
+    <Link href="/community" className="flex items-center -space-x-2" aria-label="Cộng đồng">
       {people.map((p) => (
         <Avatar key={p.id} name={p.name ?? "?"} image={p.image} size={32} />
       ))}

@@ -30,6 +30,16 @@ export function useAction() {
       if (code === "REST_AFTER_PROGRESS") return t.journey.restAfterProgress;
       if (code === "WAKE_UP_TOO_LATE") return t.journey.wakeUpTooLate;
       if (code === "WAKE_TIME_EDIT_TOO_LATE") return t.journey.wakeTimeEditTooLate;
+      if (code === "RATE_LIMIT") return t.community.rateLimit;
+      if (code === "BAD_IMAGE") return t.community.imageTooLarge;
+      if (code === "USERNAME_TAKEN") return t.community.profile.usernameTaken;
+      if (code === "GROUP_FULL") return t.community.group.full;
+      if (code === "ALREADY_MEMBER") return t.community.group.already;
+      if (code === "GROUP_LIMIT") return t.community.group.limit;
+      if (code === "PRO_ONLY") return t.community.challenge.proOnly;
+      if (code === "PRO_ONLY_GROUP") return t.discover.proRequired;
+      if (code === "NOT_STARTED") return t.community.challenge.notStarted;
+      if (code === "ENDED") return t.community.challenge.over;
       return t.common.error;
     },
     [t],

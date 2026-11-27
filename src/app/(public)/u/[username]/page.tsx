@@ -17,6 +17,12 @@ import { FollowButton } from "@/components/community/follow-button";
 import { AvatarUploader } from "@/components/community/avatar-uploader";
 import { colorVar } from "@/lib/colors";
 import { cn } from "@/lib/cn";
+import { I18nProvider } from "@/lib/i18n/client";
+
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
 
 type Params = { params: Promise<{ username: string }> };
 
@@ -96,7 +102,11 @@ export default async function ProfilePage({ params }: Params) {
   ].sort((a, b) => b.at.getTime() - a.at.getTime());
 
   return (
-    <div className="mx-auto grid max-w-5xl grid-cols-1 gap-[var(--gap)]">
+    // Ghi đè locale 'vi' tĩnh của root layout (public) cho đúng người dùng thật
+    // (vd. đã chọn 'en') — FeedList/PostCard, FollowButton, AvatarUploader đều
+    // đọc useI18n() nên cần context khớp với t/locale ở trên.
+    <I18nProvider value={{ t, locale }}>
+      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-[var(--gap)]">
       <section className="card hero-glow">
         <div className="flex flex-wrap items-center gap-5">
           {isOwner ? <AvatarUploader name={profile.name ?? "?"} image={profile.image} /> : <Avatar name={profile.name ?? "?"} image={profile.image} size={88} />}
@@ -123,7 +133,7 @@ export default async function ProfilePage({ params }: Params) {
                   <Lock className="size-3" aria-hidden /> {p.onlyYou}
                 </span>
               )}
-              <Link href="/settings#journey" className="btn btn-soft btn-sm">
+              <Link href="/settings#privacy" className="btn btn-soft btn-sm">
                 <Pencil className="size-4" aria-hidden /> {p.edit}
               </Link>
             </div>
@@ -242,6 +252,7 @@ export default async function ProfilePage({ params }: Params) {
           <FeedList initial={feed.items} nextCursor={feed.nextCursor} filter={{ authorId: profile.id }} isAdmin={viewer?.role === "ADMIN"} />
         </section>
       )}
-    </div>
+      </div>
+    </I18nProvider>
   );
 }

@@ -14,7 +14,7 @@ export default async function CommunityLayout({ children }: { children: React.Re
   return (
     <>
       <PageHeader title={t.community.title} subtitle={t.community.subtitle} />
-      <CommunityTabs profileHref={user.username ? `/u/${user.username}` : "/settings#journey"} />
+      <CommunityTabs profileHref={user.username ? `/u/${user.username}` : "/settings#privacy"} />
       {children}
     </>
   );
