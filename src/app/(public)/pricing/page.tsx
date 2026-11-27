@@ -3,42 +3,55 @@ import { Suspense } from "react";
 import { getOptionalUser } from "@/lib/session";
 import { dictionaries, getI18n } from "@/lib/i18n";
 import { I18nProvider } from "@/lib/i18n/client";
-import { effectivePlan } from "@/lib/plan";
-import { paymentConfigured, PRICES, TEAM_MIN_SEATS, yearlySaving } from "@/lib/billing";
+import { hasActiveAccess } from "@/lib/plan";
+import { paymentConfigured } from "@/lib/billing";
+import { getProPrices, yearlySavingFor, PRO_PRICE_DEFAULTS } from "@/lib/pricing";
 import { PricingPlans } from "./plans";
 
 export const metadata: Metadata = {
   title: "Bảng giá",
-  description: "Gói Free, Pro và Team của Nội Tại Ẩn — thanh toán theo tháng hoặc theo năm qua VietQR.",
+  description: "Gói Pro của Nội Tại Ẩn — thanh toán theo tháng hoặc theo năm qua VietQR.",
 };
-
-const saving = { PRO: yearlySaving("PRO"), TEAM: yearlySaving("TEAM") };
 
 export default function PricingPage() {
   return (
-    // Giá/gói thật phụ thuộc session (đã đăng nhập? gói hiện tại?) và ngôn ngữ
-    // — tách riêng để phần khung trang còn lại prerender tĩnh thật. Fallback
-    // dùng nội dung tiếng Việt, ẩn danh — đúng với tuyệt đại đa số khách.
-    // paymentConfigured() KHÔNG được gọi ở module scope: nó chỉ đọc biến môi
-    // trường, nên nếu đặt ngoài PricingContent, Cache Components sẽ coi đó là
-    // "giá trị tĩnh" và đóng băng kết quả ngay lúc build — sai với biến môi
-    // trường thật lúc chạy (đã từng gây lỗi "cổng thanh toán chưa cấu hình"
-    // dù env đã set đúng). Phải tính bên trong phần phụ thuộc cookie/session.
-    <Suspense fallback={<PricingBody t={dictionaries.vi.billing} signedIn={false} current={null} configured={false} />}>
+    // Giá/gói thật phụ thuộc session (đã đăng nhập? còn quyền dùng không?) và
+    // ngôn ngữ — tách riêng để phần khung trang còn lại prerender tĩnh thật.
+    // Fallback dùng giá mặc định + ẩn danh, đúng với tuyệt đại đa số khách.
+    // paymentConfigured()/getProPrices() KHÔNG được gọi ở module scope: Cache
+    // Components sẽ đóng băng kết quả ngay lúc build (đã từng gây lỗi "cổng
+    // thanh toán chưa cấu hình" dù env đã set đúng) — phải tính trong phần
+    // phụ thuộc cookie/session.
+    <Suspense
+      fallback={
+        <PricingBody
+          t={dictionaries.vi.billing}
+          signedIn={false}
+          hasAccess={false}
+          prices={PRO_PRICE_DEFAULTS}
+          configured={false}
+        />
+      }
+    >
       <PricingContent />
     </Suspense>
   );
 }
 
 async function PricingContent() {
-  const [user, { t, locale }] = await Promise.all([getOptionalUser(), getI18n()]);
-  const current = user ? effectivePlan(user) : null;
+  const [user, { t, locale }, prices] = await Promise.all([getOptionalUser(), getI18n(), getProPrices()]);
   const configured = paymentConfigured();
   return (
     // Ghi đè locale 'vi' tĩnh của root layout cho đúng người dùng thật (vd. đã
     // chọn 'en') — PricingPlans đọc useI18n() nên cần context khớp với t ở trên.
     <I18nProvider value={{ t, locale }}>
-      <PricingBody t={t.billing} signedIn={!!user} current={current} configured={configured} />
+      <PricingBody
+        t={t.billing}
+        signedIn={!!user}
+        hasAccess={user ? hasActiveAccess(user) : false}
+        prices={prices}
+        configured={configured}
+      />
     </I18nProvider>
   );
 }
@@ -46,12 +59,14 @@ async function PricingContent() {
 function PricingBody({
   t,
   signedIn,
-  current,
+  hasAccess,
+  prices,
   configured,
 }: {
   t: (typeof dictionaries)["vi"]["billing"];
   signedIn: boolean;
-  current: ReturnType<typeof effectivePlan> | null;
+  hasAccess: boolean;
+  prices: { MONTHLY: number; YEARLY: number };
   configured: boolean;
 }) {
   return (
@@ -60,14 +75,7 @@ function PricingBody({
         <h1 className="text-4xl font-semibold sm:text-5xl">{t.title}</h1>
         <p className="mt-3 text-lg text-ink-2">{t.subtitle}</p>
       </div>
-      <PricingPlans
-        signedIn={signedIn}
-        current={current}
-        prices={PRICES}
-        teamMinSeats={TEAM_MIN_SEATS}
-        saving={saving}
-        configured={configured}
-      />
+      <PricingPlans signedIn={signedIn} hasAccess={hasAccess} prices={prices} saving={yearlySavingFor(prices)} configured={configured} />
       <section className="mx-auto mt-16 max-w-3xl" aria-labelledby="faq">
         <h2 id="faq" className="mb-5 text-2xl font-semibold">
           {t.faq}

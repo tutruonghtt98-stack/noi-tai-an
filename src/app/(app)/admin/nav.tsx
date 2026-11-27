@@ -7,6 +7,7 @@ const ITEMS = [
   { href: "/admin/users", label: "Người dùng & gói" },
   { href: "/admin/journey", label: "STILL / BETTER" },
   { href: "/admin/orders", label: "Giao dịch" },
+  { href: "/admin/pricing", label: "Giá gói" },
 ];
 
 export function AdminNav() {

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
 import { markOrderPaid } from "@/lib/payments/orders";
+import { updateProPrices } from "@/lib/pricing";
 
 /** Cấp/đổi gói thủ công (tặng, xử lý khiếu nại, đối soát). months = 0 → về FREE. */
 export async function adminSetPlan(userId: string, plan: "FREE" | "PRO" | "TEAM", months: number) {
@@ -48,6 +49,18 @@ export async function adminMarkPaid(orderId: string, note: string) {
     const res = await markOrderPaid(orderId, ref);
     if (!res.ok) throw new UserError(res.reason ?? "ERROR");
     revalidatePath("/admin", "layout");
+  });
+}
+
+/** Đổi giá gói Pro hiển thị trên /pricing và dùng khi tạo đơn mới. */
+export async function adminUpdatePricing(monthly: number, yearly: number) {
+  return run(async () => {
+    await requireAdmin();
+    const schema = z.object({ monthly: z.number().int().min(1_000).max(50_000_000), yearly: z.number().int().min(1_000).max(500_000_000) });
+    const d = schema.parse({ monthly, yearly });
+    await updateProPrices(d.monthly, d.yearly);
+    revalidatePath("/pricing");
+    revalidatePath("/admin/pricing");
   });
 }
 

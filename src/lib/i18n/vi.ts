@@ -288,7 +288,8 @@ const vi = {
   },
   billing: {
     title: "Chọn gói phù hợp",
-    subtitle: "Bắt đầu miễn phí. Nâng cấp khi bạn sẵn sàng đi xa hơn.",
+    subtitle: "Dùng thử Pro miễn phí 7 ngày, đầy đủ tính năng. Sau đó chọn gói tháng hoặc năm để tiếp tục.",
+    trialEndedNote: "Hết 7 ngày dùng thử — chọn gói bên dưới để tiếp tục sử dụng.",
     monthly: "Theo tháng",
     yearly: "Theo năm",
     save: "Tiết kiệm {n}%",
@@ -304,7 +305,22 @@ const vi = {
     total: "Tổng thanh toán",
     signInToBuy: "Đăng nhập để nâng cấp",
     free: { name: "Free", desc: "Đủ để bắt đầu xây nền tảng kỷ luật.", features: ["3 mục tiêu đang chạy", "5 thói quen", "Top 3 & phiên tập trung", "Phân tích 7 ngày"] },
-    pro: { name: "Pro", desc: "Cho người nghiêm túc với hành trình của mình.", features: ["Không giới hạn mục tiêu & thói quen", "Phân tích 30/90 ngày, báo cáo tháng", "Không giới hạn khách hàng & bảng Workspace", "Xuất dữ liệu"] },
+    pro: {
+      name: "Pro",
+      desc: "Toàn bộ tính năng kỷ luật cá nhân, không giới hạn.",
+      features: [
+        "Mục tiêu năm–quý–tháng–tuần, liên kết dự án & hành động",
+        "Theo dõi thói quen, chuỗi ngày và tỷ lệ duy trì",
+        "Top 3 ưu tiên & phiên tập trung sâu mỗi ngày",
+        "Workspace Kanban/Danh sách/Lịch cho công việc",
+        "Quản lý khách hàng (CRM) không giới hạn",
+        "Phân tích hiệu suất 7/30/90 ngày, báo cáo tháng",
+        "Hành trình kỷ luật 180 ngày",
+        "Xuất dữ liệu bất cứ lúc nào",
+      ],
+      comingSoon:
+        "Sắp ra mắt: Quản lý chi tiêu cá nhân — ghi thu nhập/chi tiêu, ngân sách theo danh mục có cảnh báo vượt mức, và giao dịch thu/chi định kỳ tự động.",
+    },
     team: { name: "Team", desc: "Workspace cho tổ chức, nhóm học tập, câu lạc bộ.", features: ["Mọi tính năng Pro cho từng thành viên", "Bảng Workspace dùng chung cho cả nhóm", "Thanh toán tập trung theo số chỗ", "Riêng tư: mỗi người một không gian dữ liệu"] },
     popular: "Phổ biến",
     checkoutTitle: "Thanh toán đơn hàng",

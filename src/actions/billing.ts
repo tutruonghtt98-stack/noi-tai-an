@@ -5,22 +5,14 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
-import {
-  activeProvider,
-  ORDER_TTL_MIN,
-  orderCodeNumber,
-  orderCodeString,
-  priceFor,
-  TEAM_MAX_SEATS,
-  TEAM_MIN_SEATS,
-} from "@/lib/billing";
+import { activeProvider, ORDER_TTL_MIN, orderCodeNumber, orderCodeString } from "@/lib/billing";
+import { getProPrices } from "@/lib/pricing";
 import { createPaymentLink } from "@/lib/payments/payos";
 import { markOrderPaid } from "@/lib/payments/orders";
 
 const schema = z.object({
-  plan: z.enum(["PRO", "TEAM"]),
+  plan: z.enum(["PRO"]),
   cycle: z.enum(["MONTHLY", "YEARLY"]),
-  seats: z.coerce.number().int().min(1).max(TEAM_MAX_SEATS).default(1),
 });
 
 async function baseUrl() {
@@ -33,14 +25,14 @@ async function baseUrl() {
 export async function startCheckout(input: z.input<typeof schema>) {
   const user = await requireUser();
   const d = schema.parse(input);
-  const seats = d.plan === "TEAM" ? Math.max(TEAM_MIN_SEATS, d.seats) : 1;
-  const amount = priceFor(d.plan, d.cycle, seats);
+  const prices = await getProPrices();
+  const amount = prices[d.cycle];
   const provider = activeProvider();
   const code = orderCodeString();
   const expiresAt = new Date(Date.now() + ORDER_TTL_MIN * 60_000);
 
   const order = await db.order.create({
-    data: { code, orderCode: orderCodeNumber(), userId: user.id, plan: d.plan, cycle: d.cycle, seats, amount, provider, expiresAt },
+    data: { code, orderCode: orderCodeNumber(), userId: user.id, plan: d.plan, cycle: d.cycle, amount, provider, expiresAt },
   });
 
   if (provider === "payos") {

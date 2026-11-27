@@ -290,7 +290,8 @@ const en: Dict = {
   },
   billing: {
     title: "Choose your plan",
-    subtitle: "Start free. Upgrade when you're ready to go further.",
+    subtitle: "Try Pro free for 7 days, full features. Then pick a monthly or yearly plan to keep going.",
+    trialEndedNote: "Your 7-day trial has ended — pick a plan below to keep using the app.",
     monthly: "Monthly",
     yearly: "Yearly",
     save: "Save {n}%",
@@ -306,7 +307,22 @@ const en: Dict = {
     total: "Total",
     signInToBuy: "Sign in to upgrade",
     free: { name: "Free", desc: "Enough to start building a disciplined foundation.", features: ["3 active goals", "5 habits", "Top 3 & focus sessions", "7-day analytics"] },
-    pro: { name: "Pro", desc: "For people serious about their journey.", features: ["Unlimited goals & habits", "30/90-day analytics, monthly reports", "Unlimited customers & Workspace boards", "Data export"] },
+    pro: {
+      name: "Pro",
+      desc: "Every personal-discipline feature, with no limits.",
+      features: [
+        "Year–quarter–month–week goals, linked to projects & actions",
+        "Habit tracking, streaks and consistency rate",
+        "Top 3 priorities & deep focus sessions every day",
+        "Kanban/List/Calendar Workspace for work",
+        "Unlimited customer (CRM) management",
+        "7/30/90-day performance analytics, monthly reports",
+        "180-day discipline journey",
+        "Export your data anytime",
+      ],
+      comingSoon:
+        "Coming soon: Personal expense management — track income/expenses, per-category budgets with over-limit warnings, and automatic recurring transactions.",
+    },
     team: { name: "Team", desc: "A workspace for organizations, study groups and clubs.", features: ["Every Pro feature for each member", "Shared Workspace boards for the team", "Central per-seat billing", "Private: each member has their own data space"] },
     popular: "Popular",
     checkoutTitle: "Complete your payment",

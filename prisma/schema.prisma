@@ -104,6 +104,9 @@ model User {
   role          Role      @default(USER)
   plan          Plan      @default(FREE)
   planExpiresAt DateTime?
+  // Dùng thử Pro đầy đủ 7 ngày kể từ lúc tạo tài khoản — đặt 1 lần lúc tạo
+  // (events.createUser trong auth.ts), null sau khi đã có lần đầu mua gói.
+  trialEndsAt   DateTime?
 
   // Cài đặt giao diện & thói quen làm việc
   locale         String    @default("vi")
@@ -491,6 +494,14 @@ enum OrderStatus {
 enum BillingCycle {
   MONTHLY
   YEARLY
+}
+
+/** Cấu hình chỉnh được qua /admin — hiện chỉ giá gói Pro. Luôn 1 dòng duy nhất (id = 1). */
+model AppSetting {
+  id              Int      @id @default(1)
+  proPriceMonthly Int      @default(35000) // VND
+  proPriceYearly  Int      @default(350000) // VND
+  updatedAt       DateTime @updatedAt
 }
 
 model Order {

@@ -1,27 +1,13 @@
-import type { BillingCycle, Plan } from "@/generated/prisma/client";
+import type { Plan, BillingCycle } from "@/generated/prisma/client";
 
-/** Bảng giá (VND). Đổi giá tại đây — mọi trang và cổng thanh toán đọc từ đây. */
-export const PRICES = {
-  PRO: { MONTHLY: 99_000, YEARLY: 990_000 },
-  TEAM: { MONTHLY: 79_000, YEARLY: 790_000 }, // mỗi chỗ
-} as const;
+// Giá gói Pro không còn tĩnh — đọc qua getProPrices() trong "@/lib/pricing"
+// (admin chỉnh ở /admin/pricing). Gói Team đã ngừng bán (bỏ Free/Team khỏi
+// trang Pricing), chỉ còn Pro theo tháng/năm; Plan vẫn giữ TEAM trong enum để
+// không phá dữ liệu lịch sử của khách đã từng mua Team trước đây.
 
-export const TEAM_MIN_SEATS = 3;
-export const TEAM_MAX_SEATS = 200;
 export const ORDER_TTL_MIN = 30;
 
 export type PaidPlan = Exclude<Plan, "FREE">;
-
-export function priceFor(plan: PaidPlan, cycle: BillingCycle, seats = 1) {
-  const unit = PRICES[plan][cycle];
-  return plan === "TEAM" ? unit * Math.max(TEAM_MIN_SEATS, seats) : unit;
-}
-
-/** Tiết kiệm khi trả theo năm so với 12 tháng (%) */
-export function yearlySaving(plan: PaidPlan) {
-  const p = PRICES[plan];
-  return Math.round((1 - p.YEARLY / (p.MONTHLY * 12)) * 100);
-}
 
 export function addCycle(from: Date, cycle: BillingCycle) {
   const d = new Date(from);

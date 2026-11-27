@@ -72,7 +72,12 @@ function buildConfig(): NextAuthConfig {
       async createUser({ user }) {
         if (!user.id) return;
         const role = user.email && adminEmails.includes(user.email.toLowerCase()) ? "ADMIN" : undefined;
-        await db.user.update({ where: { id: user.id }, data: { journeyOfferStatus: "PENDING", ...(role ? { role } : {}) } });
+        // Dùng thử Pro đầy đủ 7 ngày cho tài khoản mới — chỉ đặt một lần lúc tạo.
+        const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await db.user.update({
+          where: { id: user.id },
+          data: { journeyOfferStatus: "PENDING", trialEndsAt, ...(role ? { role } : {}) },
+        });
       },
     },
   };
