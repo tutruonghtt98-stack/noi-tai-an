@@ -40,6 +40,7 @@ export function useAction() {
       if (code === "PRO_ONLY_GROUP") return t.discover.proRequired;
       if (code === "NOT_STARTED") return t.community.challenge.notStarted;
       if (code === "ENDED") return t.community.challenge.over;
+      if (code === "CATEGORY_REQUIRED") return t.finance.categoryRequiredError;
       return t.common.error;
     },
     [t],
