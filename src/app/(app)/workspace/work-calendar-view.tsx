@@ -8,6 +8,7 @@ import { DOT, type SerializedList } from "./kanban-board";
 import { CardModal, type SerializedCard } from "./card-modal";
 import type { MemberOption } from "./assignee-picker";
 import { buildMonthCells, flattenCards, groupCardsByDate, type FlatRow } from "@/lib/work-view";
+import { StaggerReveal } from "@/components/ui/stagger-reveal";
 
 export function WorkCalendarView({
   lists,
@@ -90,6 +91,7 @@ export function WorkCalendarView({
               {t.habits.weekdays[d]}
             </span>
           ))}
+          <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={70}>
           {cells.map((iso, i) => {
             if (!iso) return <span key={`e${i}`} className="min-h-20 rounded-lg border border-transparent" aria-hidden />;
             const dayRows = byDate[iso] ?? [];
@@ -103,6 +105,7 @@ export function WorkCalendarView({
               </div>
             );
           })}
+          </StaggerReveal>
         </div>
       </div>
 
