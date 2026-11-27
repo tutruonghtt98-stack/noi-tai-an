@@ -5,21 +5,15 @@ import { hasActiveAccess } from "@/lib/plan";
 
 // Proxy (trước đây gọi middleware) luôn chạy Node.js runtime trong Next 16 —
 // dùng Prisma trực tiếp được, không cần khai `runtime` nữa.
-
-// Luôn cho qua: trang công khai, đăng nhập, trang mua gói/thanh toán (nếu
-// chặn luôn /billing thì người hết hạn không vào nổi trang để trả tiền),
-// API routes, và các route trong (public) group.
-const EXEMPT_PREFIXES = ["/billing", "/login", "/pricing", "/terms", "/privacy", "/refund", "/contact", "/api"];
-
-function isExempt(pathname: string) {
-  if (pathname === "/") return true;
-  return EXEMPT_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
-
+//
+// QUAN TRỌNG: matcher bên dưới chỉ liệt kê đúng các route cần kiểm tra trả
+// phí. Từng dùng một matcher rộng ("mọi thứ trừ _next/static...") khiến CẢ
+// các trang tĩnh đã cache sẵn (/terms, /pricing...) cũng phải qua một lượt
+// serverless function trước khi tới CDN — làm chậm hẳn những trang vốn
+// được cache tức thời. Route nào không nằm trong matcher thì proxy không
+// chạy, không có phí tổn gì (kể cả /billing — người hết hạn vẫn cần vào
+// được để trả tiền, nên không đưa vào đây).
 export default async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  if (isExempt(pathname)) return;
-
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return; // chưa đăng nhập — để requireUser() ở trang đích tự chuyển /login
@@ -36,5 +30,17 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg).*)"],
+  matcher: [
+    "/admin/:path*",
+    "/analytics/:path*",
+    "/community/:path*",
+    "/customers/:path*",
+    "/dashboard/:path*",
+    "/departments/:path*",
+    "/goals/:path*",
+    "/habits/:path*",
+    "/journey/:path*",
+    "/settings/:path*",
+    "/workspace/:path*",
+  ],
 };
