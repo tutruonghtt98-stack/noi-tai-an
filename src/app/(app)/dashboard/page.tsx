@@ -177,45 +177,10 @@ export default async function DashboardPage() {
         />
       </section>
 
-      {/* 4 chỉ số */}
-      <section className="card grid grid-cols-2 gap-3 p-3 sm:gap-4 sm:p-4 xl:col-span-4" aria-label="Stats">
-        <StatCard
-          href="/goals"
-          label={t.dashboard.activeGoals}
-          value={<CountUp value={d.activeGoals.length} />}
-          note={fmt(t.dashboard.completedThisMonth, { n: d.completedThisMonth })}
-          tone={d.completedThisMonth > 0 ? "up" : "muted"}
-          featured
-          spark={scoreTrend}
-        />
-        <StatCard
-          href="/goals"
-          label={t.dashboard.avgProgress}
-          value={<CountUp value={Math.round(d.avgProgress * 100)} suffix="%" />}
-          note={t.dashboard.acrossGoals}
-          spark={scoreTrend}
-        />
-        <StatCard
-          href="/habits"
-          label={t.dashboard.bestStreak}
-          value={<CountUp value={d.bestStreak} />}
-          note={t.dashboard.streakDays}
-          tone={d.bestStreak >= 7 ? "up" : "warn"}
-          spark={scoreTrend}
-        />
-        <StatCard
-          href="/dashboard"
-          label={t.dashboard.focusToday}
-          value={
-            <>
-              <CountUp value={d.day.focusMinutes} />
-              <span className="ml-1 text-lg font-medium text-muted">{t.common.min}</span>
-            </>
-          }
-          note={fmt(t.dashboard.ofGoal, { n: user.dailyFocusGoal })}
-          tone={d.day.focusMinutes >= user.dailyFocusGoal ? "up" : "warn"}
-          spark={scoreTrend}
-        />
+      {/* Thói quen */}
+      <section className="card xl:col-span-4" aria-labelledby="habits-today">
+        <CardHead title={t.dashboard.habitsToday} href="/habits" />
+        <HabitQuickList habits={d.dueHabits} today={today} />
       </section>
 
       {/* Timeline */}
@@ -300,10 +265,45 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      {/* Thói quen */}
-      <section className="card xl:col-span-4" aria-labelledby="habits-today">
-        <CardHead title={t.dashboard.habitsToday} href="/habits" />
-        <HabitQuickList habits={d.dueHabits} today={today} />
+      {/* 4 chỉ số */}
+      <section className="card grid grid-cols-2 gap-3 p-3 sm:gap-4 sm:p-4 xl:col-span-4" aria-label="Stats">
+        <StatCard
+          href="/goals"
+          label={t.dashboard.activeGoals}
+          value={<CountUp value={d.activeGoals.length} />}
+          note={fmt(t.dashboard.completedThisMonth, { n: d.completedThisMonth })}
+          tone={d.completedThisMonth > 0 ? "up" : "muted"}
+          featured
+          spark={scoreTrend}
+        />
+        <StatCard
+          href="/goals"
+          label={t.dashboard.avgProgress}
+          value={<CountUp value={Math.round(d.avgProgress * 100)} suffix="%" />}
+          note={t.dashboard.acrossGoals}
+          spark={scoreTrend}
+        />
+        <StatCard
+          href="/habits"
+          label={t.dashboard.bestStreak}
+          value={<CountUp value={d.bestStreak} />}
+          note={t.dashboard.streakDays}
+          tone={d.bestStreak >= 7 ? "up" : "warn"}
+          spark={scoreTrend}
+        />
+        <StatCard
+          href="/dashboard"
+          label={t.dashboard.focusToday}
+          value={
+            <>
+              <CountUp value={d.day.focusMinutes} />
+              <span className="ml-1 text-lg font-medium text-muted">{t.common.min}</span>
+            </>
+          }
+          note={fmt(t.dashboard.ofGoal, { n: user.dailyFocusGoal })}
+          tone={d.day.focusMinutes >= user.dailyFocusGoal ? "up" : "warn"}
+          spark={scoreTrend}
+        />
       </section>
 
       {/* Tiến độ mục tiêu */}
