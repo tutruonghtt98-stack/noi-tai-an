@@ -20,13 +20,14 @@ import {
   deleteJourneyPersonalMission,
   updateJourneyPersonalMission,
   updateJourneyWakeTime,
-  saveJourneyExpense,
   setJourneyRestDay,
   toggleJourneyWeeklyCommitment,
 } from "@/actions/journey";
+import { createFinanceTransaction, deleteFinanceTransaction } from "@/actions/finance";
 import { useAction } from "@/lib/use-action";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
+import { vnd } from "@/lib/billing";
 import { WorkCardTrigger } from "../workspace/work-card-trigger";
 
 type WorkspaceTask = {
@@ -56,7 +57,7 @@ export function JourneyControls({
   workspaceTasks: WorkspaceTask[];
   personalMissions: PersonalMission[];
   dailyChallenge: { title: string; description: string; completionCriteria: string; xpReward: number; completed: boolean } | null;
-  expense: { amountVnd: number; note: string | null } | null;
+  expense: { totalVnd: number; entries: { id: string; amountVnd: number; note: string | null }[] };
   dayStatus: string;
   isLevelEnd: boolean;
   levelQuestions: string[];
@@ -68,8 +69,8 @@ export function JourneyControls({
   const router = useRouter();
   const { t } = useI18n();
   const { exec, pending } = useAction();
-  const [expenseAmount, setExpenseAmount] = useState(expense?.amountVnd != null ? String(expense.amountVnd) : "");
-  const [expenseNote, setExpenseNote] = useState(expense?.note ?? "");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expenseNote, setExpenseNote] = useState("");
   const savedAnswers = Array.isArray(levelReview?.answers) ? levelReview.answers.filter((answer): answer is string => typeof answer === "string") : [];
   const [reviewAnswers, setReviewAnswers] = useState<string[]>(savedAnswers);
   const [coreTab, setCoreTab] = useState<"day" | "week">("day");
@@ -192,6 +193,28 @@ export function JourneyControls({
               <Wallet className="size-4 text-accent-ink" aria-hidden />
               <p className="text-xs font-semibold uppercase text-muted">TÀI CHÍNH · chi tiêu hôm nay</p>
             </div>
+            {expense.entries.length > 0 && (
+              <ul className="mt-2 divide-y divide-line">
+                {expense.entries.map((entry) => (
+                  <li key={entry.id} className="flex items-center justify-between gap-2 py-2 text-sm first:pt-0">
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="tabular font-medium">{vnd(entry.amountVnd)}</span>
+                      {entry.note && <span className="ml-2 text-muted">{entry.note}</span>}
+                    </span>
+                    <button
+                      type="button"
+                      className="icon-btn icon-btn-plain size-7 shrink-0 text-danger"
+                      aria-label="Xoá khoản chi"
+                      title="Xoá khoản chi"
+                      disabled={pending}
+                      onClick={() => exec(() => deleteFinanceTransaction(entry.id), { onSuccess: refresh })}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <div className="mt-2 grid gap-2 sm:grid-cols-[10rem_1fr_auto]">
               <input
                 className="input"
@@ -216,12 +239,26 @@ export function JourneyControls({
                 type="button"
                 className="btn btn-soft"
                 disabled={pending || expenseAmount.trim() === ""}
-                onClick={() => exec(() => saveJourneyExpense({ amountVnd: Number(expenseAmount), note: expenseNote || undefined }), { success: "Đã lưu chi tiêu hôm nay.", onSuccess: refresh })}
+                onClick={() =>
+                  exec(
+                    () => createFinanceTransaction({ type: "EXPENSE", amountVnd: Number(expenseAmount), note: expenseNote || undefined, category: "Khác", occurredAt: today }),
+                    {
+                      success: t.finance.expenseLoggedToday,
+                      onSuccess: () => {
+                        setExpenseAmount("");
+                        setExpenseNote("");
+                        refresh();
+                      },
+                    },
+                  )
+                }
               >
-                <Check className="size-4" aria-hidden /> Lưu
+                <Plus className="size-4" aria-hidden /> Thêm
               </button>
             </div>
-            <p className="mt-2 text-xs text-muted">Ghi nhanh số tiền chi tiêu hôm nay — phần quản lý chi tiêu đầy đủ (phân loại, ngân sách, báo cáo) sẽ có sau.</p>
+            <p className="mt-2 text-sm text-ink-2">
+              {t.finance.spentTodayLabel}: <span className="tabular font-semibold">{vnd(expense.totalVnd)}</span>
+            </p>
           </div>
         </section>
       )}

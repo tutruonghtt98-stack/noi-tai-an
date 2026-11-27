@@ -135,7 +135,7 @@ export async function getJourneyDashboard(user: CurrentUser) {
         date: todayDate,
         ...(dailyChallenge ? { dailyChallengeId: dailyChallenge.id } : {}),
       },
-      include: { reflection: true, expense: true },
+      include: { reflection: true },
     }),
     db.journeyWeeklyChallenge.findUnique({
       where: { programId_weekNumber: { programId: journey.programId, weekNumber } },

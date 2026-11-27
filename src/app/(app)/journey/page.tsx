@@ -4,6 +4,7 @@ import { Compass, Flame, Quote, Target, Trophy } from "lucide-react";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { getJourneyDashboard } from "@/lib/journey-queries";
+import { getTodayVariableExpenses } from "@/lib/finance-queries";
 import { syncOverdueDiscipline } from "@/lib/journey-score-ledger";
 import { PageHeader } from "@/components/page-header";
 import { JourneyWakeUpCard, JourneyControls, JourneyReflectionCard, JourneyRestDayCard, StartJourneyButton } from "./journey-controls";
@@ -36,7 +37,7 @@ export default async function JourneyPage() {
   const user = await requireUser();
   const { t } = await getI18n();
   await syncOverdueDiscipline(user.id);
-  const journey = await getJourneyDashboard(user);
+  const [journey, expense] = await Promise.all([getJourneyDashboard(user), getTodayVariableExpenses(user.id, user.timezone)]);
 
   if (!journey) {
     return (
@@ -180,7 +181,7 @@ export default async function JourneyPage() {
                 xpReward: journey.dailyChallenge.xpReward,
                 completed: !!journey.dayRecord.dailyChallengeCompletedAt,
               } : null}
-              expense={journey.dayRecord.expense ? { amountVnd: journey.dayRecord.expense.amountVnd, note: journey.dayRecord.expense.note } : null}
+              expense={expense}
               dayStatus={journey.dayRecord.status}
               isLevelEnd={dayNumber === journey.level.endDay}
               levelQuestions={journey.level.reflectionQuestions}

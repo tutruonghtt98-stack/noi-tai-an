@@ -431,37 +431,6 @@ const reflectionSchema = z.object({
   improvement: z.string().trim().max(1000).default(""),
 });
 
-const expenseSchema = z.object({
-  amountVnd: z.coerce.number().int().min(0).max(1_000_000_000),
-  note: z.string().trim().max(200).optional(),
-});
-
-/** Ghi nhận chi tiêu hôm nay — tối giản (chỉ số tiền + ghi chú), dùng trong thử thách ngày.
- * Phần quản lý chi tiêu đầy đủ (phân loại, ngân sách, báo cáo) sẽ xây sau, dựa trên bảng JourneyExpenseEntry này. */
-export async function saveJourneyExpense(input: z.input<typeof expenseSchema>) {
-  return run(async () => {
-    const user = await requireUser();
-    const data = expenseSchema.parse(input);
-    const dashboard = await getJourneyDashboard(user);
-    if (!dashboard?.dayRecord) throw new UserError("JOURNEY_NOT_ACTIVE");
-
-    await db.journeyExpenseEntry.upsert({
-      where: { dayRecordId: dashboard.dayRecord.id },
-      update: { amountVnd: data.amountVnd, note: data.note },
-      create: {
-        journeyId: dashboard.journey.id,
-        dayRecordId: dashboard.dayRecord.id,
-        date: dashboard.dayRecord.date,
-        amountVnd: data.amountVnd,
-        note: data.note,
-      },
-    });
-
-    revalidatePath("/journey");
-    return undefined;
-  });
-}
-
 /** Tick/bỏ tick một cam kết cá nhân nhịp WEEKLY cho tuần hiện tại — hiển thị ở thẻ "Công việc cần làm"
  * (tab Tuần). Weekly Challenge chỉ cho xác nhận khi tất cả cam kết tuần đã được tick ở đây. */
 export async function toggleJourneyWeeklyCommitment(optionId: string) {
