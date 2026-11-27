@@ -286,3 +286,18 @@ export async function getHeaderNotifications(userId: string, take = 20) {
   ]);
   return { items, unreadCount };
 }
+
+// ---------- Cộng đồng ----------
+
+/** Vài người cùng nhóm đồng hành (GroupMember) với user hiện tại — dùng cho dải avatar ở header. */
+export async function getHeaderGroupmates(userId: string, take = 3) {
+  const memberships = await db.groupMember.findMany({ where: { userId }, select: { groupId: true }, take: 5 });
+  if (!memberships.length) return [];
+  const rows = await db.groupMember.findMany({
+    where: { groupId: { in: memberships.map((m) => m.groupId) }, userId: { not: userId } },
+    select: { user: { select: { id: true, name: true, image: true } } },
+    distinct: ["userId"],
+    take,
+  });
+  return rows.map((r) => r.user);
+}

@@ -5,8 +5,9 @@ import { getI18n } from "@/lib/i18n";
 import { effectivePlan } from "@/lib/plan";
 import { PageHeader } from "@/components/page-header";
 import { AppearanceForm, ProfileForm } from "./forms";
+import { PrivacyForm } from "./privacy-form";
 import { AlertSettings } from "@/components/alert-settings";
-import { Avatar } from "@/components/ui/avatar";
+import { AvatarUploader } from "@/components/community/avatar-uploader";
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
 // Remove this opt-out after verifying the segment passes validation without it.
@@ -65,7 +66,7 @@ export default async function SettingsPage() {
               {t.settings.profile} · {t.settings.work}
             </h2>
             <div className="mt-4">
-              <Avatar name={user.name ?? "?"} image={user.image} size={72} />
+              <AvatarUploader name={user.name ?? "?"} image={user.image} size={72} showRemove />
             </div>
             <ProfileForm
               initial={{
@@ -75,6 +76,26 @@ export default async function SettingsPage() {
                 focusMinutes: user.focusMinutes,
                 breakMinutes: user.breakMinutes,
                 dailyFocusGoal: user.dailyFocusGoal,
+              }}
+            />
+          </section>
+
+          <section className="card scroll-mt-6" id="privacy" aria-labelledby="privacy-h">
+            <h2 id="privacy-h" className="card-title">
+              {t.community.profile.title}
+            </h2>
+            <PrivacyForm
+              suggested={(user.email ?? "ban").split("@")[0]!.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20).padEnd(3, "0")}
+              initial={{
+                username: user.username ?? "",
+                bio: user.bio ?? "",
+                profilePublic: user.profilePublic,
+                showGoals: user.showGoals,
+                showStats: user.showStats,
+                showBadges: user.showBadges,
+                showChallenges: user.showChallenges,
+                leaderboardOptIn: user.leaderboardOptIn,
+                autoShareAchievements: user.autoShareAchievements,
               }}
             />
           </section>
