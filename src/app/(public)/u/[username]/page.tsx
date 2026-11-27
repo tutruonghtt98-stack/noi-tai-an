@@ -67,6 +67,8 @@ export default async function ProfilePage({ params }: Params) {
   ]);
   const [badges, goals, habits, focus, challenges, feed] = await Promise.all([
     see(profile.showBadges) ? db.userBadge.findMany({ where: { userId: profile.id }, orderBy: { awardedAt: "desc" } }) : [],
+    // Fetched for the goalsDone stat too (needs completedGoals.length even when showGoals is off);
+    // the goals section below still renders gated on see(profile.showGoals) alone, independently of showStats.
     see(profile.showGoals) || see(profile.showStats) ? getGoals(asUser) : [],
     see(profile.showStats) ? getHabitsWithStats(asUser, today, 200) : [],
     see(profile.showStats) ? db.focusSession.aggregate({ where: { userId: profile.id }, _sum: { actualMinutes: true } }) : null,
