@@ -67,16 +67,31 @@ export default async function DepartmentDetailPage({ params }: { params: Promise
             <Empty icon={Users2} text={w.emptyMembers} />
           ) : (
             <ul className="space-y-2">
-              {dept.members.map((m) => (
-                <li key={m.id} className="flex items-center gap-3 rounded-2xl bg-surface-2 px-3 py-2.5">
-                  <Avatar name={m.user.name ?? "?"} image={m.user.image} size={32} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{m.user.name ?? m.user.email}</p>
-                    <p className="truncate text-xs text-muted">{m.user.email}</p>
-                  </div>
-                  <MemberRowControls departmentId={dept.id} userId={m.userId} role={m.role} isManagerUser={m.userId === dept.managerId} />
-                </li>
-              ))}
+              {dept.members.map((m) => {
+                const profileHref = m.user.username ? `/u/${m.user.username}` : null;
+                return (
+                  <li key={m.id} className="flex items-center gap-3 rounded-2xl bg-surface-2 px-3 py-2.5">
+                    {profileHref ? (
+                      <Link href={profileHref} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl hover:bg-surface-3">
+                        <Avatar name={m.user.name ?? "?"} image={m.user.image} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium underline-offset-4 hover:underline">{m.user.name ?? m.user.email}</p>
+                          <p className="truncate text-xs text-muted">{m.user.email}</p>
+                        </div>
+                      </Link>
+                    ) : (
+                      <>
+                        <Avatar name={m.user.name ?? "?"} image={m.user.image} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{m.user.name ?? m.user.email}</p>
+                          <p className="truncate text-xs text-muted">{m.user.email}</p>
+                        </div>
+                      </>
+                    )}
+                    <MemberRowControls departmentId={dept.id} userId={m.userId} role={m.role} isManagerUser={m.userId === dept.managerId} />
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

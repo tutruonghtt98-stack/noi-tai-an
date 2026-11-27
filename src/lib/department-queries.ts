@@ -92,7 +92,7 @@ export async function getDepartmentDetail(departmentId: string) {
     include: {
       manager: { select: { id: true, name: true, image: true } },
       workspace: { select: { id: true, name: true, ownerId: true } },
-      members: { orderBy: { joinedAt: "asc" }, include: { user: { select: { id: true, name: true, email: true, image: true } } } },
+      members: { orderBy: { joinedAt: "asc" }, include: { user: { select: { id: true, name: true, email: true, image: true, username: true } } } },
       teams: {
         where: { archivedAt: null },
         orderBy: { createdAt: "asc" },
