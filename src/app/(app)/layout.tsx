@@ -12,6 +12,8 @@ import { AlertsCenter } from "@/components/alerts-center";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { NotificationBellSlot, NotificationBellFallback } from "@/components/notification-bell-slot";
+import { HeaderGroupmates } from "@/components/header-groupmates";
+import { getHeaderGroupmates } from "@/lib/queries";
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
 // Remove this opt-out after verifying the segment passes validation without it.
@@ -49,6 +51,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <Logo />
               </Link>
               <div className="flex items-center gap-2 rounded-full bg-surface p-1.5 shadow-card">
+                <Suspense fallback={null}>
+                  <HeaderGroupmatesSlot userId={user.id} />
+                </Suspense>
                 <Suspense fallback={<NotificationBellFallback />}>
                   <NotificationBellSlot userId={user.id} />
                 </Suspense>
@@ -66,6 +71,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </I18nProvider>
     </SidebarProvider>
   );
+}
+
+/** Tách truy vấn nhóm đồng hành ra khỏi layout để không chặn render nội dung trang khi chuyển trang. */
+async function HeaderGroupmatesSlot({ userId }: { userId: string }) {
+  const groupmates = await getHeaderGroupmates(userId);
+  return <HeaderGroupmates people={groupmates} />;
 }
 
 /**

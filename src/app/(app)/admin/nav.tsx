@@ -8,6 +8,8 @@ const ITEMS = [
   { href: "/admin/journey", label: "STILL / BETTER" },
   { href: "/admin/orders", label: "Giao dịch" },
   { href: "/admin/pricing", label: "Giá gói" },
+  { href: "/admin/moderation", label: "Kiểm duyệt" },
+  { href: "/admin/challenges", label: "Thử thách chính thức" },
 ];
 
 export function AdminNav() {

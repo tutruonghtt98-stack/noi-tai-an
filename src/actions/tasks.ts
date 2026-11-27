@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { syncBadges } from "@/lib/badges";
+import { checkAchievements } from "@/lib/achievements";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -94,6 +95,7 @@ export async function toggleTask(id: string) {
       data: { status: done ? "DONE" : "TODO", completedAt: done ? new Date() : null },
     });
     touch(task.goalId);
+    if (done) after(() => checkAchievements(user.id));
     return { done };
   });
 }
@@ -192,7 +194,10 @@ export async function logFocusSession(input: z.input<typeof focusSchema>) {
         date: toDbDate(todayISO(user.timezone)),
       },
     });
-    after(() => syncBadges(user.id));
+    after(async () => {
+      await syncBadges(user.id);
+      await checkAchievements(user.id);
+    });
     revalidatePath("/dashboard");
   });
 }
