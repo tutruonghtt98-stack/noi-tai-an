@@ -2,15 +2,20 @@ import "server-only";
 import { db } from "@/lib/db";
 import { addDays, fromDbDate, todayISO } from "@/lib/dates";
 
-/** Danh mục huy hiệu. Tên/mô tả hiển thị nằm trong i18n (settings.badges). */
+/** Danh mục huy hiệu. Tên/mô tả hiển thị nằm trong i18n (community.badges). */
 export const BADGES = [
   "FIRST_STEP", // tạo mục tiêu đầu tiên
+  "FIRST_POST", // bài viết cộng đồng đầu tiên
   "STREAK_7",
   "STREAK_21",
   "STREAK_66",
   "FOCUS_10H",
   "FOCUS_100H",
   "GOAL_DONE",
+  "JOURNAL_7",
+  "CHALLENGE_DONE",
+  "CHEERLEADER", // động viên 20 lần
+  "GROUP_FOUNDER",
 ] as const;
 export type BadgeCode = (typeof BADGES)[number];
 
@@ -48,18 +53,27 @@ export async function syncBadges(userId: string) {
   const has = new Set(user.badges.map((b) => b.code));
   const missing = (c: BadgeCode) => !has.has(c);
 
-  const [goals, goalDone, focus, streak] = await Promise.all([
+  const [goals, goalDone, posts, focus, cheers, founded, challengeDone, streak] = await Promise.all([
     missing("FIRST_STEP") ? db.goal.count({ where: { userId } }) : 1,
     missing("GOAL_DONE") ? db.goal.count({ where: { userId, status: "COMPLETED" } }) : 1,
+    missing("FIRST_POST") ? db.post.count({ where: { userId, kind: "POST" } }) : 1,
     missing("FOCUS_100H") ? db.focusSession.aggregate({ where: { userId }, _sum: { actualMinutes: true } }).then((a) => a._sum.actualMinutes ?? 0) : 6000,
+    missing("CHEERLEADER") ? db.cheer.count({ where: { userId } }) : 20,
+    missing("GROUP_FOUNDER") ? db.groupMember.count({ where: { userId, role: "OWNER" } }) : 1,
+    missing("CHALLENGE_DONE") ? db.challengeMember.count({ where: { userId, completedAt: { not: null } } }) : 1,
     missing("STREAK_66") ? bestCurrentStreak(userId, user.timezone) : 66,
   ]);
 
   const earn: BadgeCode[] = [];
   if (goals > 0) earn.push("FIRST_STEP");
   if (goalDone > 0) earn.push("GOAL_DONE");
+  if (posts > 0) earn.push("FIRST_POST");
   if (focus >= 600) earn.push("FOCUS_10H");
   if (focus >= 6000) earn.push("FOCUS_100H");
+  // JOURNAL_7 không thể đạt được nữa: module Suy ngẫm (JournalEntry) đã bị loại khỏi phạm vi khôi phục này.
+  if (cheers >= 20) earn.push("CHEERLEADER");
+  if (founded > 0) earn.push("GROUP_FOUNDER");
+  if (challengeDone > 0) earn.push("CHALLENGE_DONE");
   if (streak >= 7) earn.push("STREAK_7");
   if (streak >= 21) earn.push("STREAK_21");
   if (streak >= 66) earn.push("STREAK_66");
