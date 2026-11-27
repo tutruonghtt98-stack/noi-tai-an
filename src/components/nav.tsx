@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
-import { LayoutGrid, Target, Repeat, Users2, Kanban, Building2, ChartColumn, Settings, Plus, Compass, type LucideIcon } from "lucide-react";
+import { LayoutGrid, Target, Repeat, Users2, Kanban, Building2, ChartColumn, Settings, Plus, Compass, Wallet, type LucideIcon } from "lucide-react";
 import {
   BottomNavigation,
   BottomNavigationAccessory,
@@ -25,6 +25,7 @@ export const NAV: Item[] = [
   { href: "/habits", key: "habits", icon: Repeat },
   { href: "/workspace", key: "workspace", icon: Kanban },
   { href: "/journey", key: "journey", icon: Compass },
+  { href: "/finance", key: "finance", icon: Wallet },
   { href: "/departments", key: "departments", icon: Building2 },
   { href: "/community", key: "community", icon: Users2 },
   { href: "/analytics", key: "analytics", icon: ChartColumn },
