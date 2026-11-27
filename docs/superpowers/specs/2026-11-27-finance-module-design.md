@@ -46,6 +46,9 @@ giao dịch/ngân sách; ngân sách (`Budget`) khoá theo cặp
 trước khi so khớp).
 
 ```prisma
+// Lưu ý: schema thật dùng dạng multi-line chuẩn của file (như mọi enum khác)
+// — parser Prisma của dự án từ chối cú pháp 1 dòng dưới đây; tên/giá trị
+// enum giữ nguyên, chỉ khác cách xuống dòng.
 enum FinanceTransactionType { INCOME EXPENSE }
 enum FinanceRecurringCycle { WEEKLY MONTHLY }
 
