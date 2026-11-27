@@ -298,19 +298,31 @@ git commit -m "feat(finance): add pure budget-warning and recurring-cycle helper
       - `db.financeRecurringRule.findMany({ where: { userId, active:
         true, nextRunDate: { lte: toDbDate(today) } } })`.
       - Nếu rỗng, `return 0`.
-      - Với mỗi rule: lặp `while (nextRunIso <= today)` tạo
-        `FinanceTransaction` (`type: rule.type, amountVnd: rule.amountVnd,
-        category: rule.category, accountName: rule.accountName, note:
-        rule.note, occurredAt: toDbDate(nextRunIso), recurringRuleId:
-        rule.id, userId`); nếu `rule.type === "EXPENSE" && rule.category`,
-        tính tổng chi category đó trong tháng chứa `nextRunIso` (dùng
-        `monthBounds` trên `nextRunIso`'s year/month) RỒI CỘNG THÊM giao
-        dịch vừa tạo (vì transaction này cũng tính vào tổng), gọi
-        `budgetWarningLevel`; nếu khác `"NONE"`, tra `FinanceBudget` để
-        lấy tên category cho message rồi `db.notification.create({
-        data: { userId, actorId: null, type: "FINANCE_BUDGET_WARNING",
-        title, body, href: "/finance" } })`; sau đó `nextRunIso =
-        nextRunDateFor(rule.cycle, nextRunIso)`; đếm số giao dịch đã tạo.
+      - Với mỗi rule: lặp `while (nextRunIso <= today)`:
+        1. Tạo `FinanceTransaction` (`type: rule.type, amountVnd:
+           rule.amountVnd, category: rule.category, accountName:
+           rule.accountName, note: rule.note, occurredAt:
+           toDbDate(nextRunIso), recurringRuleId: rule.id, userId`).
+        2. Nếu `rule.type === "EXPENSE" && rule.category`: SAU KHI đã tạo
+           giao dịch ở bước 1, `db.financeBudget.findUnique({ where: {
+           userId_category: { userId, category: rule.category } } })`;
+           nếu không có row này, bỏ qua bước cảnh báo (không có ngân
+           sách cho category này); nếu có, chạy 1 `aggregate` mới tính
+           tổng chi category đó trong tháng chứa `nextRunIso` (dùng
+           `monthBounds` trên `nextRunIso`'s year/month) — tổng này tự
+           nhiên đã bao gồm giao dịch vừa tạo ở bước 1, không cộng tay;
+           gọi `budgetWarningLevel(spentVnd, budget.monthlyLimitVnd)`.
+        3. Nếu bước 2 chạy và trả khác `"NONE"`: `db.notification.create({
+           data: { userId, actorId: null, type: "FINANCE_BUDGET_WARNING",
+           title: `Chi phí cố định vừa cập nhật ngân sách "${rule.category}"`,
+           body: level === "OVER_100" ? `Đã vượt quá hạn mức tháng này.` :
+           `Đã dùng ${level === "WARN_90" ? "90" : "80"}% hạn mức tháng
+           này.`, href: "/finance" } })` (chuỗi tiếng Việt cố định, theo
+           đúng quy ước notification hiện có trong `src/actions/work.ts`
+           — không qua i18n, vì nội dung thông báo được lưu thẳng vào DB,
+           không phải copy UI render trực tiếp).
+        4. `nextRunIso = nextRunDateFor(rule.cycle, nextRunIso)`; đếm số
+           giao dịch đã tạo.
       - Sau vòng lặp của 1 rule, `db.financeRecurringRule.update({ where:
         { id: rule.id }, data: { nextRunDate: toDbDate(nextRunIso) } })`.
       - Trả tổng số giao dịch đã tạo trên mọi rule.
@@ -469,8 +481,12 @@ git commit -m "feat(finance): add transaction, budget, and recurring-rule action
       `emptyTransactions`, `delete`, `warnBudget80` (vd vi `"Đã dùng 80%
       ngân sách {category}"`), `warnBudget90`, `warnBudgetOver`,
       `categoryRequiredError` (vi "Vui lòng chọn danh mục cho khoản chi."
-      / en "Please choose a category for this expense.") — thêm bằng cả
-      tiếng Việt và Anh, nội dung tương đương, không hardcode ở component.
+      / en "Please choose a category for this expense."),
+      `expenseLoggedToday` (vi "Đã ghi nhận chi tiêu hôm nay." / en
+      "Logged today's expense.", dùng ở Task 9's Journey quick-add),
+      `spentTodayLabel` (vi "Đã chi hôm nay" / en "Spent today", dùng ở
+      Task 9's tổng chi hôm nay) — thêm bằng cả tiếng Việt và Anh, nội
+      dung tương đương, không hardcode ở component.
 
 - [ ] **Step 3: Trong `src/lib/use-action.ts`'s `message()`, thêm mapping**
       `if (code === "CATEGORY_REQUIRED") return t.finance.categoryRequiredError;`
@@ -625,7 +641,7 @@ git commit -m "feat(nav): add Tài chính to the sidebar"
         nút "Thêm" gọi `exec(() => createFinanceTransaction({ type:
         "EXPENSE", amountVnd: Number(expenseAmount), note: expenseNote ||
         undefined, category: "Khác", occurredAt: today }), { success:
-        "Đã ghi nhận chi tiêu hôm nay.", onSuccess: () => {
+        t.finance.expenseLoggedToday, onSuccess: () => {
         setExpenseAmount(""); setExpenseNote(""); refresh(); } })` (prop
         `today: ISODate` đã có sẵn trên `JourneyControls`, dùng lại
         đúng field đó cho `occurredAt`); xoá input sau khi thêm thành
@@ -635,9 +651,9 @@ git commit -m "feat(nav): add Tài chính to the sidebar"
         tiền + ghi chú + nút xoá nhỏ gọi
         `exec(() => deleteFinanceTransaction(entry.id), { onSuccess:
         refresh })`.
-      - Dòng tổng: "Đã chi hôm nay: {vnd(expense.totalVnd)}" (import
-        `vnd` từ `@/lib/billing`) thay cho ô input amount hiển thị giá
-        trị đã lưu như cũ.
+      - Dòng tổng: `{t.finance.spentTodayLabel}: {vnd(expense.totalVnd)}`
+        (import `vnd` từ `@/lib/billing`) thay cho ô input amount hiển
+        thị giá trị đã lưu như cũ.
       - Cập nhật câu mô tả dưới form (hiện đang nói "phần quản lý chi
         tiêu đầy đủ... sẽ có sau") — bỏ câu đó, vì giờ `/finance` đã có
         sẵn; có thể thay bằng link ngắn tới `/finance` nếu muốn, không
