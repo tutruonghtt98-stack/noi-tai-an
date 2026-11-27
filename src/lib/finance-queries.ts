@@ -47,9 +47,30 @@ export async function runDueRecurringRules(userId: string, timezone: string, thr
   let totalCreated = 0;
 
   for (const rule of dueRules) {
+    // Step 1: compute the full list of occurrence dates in memory first, no DB writes here.
+    const occurrences: ISODate[] = [];
     let nextRunIso: ISODate = fromDbDate(rule.nextRunDate);
 
     while (nextRunIso <= today) {
+      occurrences.push(nextRunIso);
+      nextRunIso = nextRunDateFor(rule.cycle, nextRunIso);
+    }
+    const finalNextRunIso = nextRunIso;
+
+    // Step 2: nothing to do, be defensive.
+    if (occurrences.length === 0) continue;
+
+    // Step 3: atomically claim the rule via compare-and-swap on the exact Date value we read.
+    const claim = await db.financeRecurringRule.updateMany({
+      where: { id: rule.id, nextRunDate: rule.nextRunDate },
+      data: { nextRunDate: toDbDate(finalNextRunIso) },
+    });
+
+    // Step 4: a concurrent call already claimed (or advanced) this rule; do nothing further.
+    if (claim.count === 0) continue;
+
+    // Step 5: we won the claim — now actually create the transactions/notifications.
+    for (const occurrenceIso of occurrences) {
       await db.financeTransaction.create({
         data: {
           userId,
@@ -58,7 +79,7 @@ export async function runDueRecurringRules(userId: string, timezone: string, thr
           category: rule.category,
           accountName: rule.accountName,
           note: rule.note,
-          occurredAt: toDbDate(nextRunIso),
+          occurredAt: toDbDate(occurrenceIso),
           recurringRuleId: rule.id,
         },
       });
@@ -69,7 +90,7 @@ export async function runDueRecurringRules(userId: string, timezone: string, thr
           where: { userId_category: { userId, category: rule.category } },
         });
         if (budget) {
-          const [year, month] = nextRunIso.split("-").map(Number) as [number, number];
+          const [year, month] = occurrenceIso.split("-").map(Number) as [number, number];
           const { from, to } = monthBounds(year, month);
           const spent = await db.financeTransaction.aggregate({
             where: {
@@ -99,14 +120,7 @@ export async function runDueRecurringRules(userId: string, timezone: string, thr
           }
         }
       }
-
-      nextRunIso = nextRunDateFor(rule.cycle, nextRunIso);
     }
-
-    await db.financeRecurringRule.update({
-      where: { id: rule.id },
-      data: { nextRunDate: toDbDate(nextRunIso) },
-    });
   }
 
   return totalCreated;
