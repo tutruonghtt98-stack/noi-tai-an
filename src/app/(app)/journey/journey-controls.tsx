@@ -68,7 +68,6 @@ export function JourneyControls({
   const router = useRouter();
   const { t } = useI18n();
   const { exec, pending } = useAction();
-  const [restReason, setRestReason] = useState("");
   const [expenseAmount, setExpenseAmount] = useState(expense?.amountVnd != null ? String(expense.amountVnd) : "");
   const [expenseNote, setExpenseNote] = useState(expense?.note ?? "");
   const savedAnswers = Array.isArray(levelReview?.answers) ? levelReview.answers.filter((answer): answer is string => typeof answer === "string") : [];
@@ -227,26 +226,6 @@ export function JourneyControls({
         </section>
       )}
 
-      {!closed && (
-        <section className="card flex flex-wrap items-end gap-3" aria-label="Ngày nghỉ">
-          <span className="icon-btn icon-btn-plain text-ink-2"><MoonStar className="size-5" aria-hidden /></span>
-          <div className="min-w-0 flex-1">
-            <label className="field">
-              <span className="label">Ngày nghỉ hoặc phục hồi</span>
-              <input className="input" value={restReason} onChange={(event) => setRestReason(event.target.value)} maxLength={300} placeholder="Lý do, nếu muốn ghi lại" />
-            </label>
-          </div>
-          <button
-            type="button"
-            className="btn btn-soft"
-            disabled={pending || workspaceTasks.some((task) => task.listName === "listReview" || task.completedAt != null)}
-            onClick={() => exec(() => setJourneyRestDay(restReason), { success: "Đã ghi nhận ngày nghỉ, không trừ điểm.", onSuccess: refresh })}
-          >
-            <MoonStar className="size-4" aria-hidden /> Ghi nhận ngày nghỉ
-          </button>
-        </section>
-      )}
-
       {isLevelEnd && (
         <section className="card" aria-labelledby="level-review">
           <p className="text-xs font-semibold uppercase text-muted">{t.journey.levelReviewEyebrow} · +50 XP</p>
@@ -277,6 +256,42 @@ export function JourneyControls({
         </section>
       )}
     </div>
+  );
+}
+
+export function JourneyRestDayCard({
+  workspaceTasks,
+  closed,
+}: {
+  workspaceTasks: Pick<WorkspaceTask, "listName" | "completedAt">[];
+  closed: boolean;
+}) {
+  const router = useRouter();
+  const { exec, pending } = useAction();
+  const [restReason, setRestReason] = useState("");
+  const refresh = () => router.refresh();
+
+  if (closed) return null;
+
+  return (
+    <section className="card grid gap-3" aria-labelledby="rest-day">
+      <div className="flex items-center gap-2">
+        <span className="icon-btn icon-btn-plain text-ink-2"><MoonStar className="size-5" aria-hidden /></span>
+        <h2 id="rest-day" className="card-title text-base">Ngày nghỉ hoặc phục hồi</h2>
+      </div>
+      <label className="field">
+        <span className="label">Lý do, nếu muốn ghi lại</span>
+        <input className="input" value={restReason} onChange={(event) => setRestReason(event.target.value)} maxLength={300} placeholder="Lý do, nếu muốn ghi lại" />
+      </label>
+      <button
+        type="button"
+        className="btn btn-soft"
+        disabled={pending || workspaceTasks.some((task) => task.listName === "listReview" || task.completedAt != null)}
+        onClick={() => exec(() => setJourneyRestDay(restReason), { success: "Đã ghi nhận ngày nghỉ, không trừ điểm.", onSuccess: refresh })}
+      >
+        <MoonStar className="size-4" aria-hidden /> Ghi nhận ngày nghỉ
+      </button>
+    </section>
   );
 }
 

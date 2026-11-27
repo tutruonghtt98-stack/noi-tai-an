@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/session";
 import { getJourneyDashboard } from "@/lib/journey-queries";
 import { syncOverdueDiscipline } from "@/lib/journey-score-ledger";
 import { PageHeader } from "@/components/page-header";
-import { JourneyWakeUpCard, JourneyControls, JourneyReflectionCard, StartJourneyButton } from "./journey-controls";
+import { JourneyWakeUpCard, JourneyControls, JourneyReflectionCard, JourneyRestDayCard, StartJourneyButton } from "./journey-controls";
 import { ProgressBar, ProgressRing } from "@/components/ui/progress-ring";
 import { CountUp } from "@/components/ui/count-up";
 import { SplitChars } from "@/components/ui/split-chars";
@@ -169,28 +169,31 @@ export default async function JourneyPage() {
 
       <div className="mt-[var(--gap)] grid gap-[var(--gap)] xl:grid-cols-[minmax(0,1fr)_20rem]">
         <StaggerReveal asChild={false} slide={{ direction: "up", offset: 16 }} holdDelay={60}>
-          <JourneyControls
-            workspaceTasks={journey.workspaceTasks}
-            personalMissions={journey.personalMissions}
-            dailyChallenge={journey.dailyChallenge ? {
-              title: journey.dailyChallenge.title,
-              description: journey.dailyChallenge.description,
-              completionCriteria: journey.dailyChallenge.completionCriteria,
-              xpReward: journey.dailyChallenge.xpReward,
-              completed: !!journey.dayRecord.dailyChallengeCompletedAt,
-            } : null}
-            expense={journey.dayRecord.expense ? { amountVnd: journey.dayRecord.expense.amountVnd, note: journey.dayRecord.expense.note } : null}
-            dayStatus={journey.dayRecord.status}
-            isLevelEnd={dayNumber === journey.level.endDay}
-            levelQuestions={journey.level.reflectionQuestions}
-            levelReview={journey.levelReview}
-            habits={journey.habits}
-            today={journey.today}
-            weeklyCommitments={weeklyCommitmentOptions(journey.journey.commitments).map((g) => ({
-              ...g,
-              done: journey.completedWeeklyOptionIds.includes(g.optionId),
-            }))}
-          />
+          <div className="grid gap-[var(--gap)]">
+            <JourneyControls
+              workspaceTasks={journey.workspaceTasks}
+              personalMissions={journey.personalMissions}
+              dailyChallenge={journey.dailyChallenge ? {
+                title: journey.dailyChallenge.title,
+                description: journey.dailyChallenge.description,
+                completionCriteria: journey.dailyChallenge.completionCriteria,
+                xpReward: journey.dailyChallenge.xpReward,
+                completed: !!journey.dayRecord.dailyChallengeCompletedAt,
+              } : null}
+              expense={journey.dayRecord.expense ? { amountVnd: journey.dayRecord.expense.amountVnd, note: journey.dayRecord.expense.note } : null}
+              dayStatus={journey.dayRecord.status}
+              isLevelEnd={dayNumber === journey.level.endDay}
+              levelQuestions={journey.level.reflectionQuestions}
+              levelReview={journey.levelReview}
+              habits={journey.habits}
+              today={journey.today}
+              weeklyCommitments={weeklyCommitmentOptions(journey.journey.commitments).map((g) => ({
+                ...g,
+                done: journey.completedWeeklyOptionIds.includes(g.optionId),
+              }))}
+            />
+            <JourneyReflectionCard dayScore={journey.dailyScore} reflection={journey.dayRecord.reflection} dayStatus={journey.dayRecord.status} />
+          </div>
         </StaggerReveal>
 
         <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
@@ -204,6 +207,11 @@ export default async function JourneyPage() {
               />
             </section>
 
+            <JourneyRestDayCard
+              workspaceTasks={journey.workspaceTasks}
+              closed={journey.dayRecord.status !== "IN_PROGRESS"}
+            />
+
             <section className="card" aria-labelledby="daily-quote">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase text-muted">
                 <Quote className="size-3.5" aria-hidden /> {t.journey.todayEyebrow}
@@ -212,8 +220,6 @@ export default async function JourneyPage() {
                 “{quote?.quote ?? "Một bước nhỏ có chủ đích vẫn là một bước tiến."}”
               </blockquote>
             </section>
-
-            <JourneyReflectionCard dayScore={journey.dailyScore} reflection={journey.dayRecord.reflection} dayStatus={journey.dayRecord.status} />
 
             <section className="card" aria-labelledby="journey-achievements">
               <AsideCardHead eyebrow={t.journey.achievementsEyebrow} title="Thành tích đã đạt" />
