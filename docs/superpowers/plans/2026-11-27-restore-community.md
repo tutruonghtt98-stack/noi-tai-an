@@ -58,29 +58,29 @@
 **Interfaces:**
 - Produces: `User.username`, `User.bio`, `User.profilePublic`, `User.showGoals`, `User.showStats`, `User.showBadges`, `User.showChallenges`, `User.leaderboardOptIn`, `User.autoShareAchievements`, plus relations `posts`, `cheers`, `comments`, `reports`, `challenges` (`"ChallengeCreator"`), `challengeMembers`, `challengeCheckins`, `groupMembers`, `joinRequests`, `following`/`followers` (`Follow`, `"Follower"`/`"Following"`), `challengeInvitesSent`/`challengeInvitesReceived`. Models: `Post`, `Cheer`, `Comment`, `Report` (+ `ReportStatus`), `Challenge`, `ChallengeMember`, `ChallengeCheckin`, `ChallengeInvite` (+ `InviteStatus`), `Group`, `GroupMember` (+ `GroupRole`), `GroupJoinRequest` (+ `JoinRequestStatus`), `Achievement`, `Follow`, enums `PostCategory`, `PostKind`.
 
-- [ ] **Step 1: Append the eight profile/privacy fields to `User`**
+- [x] **Step 1: Append the eight profile/privacy fields to `User`**
 
 Add the block from the diff (`username String? @unique`, `bio String?`, `profilePublic Boolean @default(false)`, `showGoals`/`showStats`/`showBadges`/`showChallenges`/`leaderboardOptIn`/`autoShareAchievements Boolean @default(true/true/true/true/true/true)`) directly under the existing `journeyOfferStatus`/`bannedAt` block in `User`. Keep every currently-existing field untouched.
 
-- [ ] **Step 2: Append the community relation arrays to `User`**
+- [x] **Step 2: Append the community relation arrays to `User`**
 
 Add `posts Post[]`, `cheers Cheer[]`, `comments Comment[]`, `reports Report[]`, `challenges Challenge[] @relation("ChallengeCreator")`, `challengeMembers ChallengeMember[]`, `challengeCheckins ChallengeCheckin[]`, `groupMembers GroupMember[]`, `joinRequests GroupJoinRequest[]`, `following Follow[] @relation("Follower")`, `followers Follow[] @relation("Following")`, `challengeInvitesSent ChallengeInvite[] @relation("Inviter")`, `challengeInvitesReceived ChallengeInvite[] @relation("Invitee")` alongside the existing `badges UserBadge[]` line (do not remove or reorder it).
 
-- [ ] **Step 3: Append the models/enums verbatim from `06c2572^:prisma/schema.prisma`**
+- [x] **Step 3: Append the models/enums verbatim from `06c2572^:prisma/schema.prisma`**
 
 Copy, unmodified: `PostCategory`, `PostKind`, `Post`, `Cheer`, `Comment`, `ReportStatus`, `Report`, `Challenge`, `ChallengeMember`, `ChallengeCheckin`, `GroupRole`, `Group`, `JoinRequestStatus`, `GroupJoinRequest`, `Achievement`, `GroupMember`, `Follow`, `InviteStatus`, `ChallengeInvite` — add them as a new `// ---------- H. Cộng đồng ----------` section near the end of the file (after the existing Workspace/Department section, before any trailing seed-only comments). Do **not** copy `DailyPlan`, `JournalEntry`, `WeeklyReview` from the old diff — skip those hunks.
 
-- [ ] **Step 4: Generate and apply the migration**
+- [x] **Step 4: Generate and apply the migration**
 
 Run: `npx prisma migrate dev --name restore_community`
 Expected: migration file created under `prisma/migrations/`, applies cleanly against the dev DB with no destructive warnings on existing tables (only additive `CREATE TABLE`/`ALTER TABLE ... ADD COLUMN`).
 
-- [ ] **Step 5: Verify the client compiles**
+- [x] **Step 5: Verify the client compiles**
 
 Run: `npx tsc --noEmit`
 Expected: no new type errors (existing errors, if any, must be pre-existing — check with `git stash` if unsure).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add prisma/schema.prisma prisma/migrations
@@ -100,7 +100,7 @@ git commit -m "feat(schema): restore community, follow, and profile models"
 - Consumes: Task 1's Prisma models (`Post`, `Challenge`, `Achievement`, etc.)
 - Produces: `checkAchievements(userId: string): Promise<void>` from `src/lib/achievements.ts` (consumed by Task 3's restored `habits.ts`/`tasks.ts` edits), whatever helper exports `community.ts`/`challenges.ts` provided originally (read the old file to get exact names — do not rename).
 
-- [ ] **Step 1: Restore the three lib files verbatim**
+- [x] **Step 1: Restore the three lib files verbatim**
 
 ```bash
 git show 06c2572^:src/lib/community.ts > src/lib/community.ts
@@ -108,16 +108,16 @@ git show 06c2572^:src/lib/challenges.ts > src/lib/challenges.ts
 git show 06c2572^:src/lib/achievements.ts > src/lib/achievements.ts
 ```
 
-- [ ] **Step 2: Re-apply the `badges.ts` list diff**
+- [x] **Step 2: Re-apply the `badges.ts` list diff**
 
 In `src/lib/badges.ts`, restore the `FIRST_POST`, `JOURNAL_7`, `CHALLENGE_DONE`, `CHEERLEADER`, `GROUP_FOUNDER` entries to the `BADGES` array (per the reverse of the diff shown during planning) and restore the doc comment back to `community.badges` wording. Keep `FIRST_STEP`, `STREAK_7/21/66`, `FOCUS_10H/100H`, `GOAL_DONE` as-is (do not restore `JOURNAL_7` logic elsewhere if it depended on the now-excluded Reflection module — check the old `badges.ts` body for any `JournalEntry` query; if present, drop just that computation but keep the badge code in the enum for schema/display parity, marking it permanently "not earnable" is acceptable since this is a restore of the community side only).
 
-- [ ] **Step 3: Verify imports resolve**
+- [x] **Step 3: Verify imports resolve**
 
 Run: `npx tsc --noEmit`
 Expected: errors only in files not yet restored (actions/components) — no errors inside the three new lib files themselves.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/lib/community.ts src/lib/challenges.ts src/lib/achievements.ts src/lib/badges.ts
@@ -137,7 +137,7 @@ git commit -m "feat(lib): restore community, challenges, and achievements helper
 - Consumes: Task 2's `checkAchievements`, `syncBadges` (already exists), Task 1's Prisma models.
 - Produces: whatever action function names existed in the four new files (read from the restored source — used verbatim by Task 6/7/8's restored page components, so names/signatures must match exactly what those pages import).
 
-- [ ] **Step 1: Restore the four new action files verbatim**
+- [x] **Step 1: Restore the four new action files verbatim**
 
 ```bash
 git show 06c2572^:src/actions/community.ts > src/actions/community.ts
@@ -146,22 +146,22 @@ git show 06c2572^:src/actions/groups.ts > src/actions/groups.ts
 git show 06c2572^:src/actions/profile.ts > src/actions/profile.ts
 ```
 
-- [ ] **Step 2: Restore the moderation functions removed from `admin.ts`**
+- [x] **Step 2: Restore the moderation functions removed from `admin.ts`**
 
 Run `git show 06c2572 -- src/actions/admin.ts` to see the exact 33-line removal, re-add those functions (moderation-related: hide/resolve reports, etc.) without touching anything else in the current `admin.ts` (which has since grown with Journey admin features).
 
-- [ ] **Step 3: Re-add `checkAchievements` to `habits.ts` and `tasks.ts` — without `/today`**
+- [x] **Step 3: Re-add `checkAchievements` to `habits.ts` and `tasks.ts` — without `/today`**
 
 In `src/actions/habits.ts`: re-add `import { checkAchievements } from "@/lib/achievements";` and change `after(() => syncBadges(user.id))` back to `after(async () => { await syncBadges(user.id); await checkAchievements(user.id); })` in `toggleHabit`. Do **not** re-add the `revalidatePath("/today")` line in `touch()`.
 
 In `src/actions/tasks.ts`: same import; in `toggleTask`, re-add `if (done) after(() => checkAchievements(user.id));` after the existing `touch(task.goalId)` call; in `logFocusSession`, change `after(() => syncBadges(user.id))` back to the combined `after(async () => { await syncBadges(user.id); await checkAchievements(user.id); })`. Do **not** restore `saveDailyPlan` or any `/today` revalidation.
 
-- [ ] **Step 4: Verify types**
+- [x] **Step 4: Verify types**
 
 Run: `npx tsc --noEmit`
 Expected: errors remaining only in not-yet-restored component/route files that import these actions.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/actions/community.ts src/actions/follow.ts src/actions/groups.ts src/actions/profile.ts src/actions/admin.ts src/actions/habits.ts src/actions/tasks.ts
@@ -179,20 +179,20 @@ git commit -m "feat(actions): restore community, follow, groups, profile, and mo
 **Interfaces:**
 - Produces: `Dict["community"]`, `Dict["nav"]["community"]`, and whatever other top-level keys the diff shows (admin moderation labels, public-profile labels, settings-privacy labels) — these exact key names are what Task 5–8's restored components/pages call as `t.community.*` etc.
 
-- [ ] **Step 1: Re-add every removed key from the `06c2572` diff**
+- [x] **Step 1: Re-add every removed key from the `06c2572` diff**
 
 Work through the diff for both files hunk by hunk; re-insert each deleted block (`-` lines) into the corresponding current location. Where the surrounding structure has shifted (nav keys, settings keys reorganized since), place the restored keys in the most structurally similar current location and keep naming identical to the old keys (components restored in later tasks reference these names verbatim).
 
-- [ ] **Step 2: Update the `Dict` type**
+- [x] **Step 2: Update the `Dict` type**
 
 `Dict` is derived from `vi.ts`'s shape (check `src/lib/i18n/vi.ts` export and how `Dict` is typed, likely `typeof vi` or similar) — if there is a separate type declaration, extend it to match; otherwise this is automatic once `vi.ts` is restored.
 
-- [ ] **Step 3: Verify both locales have matching key sets**
+- [x] **Step 3: Verify both locales have matching key sets**
 
 Run: `npx tsc --noEmit`
 Expected: `en.ts` must satisfy the same `Dict` shape as `vi.ts` — any missing English key surfaces as a type error here; translate missing strings directly.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/lib/i18n/vi.ts src/lib/i18n/en.ts
@@ -213,7 +213,7 @@ git commit -m "feat(i18n): restore community, follow, profile, and moderation st
 - Consumes: Task 3's action exports, Task 4's `t.community.*` strings, Task 1's Prisma types (via server components).
 - Produces: `<FollowButton>`, `<PostCard>`, `<FeedList>`, `<Composer>`, `<GroupAdmin>`, `<GroupUi>`, `<ChallengeUi>`, `<Discover>`, `<PeoplePicker>`, `<AvatarUploader>`, `<CommunitySidebar>` — exact component/prop names as in the restored files, consumed verbatim by Task 6–8's pages.
 
-- [ ] **Step 1: Restore all twelve component files verbatim**
+- [x] **Step 1: Restore all twelve component files verbatim**
 
 ```bash
 mkdir -p src/components/community
@@ -223,20 +223,20 @@ done
 git show 06c2572^:src/components/header-groupmates.tsx > src/components/header-groupmates.tsx
 ```
 
-- [ ] **Step 2: Re-apply the `planner.tsx` groupmates diff**
+- [x] **Step 2: Re-apply the `planner.tsx` groupmates diff**
 
 Run `git show 06c2572 -- src/components/planner.tsx`, re-add the removed `header-groupmates` import/usage; reconcile against any planner changes made since (check current `src/components/planner.tsx` for unrelated edits in the intervening 155 commits before pasting back).
 
-- [ ] **Step 3: Restore `coming-soon.tsx` only if something still imports it**
+- [x] **Step 3: Restore `coming-soon.tsx` only if something still imports it**
 
 Run: `grep -rn "coming-soon" src --include="*.tsx" --include="*.ts"`. If nothing references it after Task 6–8, skip restoring it (YAGNI) — the removal diff shows it as plain deletion (19 lines), not a rename.
 
-- [ ] **Step 4: Verify types**
+- [x] **Step 4: Verify types**
 
 Run: `npx tsc --noEmit`
 Expected: errors remaining only in not-yet-restored route files.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/community src/components/header-groupmates.tsx src/components/planner.tsx
@@ -257,7 +257,7 @@ git commit -m "feat(components): restore community UI components and groupmates 
 **Interfaces:**
 - Consumes: Task 2 (`lib/community.ts`, `lib/challenges.ts`), Task 3 (actions), Task 4 (i18n), Task 5 (components).
 
-- [ ] **Step 1: Restore every route file verbatim**
+- [x] **Step 1: Restore every route file verbatim**
 
 ```bash
 mkdir -p "src/app/(app)/community/challenges/[id]" "src/app/(app)/community/groups/[id]" "src/app/(app)/community/groups/join/[code]"
@@ -272,20 +272,20 @@ git show "06c2572^:src/app/(app)/community/groups/join/[code]/page.tsx" > "src/a
 git show "06c2572^:src/app/(app)/community/leaderboard/page.tsx" > "src/app/(app)/community/leaderboard/page.tsx"
 ```
 
-- [ ] **Step 2: Fix any lingering `/work/*` references**
+- [x] **Step 2: Fix any lingering `/work/*` references**
 
 `grep -rn "/work/customers\|/work/workspace" "src/app/(app)/community"` — replace any hit with `/customers` / `/workspace` per the Global Constraints (the old community code predates that rename, if it links to customers/workspace anywhere).
 
-- [ ] **Step 3: Verify types**
+- [x] **Step 3: Verify types**
 
 Run: `npx tsc --noEmit`
 Expected: no errors inside `src/app/(app)/community/**`.
 
-- [ ] **Step 4: Manual verification (run skill)**
+- [x] **Step 4: Manual verification (run skill)**
 
 Use the `run` skill to launch the app, sign in, visit `/community`, `/community/challenges`, `/community/groups`, `/community/leaderboard`. Confirm each renders without a server error and the feed/composer/challenge list/group list show (empty states are fine with no seed data).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add "src/app/(app)/community"
@@ -303,22 +303,22 @@ git commit -m "feat(routes): restore community feed, challenges, groups, and lea
 **Interfaces:**
 - Consumes: Task 3's `follow.ts`/`profile.ts` actions, Task 5's `<FollowButton>`, Task 4's i18n strings, `User.profilePublic`/`showGoals`/`showStats`/`showBadges`/`showChallenges` from Task 1.
 
-- [ ] **Step 1: Restore the route verbatim**
+- [x] **Step 1: Restore the route verbatim**
 
 ```bash
 mkdir -p "src/app/(public)/u/[username]"
 git show "06c2572^:src/app/(public)/u/[username]/page.tsx" > "src/app/(public)/u/[username]/page.tsx"
 ```
 
-- [ ] **Step 2: Verify every privacy toggle gates its own section**
+- [x] **Step 2: Verify every privacy toggle gates its own section**
 
 Read the restored file and confirm `profilePublic === false` short-circuits the whole page (404/empty state) and each of `showGoals`/`showStats`/`showBadges`/`showChallenges` independently guards its own section — this is a Review Focus item, not optional. If any toggle was checked jointly instead of independently in the old code, fix it now to match the per-field semantics the schema defines.
 
-- [ ] **Step 3: Manual verification (run skill)**
+- [x] **Step 3: Manual verification (run skill)**
 
 Visit `/u/<existing-username>` for a user with `profilePublic=false` → confirm it does not leak content. Set `profilePublic=true`, toggle `showGoals=false` → confirm goals section specifically is hidden while others still show.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add "src/app/(public)/u"
@@ -338,7 +338,7 @@ git commit -m "feat(routes): restore public profile page with per-field privacy 
 **Interfaces:**
 - Consumes: Task 3's restored `admin.ts` moderation functions.
 
-- [ ] **Step 1: Restore the four admin files verbatim**
+- [x] **Step 1: Restore the four admin files verbatim**
 
 ```bash
 mkdir -p "src/app/(app)/admin/moderation" "src/app/(app)/admin/challenges"
@@ -348,15 +348,15 @@ git show "06c2572^:src/app/(app)/admin/challenges/page.tsx" > "src/app/(app)/adm
 git show "06c2572^:src/app/(app)/admin/challenges/archive.tsx" > "src/app/(app)/admin/challenges/archive.tsx"
 ```
 
-- [ ] **Step 2: Re-add the two nav entries to `admin/nav.tsx`**
+- [x] **Step 2: Re-add the two nav entries to `admin/nav.tsx`**
 
 Insert `{ href: "/admin/moderation", label: "Kiểm duyệt" }` and `{ href: "/admin/challenges", label: "Thử thách" }` (check the pre-removal `ITEMS` array for exact labels) into the current `ITEMS` array in `src/app/(app)/admin/nav.tsx`, keeping the four existing entries (`/admin`, `/admin/users`, `/admin/journey`, `/admin/orders`) untouched.
 
-- [ ] **Step 3: Manual verification (run skill)**
+- [x] **Step 3: Manual verification (run skill)**
 
 Sign in as an admin user, visit `/admin/moderation` and `/admin/challenges`, confirm both render and the new nav tabs appear and highlight correctly.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add "src/app/(app)/admin/moderation" "src/app/(app)/admin/challenges" "src/app/(app)/admin/nav.tsx"
@@ -374,22 +374,22 @@ git commit -m "feat(admin): restore moderation and challenge-archive pages, wire
 **Interfaces:**
 - Consumes: Task 5's `image-upload.ts`/`avatar-uploader.tsx` (which POST to R2 directly or via this route — read the restored `image-upload.ts` to confirm the exact contract), `R2_*` env vars already present in `.env.example`.
 
-- [ ] **Step 1: Restore the route verbatim**
+- [x] **Step 1: Restore the route verbatim**
 
 ```bash
 mkdir -p "src/app/api/uploads/[...key]"
 git show "06c2572^:src/app/api/uploads/[...key]/route.ts" > "src/app/api/uploads/[...key]/route.ts"
 ```
 
-- [ ] **Step 2: Re-verify the access check (Review Focus item)**
+- [x] **Step 2: Re-verify the access check (Review Focus item)**
 
 Read the restored handler's authorization logic line by line — confirm it checks that the requested `key` belongs to the requesting user (or is a public post/avatar image) before serving/signing it, exactly as the original did. Do not weaken or simplify this check while restoring.
 
-- [ ] **Step 3: Manual verification (run skill)**
+- [x] **Step 3: Manual verification (run skill)**
 
 With `R2_*` env vars configured (or local stub if the project has one), upload an avatar via `/settings` or a post image via the composer, confirm the resulting URL resolves through this route.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add "src/app/api/uploads"
@@ -407,23 +407,23 @@ git commit -m "feat(uploads): restore R2-backed avatar/post image route"
 **Interfaces:**
 - Consumes: everything from Tasks 1–9.
 
-- [ ] **Step 1: Add `community` back to `NAV` in `src/components/nav.tsx`**
+- [x] **Step 1: Add `community` back to `NAV` in `src/components/nav.tsx`**
 
 Add `{ href: "/community", key: "community", icon: Users2 }` (pick a distinct Lucide icon from `customers`'s `Users` — e.g. `Users2` or whatever the old `nav.tsx` used; check `git show 06c2572^:src/components/nav.tsx` for the original icon choice) to the `NAV` array, in the position the old nav had it (check the old file for ordering relative to Settings/Analytics) — current `NAV` has no `/work` split anymore, so just insert it as a normal top-level item alongside `/goals`, `/habits`, etc.
 
-- [ ] **Step 2: Reconcile `layout.tsx`**
+- [x] **Step 2: Reconcile `layout.tsx`**
 
 Diff the old vs. current `src/app/(app)/layout.tsx` — re-add only what's community-specific (e.g., any provider, slot, or groupmates header wiring); current layout has since gained Journey/other providers that must stay.
 
-- [ ] **Step 3: Reconcile `settings/page.tsx`**
+- [x] **Step 3: Reconcile `settings/page.tsx`**
 
 Diff the old vs. current `src/app/(app)/settings/page.tsx` — re-add the privacy-toggle section (`profilePublic`, `showGoals`, `showStats`, `showBadges`, `showChallenges`, `leaderboardOptIn`, `autoShareAchievements`, `username`, `bio` editing) without touching the `journey-form.tsx` import/section the removal commit also deleted from this same file (that 85-line `journey-form.tsx` deletion is unrelated to community and must **not** be restored — Journey has since been rebuilt independently; only pull the privacy/community-shaped hunks from this diff).
 
-- [ ] **Step 4: Full manual verification (run skill)**
+- [x] **Step 4: Full manual verification (run skill)**
 
 Launch the app, click through: sidebar shows "Cộng đồng", `/community` → post something → appears in feed → cheer/comment it; follow another seeded user from their `/u/[username]` page → appears in their follower count; join/create a group; join/create a challenge and check in; visit `/settings` and toggle each privacy switch, confirm it reflects on the public profile; visit `/admin/moderation` and hide a post, confirm it disappears from the feed for a normal user.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/nav.tsx "src/app/(app)/layout.tsx" "src/app/(app)/settings/page.tsx"
@@ -436,12 +436,12 @@ git commit -m "feat(nav): wire community into main nav, layout, and settings pri
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Full type-check**
+- [x] **Step 1: Full type-check**
 
 Run: `npx tsc --noEmit`
 Expected: zero errors.
 
-- [ ] **Step 2: Production build**
+- [x] **Step 2: Production build**
 
 Run: `npm run build`
 Expected: build succeeds, no missing-module or Cache-Components validation errors on any of the new routes.
