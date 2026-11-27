@@ -4,7 +4,7 @@ export type WorkView = "kanban" | "list" | "calendar";
 const WORK_VIEWS: WorkView[] = ["kanban", "list", "calendar"];
 
 export function parseWorkView(v: string | undefined): WorkView {
-  return (WORK_VIEWS as string[]).includes(v ?? "") ? (v as WorkView) : "list";
+  return (WORK_VIEWS as string[]).includes(v ?? "") ? (v as WorkView) : "kanban";
 }
 
 export type PoolableList<TCard> = { name: string; color: string; cards: TCard[] };

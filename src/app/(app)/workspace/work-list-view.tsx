@@ -11,6 +11,7 @@ import { CardModal, type SerializedCard } from "./card-modal";
 import type { MemberOption } from "./assignee-picker";
 import { reorderIds } from "@/lib/work-view";
 import { reorderWorkCards } from "@/actions/work";
+import { StaggerReveal } from "@/components/ui/stagger-reveal";
 
 export function WorkListView({
   lists,
@@ -68,6 +69,7 @@ export function WorkListView({
 
   return (
     <>
+      <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={70}>
       {lists.map((list) => {
         const Icon = STATUS_ICON[list.name] ?? undefined;
         return (
@@ -178,6 +180,7 @@ export function WorkListView({
         </div>
         );
       })}
+      </StaggerReveal>
 
       <CardModal
         open={!!openCard}
