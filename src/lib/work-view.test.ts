@@ -9,10 +9,10 @@ test("parseWorkView returns the value when valid", () => {
   assert.equal(parseWorkView("kanban"), "kanban");
 });
 
-test("parseWorkView defaults to list for missing or invalid values", () => {
-  assert.equal(parseWorkView(undefined), "list");
-  assert.equal(parseWorkView(""), "list");
-  assert.equal(parseWorkView("table"), "list");
+test("parseWorkView defaults to kanban for missing or invalid values", () => {
+  assert.equal(parseWorkView(undefined), "kanban");
+  assert.equal(parseWorkView(""), "kanban");
+  assert.equal(parseWorkView("table"), "kanban");
 });
 
 type TestCard = { id: string; title: string; dueDate: string | null };
