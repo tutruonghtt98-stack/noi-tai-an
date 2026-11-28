@@ -47,8 +47,9 @@ import {
   toggleFinanceRecurringRule,
   upsertFinanceBudget,
 } from "@/actions/finance";
-import type { FinanceDashboard } from "@/lib/finance-queries";
+import type { FinanceDashboard, SerializedFinanceTransaction, getFinanceSavingsGoals } from "@/lib/finance-queries";
 import type { BudgetWarningLevel } from "@/lib/finance";
+import { computeIncomeExpenseTrend } from "@/lib/finance";
 import { useAction } from "@/lib/use-action";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
@@ -57,6 +58,9 @@ import { vnd } from "@/lib/billing";
 import { ProgressBar } from "@/components/ui/progress-ring";
 import { formatDate, type ISODate } from "@/lib/dates";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
+import { TrendBarChart } from "@/components/ui/trend-bar-chart";
+
+type FinanceSavingsGoals = Awaited<ReturnType<typeof getFinanceSavingsGoals>>;
 
 const EXPENSE_CATEGORIES = ["Ăn uống", "Nhà ở", "Di chuyển", "Mua sắm", "Sức khỏe", "Giải trí", "Giáo dục", "Gia đình", "Cá nhân"];
 
@@ -321,8 +325,23 @@ function CategoryCombobox({
   );
 }
 
-export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashboard; today: ISODate }) {
+export function FinanceControls({
+  dashboard,
+  today,
+  transactionsWindow,
+  savingsGoals,
+  timezone,
+  weekStartsOn,
+}: {
+  dashboard: FinanceDashboard;
+  today: ISODate;
+  transactionsWindow: SerializedFinanceTransaction[];
+  savingsGoals: FinanceSavingsGoals;
+  timezone: string;
+  weekStartsOn: number;
+}) {
   const { t } = useI18n();
+  void savingsGoals;
   const balance = dashboard.incomeThisMonth - dashboard.expenseThisMonth;
 
   return (
@@ -343,6 +362,8 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
               <p className="tabular mt-3 text-2xl font-semibold">{vnd(balance)}</p>
             </div>
           </section>
+
+          <TrendSection transactions={transactionsWindow} timezone={timezone} weekStartsOn={weekStartsOn} />
 
           <BudgetsSection budgets={dashboard.budgets} />
         </div>
@@ -378,6 +399,62 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
           <TransactionsSection transactions={dashboard.recentTransactions} />
         </div>
       </StaggerReveal>
+    </div>
+  );
+}
+
+function formatBucketLabel(label: string, unit: "day" | "week" | "month", locale: string): string {
+  if (unit === "month") {
+    const [year, month] = label.split("-").map(Number);
+    return new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(year, month - 1, 1));
+  }
+  return formatDate(label as ISODate, locale, { day: "2-digit", month: "2-digit" });
+}
+
+function deltaPercentFor(values: number[]): number | null {
+  if (values.length < 2) return null;
+  const prev = values[values.length - 2];
+  const last = values[values.length - 1];
+  return prev > 0 ? Math.round(((last - prev) / prev) * 100) : null;
+}
+
+function TrendSection({
+  transactions,
+  timezone,
+  weekStartsOn,
+}: {
+  transactions: SerializedFinanceTransaction[];
+  timezone: string;
+  weekStartsOn: number;
+}) {
+  const { t, locale } = useI18n();
+  const [unit, setUnit] = useState<"day" | "week" | "month">("day");
+
+  const buckets = computeIncomeExpenseTrend(transactions, timezone, unit, weekStartsOn);
+  const incomeData = buckets.map((b) => ({ label: formatBucketLabel(b.label, unit, locale), value: b.incomeVnd }));
+  const expenseData = buckets.map((b) => ({ label: formatBucketLabel(b.label, unit, locale), value: b.expenseVnd }));
+  const incomeDelta = deltaPercentFor(buckets.map((b) => b.incomeVnd));
+  const expenseDelta = deltaPercentFor(buckets.map((b) => b.expenseVnd));
+
+  return (
+    <div className="grid gap-[var(--gap)]">
+      <div className="flex justify-end gap-1 rounded-full border border-line bg-surface p-1 text-xs font-medium">
+        {(["day", "week", "month"] as const).map((u) => (
+          <button
+            key={u}
+            type="button"
+            aria-pressed={unit === u}
+            className={`rounded-full px-3 py-1 transition-colors ${unit === u ? "bg-ink text-bg" : "text-muted hover:text-ink"}`}
+            onClick={() => setUnit(u)}
+          >
+            {u === "day" ? t.finance.trendUnitDay : u === "week" ? t.finance.trendUnitWeek : t.finance.trendUnitMonth}
+          </button>
+        ))}
+      </div>
+      <div className="grid gap-[var(--gap)] sm:grid-cols-2">
+        <TrendBarChart data={incomeData} color="var(--jade-ink)" title={t.finance.trendIncome} deltaPercent={incomeDelta} />
+        <TrendBarChart data={expenseData} color="var(--danger)" title={t.finance.trendExpense} deltaPercent={expenseDelta} />
+      </div>
     </div>
   );
 }
