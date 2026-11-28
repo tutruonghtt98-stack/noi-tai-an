@@ -135,6 +135,30 @@ function loadCustomCategories(storageKey: string): CustomCategory[] {
   }
 }
 
+/** Ô nhập số tiền: hiện có dấu chấm ngăn cách hàng nghìn, nhưng state/submit vẫn chỉ là chuỗi số. */
+function AmountInput({
+  value,
+  onChange,
+  placeholder,
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (digits: string) => void;
+  placeholder?: string;
+  ariaLabel?: string;
+}) {
+  return (
+    <input
+      className="input"
+      inputMode="numeric"
+      value={value ? Number(value).toLocaleString("vi-VN") : ""}
+      onChange={(event) => onChange(event.target.value.replace(/\D/g, ""))}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+    />
+  );
+}
+
 function budgetColorFor(level: BudgetWarningLevel) {
   if (level === "OVER_100") return "var(--danger)";
   if (level === "WARN_90" || level === "WARN_80") return "var(--ochre)";
@@ -414,16 +438,7 @@ function BudgetsSection({ budgets }: { budgets: FinanceDashboard["budgets"] }) {
               </div>
               {editingCategory === b.category && (
                 <div className="mt-2 flex items-center gap-2">
-                  <input
-                    className="input"
-                    type="number"
-                    min={0}
-                    step={1000}
-                    inputMode="numeric"
-                    value={editLimit}
-                    onChange={(event) => setEditLimit(event.target.value)}
-                    aria-label={`Hạn mức mới: ${b.category}`}
-                  />
+                  <AmountInput value={editLimit} onChange={setEditLimit} ariaLabel={`Hạn mức mới: ${b.category}`} />
                   <button
                     type="button"
                     className="btn btn-soft btn-sm"
@@ -449,16 +464,7 @@ function BudgetsSection({ budgets }: { budgets: FinanceDashboard["budgets"] }) {
           defaultIcons={EXPENSE_CATEGORY_ICONS}
           storageKey="finance.customCategories.expense"
         />
-        <input
-          className="input"
-          type="number"
-          min={0}
-          step={1000}
-          inputMode="numeric"
-          value={newLimit}
-          onChange={(event) => setNewLimit(event.target.value)}
-          placeholder={t.finance.amountLabel}
-        />
+        <AmountInput value={newLimit} onChange={setNewLimit} placeholder={t.finance.amountLabel} />
         <button
           type="button"
           className="btn btn-soft"
@@ -547,7 +553,7 @@ function TransactionQuickAddForm({ type, today }: { type: "INCOME" | "EXPENSE"; 
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="field">
           <span className="label">{t.finance.amountLabel}</span>
-          <input className="input" type="number" min={1} step={1000} inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value)} />
+          <AmountInput value={amount} onChange={setAmount} />
         </label>
         <label className="field">
           <span className="label">{t.finance.categoryLabel}{isExpense && " *"}</span>
@@ -705,7 +711,7 @@ function RecurringSection({
       <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-2">
         <label className="field">
           <span className="label">{t.finance.amountLabel}</span>
-          <input className="input" type="number" min={1} step={1000} inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value)} />
+          <AmountInput value={amount} onChange={setAmount} />
         </label>
         <label className="field">
           <span className="label">{t.finance.categoryLabel}{isExpense && " *"}</span>
