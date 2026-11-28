@@ -41,6 +41,7 @@ export function useAction() {
       if (code === "NOT_STARTED") return t.community.challenge.notStarted;
       if (code === "ENDED") return t.community.challenge.over;
       if (code === "CATEGORY_REQUIRED") return t.finance.categoryRequiredError;
+      if (code === "WITHDRAWAL_EXCEEDS_SAVED") return t.finance.withdrawalExceedsSavedError;
       return t.common.error;
     },
     [t],
