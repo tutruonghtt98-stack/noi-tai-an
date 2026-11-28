@@ -1,24 +1,27 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { fromDbDate, isoInZone, monthBounds, toDbDate, type ISODate } from "@/lib/dates";
+import { addDays, fromDbDate, isoInZone, monthBounds, toDbDate, type ISODate } from "@/lib/dates";
 import { budgetWarningLevel, nextRunDateFor, type BudgetWarningLevel } from "@/lib/finance";
+
+export type SerializedFinanceTransaction = {
+  id: string;
+  type: "INCOME" | "EXPENSE";
+  amountVnd: number;
+  category: string | null;
+  accountName: string | null;
+  note: string | null;
+  occurredAt: string;
+  recurringRuleId: string | null;
+  savingsGoalId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type FinanceDashboard = {
   incomeThisMonth: number;
   expenseThisMonth: number;
   budgets: { category: string; limitVnd: number; spentVnd: number; level: BudgetWarningLevel }[];
-  recentTransactions: {
-    id: string;
-    type: "INCOME" | "EXPENSE";
-    amountVnd: number;
-    category: string | null;
-    accountName: string | null;
-    note: string | null;
-    occurredAt: string;
-    recurringRuleId: string | null;
-    createdAt: string;
-    updatedAt: string;
-  }[];
+  recentTransactions: SerializedFinanceTransaction[];
   recurringRules: {
     id: string;
     type: "INCOME" | "EXPENSE";
@@ -36,6 +39,34 @@ export type FinanceDashboard = {
 };
 
 const MAX_OCCURRENCES_PER_CATCHUP = 500;
+
+function serializeFinanceTransaction(t: {
+  id: string;
+  type: "INCOME" | "EXPENSE";
+  amountVnd: number;
+  category: string | null;
+  accountName: string | null;
+  note: string | null;
+  occurredAt: Date;
+  recurringRuleId: string | null;
+  savingsGoalId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): SerializedFinanceTransaction {
+  return {
+    id: t.id,
+    type: t.type,
+    amountVnd: t.amountVnd,
+    category: t.category,
+    accountName: t.accountName,
+    note: t.note,
+    occurredAt: t.occurredAt.toISOString(),
+    recurringRuleId: t.recurringRuleId,
+    savingsGoalId: t.savingsGoalId,
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.updatedAt.toISOString(),
+  };
+}
 
 /** Lazy catch-up cho các quy tắc định kỳ đã quá hạn, chạy lúc đọc dashboard (không có cron riêng). */
 export async function runDueRecurringRules(userId: string, timezone: string, throughAt = new Date()): Promise<number> {
@@ -186,18 +217,7 @@ export async function getFinanceDashboard(userId: string, timezone: string): Pro
     incomeThisMonth,
     expenseThisMonth,
     budgets,
-    recentTransactions: recentTransactions.map((t) => ({
-      id: t.id,
-      type: t.type,
-      amountVnd: t.amountVnd,
-      category: t.category,
-      accountName: t.accountName,
-      note: t.note,
-      occurredAt: t.occurredAt.toISOString(),
-      recurringRuleId: t.recurringRuleId,
-      createdAt: t.createdAt.toISOString(),
-      updatedAt: t.updatedAt.toISOString(),
-    })),
+    recentTransactions: recentTransactions.map(serializeFinanceTransaction),
     recurringRules: recurringRules.map((r) => ({
       id: r.id,
       type: r.type,
@@ -229,4 +249,57 @@ export async function getTodayVariableExpenses(
 
   const totalVnd = entries.reduce((sum, e) => sum + e.amountVnd, 0);
   return { totalVnd, entries };
+}
+
+export async function getFinanceTransactionsWindow(
+  userId: string,
+  timezone: string,
+  days = 400,
+): Promise<SerializedFinanceTransaction[]> {
+  const today = isoInZone(new Date(), timezone);
+  const since = addDays(today, -days);
+
+  const rows = await db.financeTransaction.findMany({
+    where: { userId, occurredAt: { gte: toDbDate(since) } },
+    orderBy: { occurredAt: "asc" },
+  });
+
+  return rows.map(serializeFinanceTransaction);
+}
+
+export async function getSavingsGoalSavedVnd(userId: string, savingsGoalId: string): Promise<number> {
+  const [deposits, withdrawals] = await Promise.all([
+    db.financeTransaction.aggregate({
+      where: { userId, savingsGoalId, type: "EXPENSE" },
+      _sum: { amountVnd: true },
+    }),
+    db.financeTransaction.aggregate({
+      where: { userId, savingsGoalId, type: "INCOME" },
+      _sum: { amountVnd: true },
+    }),
+  ]);
+
+  return (deposits._sum.amountVnd ?? 0) - (withdrawals._sum.amountVnd ?? 0);
+}
+
+export async function getFinanceSavingsGoals(
+  userId: string,
+): Promise<{ id: string; name: string; targetVnd: number; targetDate: ISODate | null; savedVnd: number }[]> {
+  const goals = await db.financeSavingsGoal.findMany({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return Promise.all(
+    goals.map(async (g) => {
+      const savedVnd = await getSavingsGoalSavedVnd(userId, g.id);
+      return {
+        id: g.id,
+        name: g.name,
+        targetVnd: g.targetVnd,
+        targetDate: g.targetDate ? fromDbDate(g.targetDate) : null,
+        savedVnd,
+      };
+    }),
+  );
 }
