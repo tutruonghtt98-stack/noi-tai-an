@@ -41,6 +41,8 @@ export function useAction() {
       if (code === "NOT_STARTED") return t.community.challenge.notStarted;
       if (code === "ENDED") return t.community.challenge.over;
       if (code === "CATEGORY_REQUIRED") return t.finance.categoryRequiredError;
+      if (code === "WITHDRAWAL_EXCEEDS_SAVED") return t.finance.withdrawalExceedsSavedError;
+      if (code === "DELETE_WOULD_MAKE_SAVINGS_NEGATIVE") return t.finance.deleteWouldMakeSavingsNegativeError;
       return t.common.error;
     },
     [t],

@@ -6,8 +6,11 @@ import {
   Banknote,
   Briefcase,
   Car,
+  CalendarDays,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Film,
   Fuel,
   Gift,
@@ -41,22 +44,31 @@ import {
 } from "lucide-react";
 import {
   createFinanceRecurringRule,
+  createFinanceSavingsGoal,
   createFinanceTransaction,
   deleteFinanceRecurringRule,
+  deleteFinanceSavingsGoal,
   deleteFinanceTransaction,
   toggleFinanceRecurringRule,
   upsertFinanceBudget,
 } from "@/actions/finance";
-import type { FinanceDashboard } from "@/lib/finance-queries";
+import type { FinanceDashboard, SerializedFinanceTransaction, getFinanceSavingsGoals } from "@/lib/finance-queries";
 import type { BudgetWarningLevel } from "@/lib/finance";
+import { computeIncomeExpenseTrend, computeSavingsRateTrend, getMonthCalendarSummary, getTransactionsForDate } from "@/lib/finance";
 import { useAction } from "@/lib/use-action";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
 import { useToast } from "@/components/ui/toast";
+import { Modal } from "@/components/ui/modal";
 import { vnd } from "@/lib/billing";
 import { ProgressBar } from "@/components/ui/progress-ring";
 import { formatDate, type ISODate } from "@/lib/dates";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
+import { TrendBarChart } from "@/components/ui/trend-bar-chart";
+import { TrendLineChart } from "@/components/ui/trend-line-chart";
+import { buildMonthCells } from "@/lib/work-view";
+
+type FinanceSavingsGoals = Awaited<ReturnType<typeof getFinanceSavingsGoals>>;
 
 const EXPENSE_CATEGORIES = ["Ăn uống", "Nhà ở", "Di chuyển", "Mua sắm", "Sức khỏe", "Giải trí", "Giáo dục", "Gia đình", "Cá nhân"];
 
@@ -321,7 +333,21 @@ function CategoryCombobox({
   );
 }
 
-export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashboard; today: ISODate }) {
+export function FinanceControls({
+  dashboard,
+  today,
+  transactionsWindow,
+  savingsGoals,
+  timezone,
+  weekStartsOn,
+}: {
+  dashboard: FinanceDashboard;
+  today: ISODate;
+  transactionsWindow: SerializedFinanceTransaction[];
+  savingsGoals: FinanceSavingsGoals;
+  timezone: string;
+  weekStartsOn: number;
+}) {
   const { t } = useI18n();
   const balance = dashboard.incomeThisMonth - dashboard.expenseThisMonth;
 
@@ -344,7 +370,20 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
             </div>
           </section>
 
+          <TrendSection transactions={transactionsWindow} timezone={timezone} weekStartsOn={weekStartsOn} today={today} />
+
+          <CalendarSection transactions={transactionsWindow} timezone={timezone} today={today} weekStartsOn={weekStartsOn} />
+
           <BudgetsSection budgets={dashboard.budgets} />
+
+          <SavingsSection
+            goals={savingsGoals}
+            incomeThisMonth={dashboard.incomeThisMonth}
+            expenseThisMonth={dashboard.expenseThisMonth}
+            today={today}
+          />
+
+          <SavingsTrendCard transactions={transactionsWindow} timezone={timezone} today={today} />
         </div>
       </StaggerReveal>
 
@@ -379,6 +418,211 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
         </div>
       </StaggerReveal>
     </div>
+  );
+}
+
+function formatBucketLabel(label: string, unit: "day" | "week" | "month", locale: string): string {
+  if (unit === "month") {
+    const [year, month] = label.split("-").map(Number);
+    return new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(year, month - 1, 1));
+  }
+  return formatDate(label as ISODate, locale, { day: "2-digit", month: "2-digit" });
+}
+
+function deltaPercentFor(values: number[]): number | null {
+  if (values.length < 2) return null;
+  const prev = values[values.length - 2];
+  const last = values[values.length - 1];
+  return prev > 0 ? Math.round(((last - prev) / prev) * 100) : null;
+}
+
+function TrendSection({
+  transactions,
+  timezone,
+  weekStartsOn,
+  today,
+}: {
+  transactions: SerializedFinanceTransaction[];
+  timezone: string;
+  weekStartsOn: number;
+  today: ISODate;
+}) {
+  const { t, locale } = useI18n();
+  const [unit, setUnit] = useState<"day" | "week" | "month">("day");
+
+  const buckets = computeIncomeExpenseTrend(transactions, timezone, unit, weekStartsOn, today);
+  const incomeData = buckets.map((b) => ({ label: formatBucketLabel(b.label, unit, locale), value: b.incomeVnd }));
+  const expenseData = buckets.map((b) => ({ label: formatBucketLabel(b.label, unit, locale), value: b.expenseVnd }));
+  const incomeDelta = deltaPercentFor(buckets.map((b) => b.incomeVnd));
+  const expenseDelta = deltaPercentFor(buckets.map((b) => b.expenseVnd));
+
+  return (
+    <div className="grid gap-[var(--gap)]">
+      <div className="inline-flex justify-self-end gap-1 rounded-full border border-line bg-surface p-1 text-xs font-medium">
+        {(["day", "week", "month"] as const).map((u) => (
+          <button
+            key={u}
+            type="button"
+            aria-pressed={unit === u}
+            className={`rounded-full px-3 py-1 transition-colors ${unit === u ? "bg-ink text-bg" : "text-muted hover:text-ink"}`}
+            onClick={() => setUnit(u)}
+          >
+            {u === "day" ? t.finance.trendUnitDay : u === "week" ? t.finance.trendUnitWeek : t.finance.trendUnitMonth}
+          </button>
+        ))}
+      </div>
+      <div className="grid gap-[var(--gap)] sm:grid-cols-2">
+        <TrendBarChart data={incomeData} color="var(--jade-ink)" title={t.finance.trendIncome} deltaPercent={incomeDelta} />
+        <TrendBarChart data={expenseData} color="var(--danger)" title={t.finance.trendExpense} deltaPercent={expenseDelta} />
+      </div>
+    </div>
+  );
+}
+
+function CalendarSection({
+  transactions,
+  timezone,
+  today,
+  weekStartsOn,
+}: {
+  transactions: SerializedFinanceTransaction[];
+  timezone: string;
+  today: ISODate;
+  weekStartsOn: number;
+}) {
+  const { t, locale } = useI18n();
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [openDate, setOpenDate] = useState<ISODate | null>(null);
+
+  const [y0, m0] = today.split("-").map(Number);
+  const base = new Date(Date.UTC(y0, m0 - 1 + monthOffset, 1));
+  const year = base.getUTCFullYear();
+  const month = base.getUTCMonth() + 1;
+
+  const cells = buildMonthCells(year, month, weekStartsOn);
+  const rowCount = cells.length / 7;
+  const summary = getMonthCalendarSummary(transactions, timezone, year, month);
+  const weekOrder = [0, 1, 2, 3, 4, 5, 6].map((i) => (i + weekStartsOn) % 7);
+
+  const dtLocale = locale === "en" ? "en-US" : "vi-VN";
+  const title = new Intl.DateTimeFormat(dtLocale, { month: "long", year: "numeric", timeZone: "UTC" }).format(
+    new Date(Date.UTC(year, month - 1, 1)),
+  );
+
+  const dayTransactions = openDate ? getTransactionsForDate(transactions, timezone, openDate) : [];
+
+  return (
+    <section className="card" aria-labelledby="finance-calendar">
+      <h2 id="finance-calendar" className="card-title flex items-center gap-2 text-lg">
+        <CalendarDays className="size-5 text-muted" aria-hidden /> {t.finance.calendarTitle}
+      </h2>
+
+      <div className="mt-4 mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-base font-semibold capitalize">{title}</h3>
+        <div className="inline-flex items-center gap-1 rounded-full border border-line p-1">
+          <button type="button" aria-label="Tháng trước" className="icon-btn icon-btn-plain size-8" onClick={() => setMonthOffset((n) => n - 1)}>
+            <ChevronLeft className="size-4" aria-hidden />
+          </button>
+          <button type="button" className="rounded-full px-3 py-1 text-sm font-medium hover:bg-surface-2" onClick={() => setMonthOffset(0)}>
+            {t.common.today}
+          </button>
+          <button type="button" aria-label="Tháng sau" className="icon-btn icon-btn-plain size-8" onClick={() => setMonthOffset((n) => n + 1)}>
+            <ChevronRight className="size-4" aria-hidden />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 text-sm">
+        {weekOrder.map((d) => (
+          <span key={d} className="pb-2 text-center text-xs font-medium text-ink-2">
+            {t.habits.weekdays[d]}
+          </span>
+        ))}
+      </div>
+      <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={70}>
+        <div className="grid grid-cols-7 overflow-hidden rounded-xl border border-line text-sm">
+          {cells.map((iso, i) => {
+            const col = i % 7;
+            const row = Math.floor(i / 7);
+            const cellBorder = `${col !== 6 ? "border-r " : ""}${row !== rowCount - 1 ? "border-b " : ""}border-line`;
+            if (!iso) return <div key={`e${i}`} className={`min-h-16 bg-surface-2/40 ${cellBorder}`} aria-hidden />;
+            const day = summary[iso];
+            const isToday = iso === today;
+            const hasTransactions = !!day && (day.incomeVnd > 0 || day.expenseVnd > 0);
+            const dayNumber = (
+              <span
+                className={`tabular inline-flex size-5 items-center justify-center self-start rounded-full text-xs ${
+                  isToday ? "bg-ink font-semibold text-bg" : "text-muted"
+                }`}
+              >
+                {Number(iso.slice(8))}
+              </span>
+            );
+            const amounts = (
+              <>
+                {day && day.incomeVnd > 0 && (
+                  <span className="tabular flex items-center gap-1 truncate text-[0.6875rem] text-jade-ink">
+                    <span className="size-1.5 shrink-0 rounded-full bg-jade" aria-hidden /> {vnd(day.incomeVnd)}
+                  </span>
+                )}
+                {day && day.expenseVnd > 0 && (
+                  <span className="tabular flex items-center gap-1 truncate text-[0.6875rem] text-danger">
+                    <span className="size-1.5 shrink-0 rounded-full bg-danger" aria-hidden /> {vnd(day.expenseVnd)}
+                  </span>
+                )}
+              </>
+            );
+            if (!hasTransactions) {
+              return (
+                <div key={iso} className={`flex min-h-16 flex-col gap-0.5 bg-surface p-1.5 ${cellBorder}`}>
+                  {dayNumber}
+                  {amounts}
+                </div>
+              );
+            }
+            return (
+              <button
+                key={iso}
+                type="button"
+                className={`flex min-h-16 flex-col gap-0.5 bg-surface p-1.5 text-left hover:bg-surface-2 ${cellBorder}`}
+                onClick={() => setOpenDate(iso)}
+              >
+                {dayNumber}
+                {amounts}
+              </button>
+            );
+          })}
+        </div>
+      </StaggerReveal>
+
+      <Modal
+        open={!!openDate}
+        onClose={() => setOpenDate(null)}
+        title={fmt(t.finance.calendarDayDetailsTitle, {
+          date: openDate ? formatDate(openDate, locale, { day: "2-digit", month: "2-digit", year: "numeric" }) : "",
+        })}
+      >
+        {dayTransactions.length === 0 ? (
+          <p className="text-sm text-muted">{t.finance.calendarNoTransactions}</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {dayTransactions.map((tx) => (
+              <li key={tx.id} className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0">
+                <div>
+                  <p className="font-medium">
+                    <span className={tx.type === "INCOME" ? "text-jade-ink" : "text-danger"}>
+                      {tx.type === "INCOME" ? "+" : "-"}{vnd(tx.amountVnd)}
+                    </span>
+                    {tx.category && <span className="ml-2 text-sm text-muted">{tx.category}</span>}
+                  </p>
+                  {tx.note && <p className="text-xs text-muted">{tx.note}</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
+    </section>
   );
 }
 
@@ -482,6 +726,234 @@ function BudgetsSection({ budgets }: { budgets: FinanceDashboard["budgets"] }) {
         >
           <Plus className="size-4" aria-hidden /> {t.finance.addOrEditBudget}
         </button>
+      </div>
+    </section>
+  );
+}
+
+function SavingsSection({
+  goals,
+  incomeThisMonth,
+  expenseThisMonth,
+  today,
+}: {
+  goals: { id: string; name: string; targetVnd: number; targetDate: ISODate | null; savedVnd: number }[];
+  incomeThisMonth: number;
+  expenseThisMonth: number;
+  today: ISODate;
+}) {
+  const { t, locale } = useI18n();
+  const { exec, pending } = useAction();
+  const router = useRouter();
+  const refresh = () => router.refresh();
+
+  const [actionKey, setActionKey] = useState<string | null>(null);
+  const [actionAmount, setActionAmount] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const [newName, setNewName] = useState("");
+  const [newTarget, setNewTarget] = useState("");
+  const [newTargetDate, setNewTargetDate] = useState("");
+
+  const closeAction = () => {
+    setActionKey(null);
+    setActionAmount("");
+  };
+
+  const confirmAction = (goal: (typeof goals)[number], kind: "deposit" | "withdraw") =>
+    exec(
+      () =>
+        createFinanceTransaction({
+          type: kind === "deposit" ? "EXPENSE" : "INCOME",
+          category: "Tiết kiệm",
+          amountVnd: Number(actionAmount),
+          occurredAt: today,
+          savingsGoalId: goal.id,
+        }),
+      {
+        success: t.finance.transactionSaved,
+        onSuccess: () => {
+          closeAction();
+          refresh();
+        },
+      },
+    );
+
+  const addGoal = () =>
+    exec(
+      () =>
+        createFinanceSavingsGoal({
+          name: newName.trim(),
+          targetVnd: Number(newTarget),
+          targetDate: newTargetDate || undefined,
+        }),
+      {
+        success: t.finance.savingsGoalSaved,
+        onSuccess: () => {
+          setNewName("");
+          setNewTarget("");
+          setNewTargetDate("");
+          refresh();
+        },
+      },
+    );
+
+  return (
+    <section className="card" aria-labelledby="finance-savings">
+      <h2 id="finance-savings" className="card-title flex items-center gap-2 text-lg">
+        <PiggyBank className="size-5 text-muted" aria-hidden /> {t.finance.savingsTitle}
+      </h2>
+      <p className="mt-2 text-sm text-muted">
+        {fmt(t.finance.savingsSuggestLine, { amount: vnd(Math.max(0, incomeThisMonth - expenseThisMonth)) })}
+      </p>
+
+      {goals.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">{t.finance.savingsNoGoalsYet}</p>
+      ) : (
+        <ul className="mt-4 grid gap-4">
+          {goals.map((goal) => {
+            const depositKey = `${goal.id}:deposit`;
+            const withdrawKey = `${goal.id}:withdraw`;
+            const withdrawExceeds = actionKey === withdrawKey && Number(actionAmount) > goal.savedVnd;
+            return (
+              <li key={goal.id}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium">{goal.name}</span>
+                  <div className="flex items-center gap-2">
+                    <button type="button" className="btn btn-soft btn-sm" onClick={() => { setActionKey(depositKey); setActionAmount(""); }}>
+                      {t.finance.savingsDeposit}
+                    </button>
+                    <button type="button" className="btn btn-soft btn-sm" onClick={() => { setActionKey(withdrawKey); setActionAmount(""); }}>
+                      {t.finance.savingsWithdraw}
+                    </button>
+                    {deleteId === goal.id ? (
+                      <span className="flex items-center gap-1 text-xs">
+                        <span>Xoá?</span>
+                        <button
+                          type="button"
+                          className="btn btn-soft btn-sm"
+                          disabled={pending}
+                          onClick={() =>
+                            exec(() => deleteFinanceSavingsGoal(goal.id), {
+                              onSuccess: () => {
+                                setDeleteId(null);
+                                refresh();
+                              },
+                            })
+                          }
+                        >
+                          Có
+                        </button>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDeleteId(null)}>Không</button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="icon-btn icon-btn-plain text-danger"
+                        aria-label={`${t.finance.delete}: ${goal.name}`}
+                        title={t.finance.delete}
+                        onClick={() => setDeleteId(goal.id)}
+                      >
+                        <Trash2 className="size-4" aria-hidden />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <ProgressBar value={goal.targetVnd > 0 ? goal.savedVnd / goal.targetVnd : 0} color="var(--accent)" label={goal.name} />
+                </div>
+                <p className="tabular mt-1 text-xs text-muted">
+                  {fmt(t.finance.savingsSavedOfTarget, { saved: vnd(goal.savedVnd), target: vnd(goal.targetVnd) })}
+                  {goal.targetDate && ` · ${formatDate(goal.targetDate, locale, { day: "2-digit", month: "2-digit", year: "numeric" })}`}
+                </p>
+                {(actionKey === depositKey || actionKey === withdrawKey) && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <AmountInput
+                      value={actionAmount}
+                      onChange={setActionAmount}
+                      ariaLabel={actionKey === depositKey ? t.finance.savingsDeposit : t.finance.savingsWithdraw}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-soft btn-sm"
+                      disabled={pending || actionAmount.trim() === "" || withdrawExceeds}
+                      onClick={() => confirmAction(goal, actionKey === depositKey ? "deposit" : "withdraw")}
+                    >
+                      {t.finance.save}
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={closeAction}>Huỷ</button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-[1fr_10rem_10rem_auto]">
+        <input
+          className="input"
+          value={newName}
+          onChange={(event) => setNewName(event.target.value)}
+          placeholder={t.finance.savingsGoalNamePlaceholder}
+          maxLength={60}
+        />
+        <label className="field">
+          <span className="label">{t.finance.savingsGoalTargetLabel}</span>
+          <AmountInput value={newTarget} onChange={setNewTarget} />
+        </label>
+        <label className="field">
+          <span className="label">{t.finance.savingsGoalTargetDateLabel}</span>
+          <input className="input" type="date" value={newTargetDate} onChange={(event) => setNewTargetDate(event.target.value)} />
+        </label>
+        <button
+          type="button"
+          className="btn btn-soft"
+          disabled={pending || !newName.trim() || newTarget.trim() === ""}
+          onClick={addGoal}
+        >
+          <Plus className="size-4" aria-hidden /> {t.finance.savingsAddGoal}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function SavingsTrendCard({
+  transactions,
+  timezone,
+  today,
+}: {
+  transactions: SerializedFinanceTransaction[];
+  timezone: string;
+  today: ISODate;
+}) {
+  const { t, locale } = useI18n();
+
+  const trend = computeSavingsRateTrend(transactions, timezone, today);
+  const data = trend.map((b) => ({ label: formatBucketLabel(b.label, "month", locale), value: b.ratePercent }));
+  const currentRate = trend.length > 0 ? trend[trend.length - 1].ratePercent : 0;
+  const delta = trend.length >= 2 ? Math.round(trend[trend.length - 1].ratePercent - trend[0].ratePercent) : null;
+  const deltaText =
+    delta === null
+      ? null
+      : delta >= 0
+        ? fmt(t.finance.savingsTrendDeltaUp, { pct: delta })
+        : fmt(t.finance.savingsTrendDeltaDown, { pct: delta });
+
+  return (
+    <section className="card" aria-labelledby="finance-savings-trend">
+      <h2 id="finance-savings-trend" className="card-title flex items-center gap-2 text-lg">
+        <TrendingUp className="size-5 text-muted" aria-hidden /> {t.finance.savingsTrendTitle}
+      </h2>
+      <p className="tabular mt-3 text-2xl font-semibold">{currentRate}%</p>
+      {deltaText && (
+        <p className="mt-0.5 text-xs tabular-nums" style={{ color: "var(--accent)" }}>
+          {deltaText}
+        </p>
+      )}
+      <div className="mt-3">
+        <TrendLineChart data={data} color="var(--accent)" />
       </div>
     </section>
   );

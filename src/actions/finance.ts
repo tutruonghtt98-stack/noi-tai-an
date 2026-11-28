@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
 import { toDbDate, isValidISO, monthBounds, isoInZone, fromDbDate } from "@/lib/dates";
 import { budgetWarningLevel, nextRunDateFor, type BudgetWarningLevel } from "@/lib/finance";
+import { getSavingsGoalSavedVnd } from "@/lib/finance-queries";
 
 const transactionSchema = z.object({
   type: z.enum(["INCOME", "EXPENSE"]),
@@ -15,6 +16,13 @@ const transactionSchema = z.object({
   accountName: z.string().trim().max(60).optional(),
   note: z.string().trim().max(200).optional(),
   occurredAt: z.string().refine(isValidISO, "VALIDATION"),
+  savingsGoalId: z.string().trim().min(1).optional(),
+});
+
+const savingsGoalSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  targetVnd: z.coerce.number().int().min(1).max(1_000_000_000),
+  targetDate: z.string().refine(isValidISO, "VALIDATION").optional(),
 });
 
 const recurringRuleSchema = z.object({
@@ -39,6 +47,15 @@ export async function createFinanceTransaction(input: z.input<typeof transaction
 
     if (data.type === "EXPENSE" && !data.category) throw new UserError("CATEGORY_REQUIRED");
 
+    if (data.savingsGoalId) {
+      const goal = await db.financeSavingsGoal.findFirst({ where: { id: data.savingsGoalId, userId: user.id } });
+      if (!goal) throw new UserError("NOT_FOUND");
+      if (data.type === "INCOME") {
+        const savedVnd = await getSavingsGoalSavedVnd(user.id, data.savingsGoalId);
+        if (data.amountVnd > savedVnd) throw new UserError("WITHDRAWAL_EXCEEDS_SAVED");
+      }
+    }
+
     const normalizedCategory = data.category ? data.category.replace(/\s+/g, " ") : undefined;
 
     await db.financeTransaction.create({
@@ -50,6 +67,7 @@ export async function createFinanceTransaction(input: z.input<typeof transaction
         accountName: data.accountName,
         note: data.note,
         occurredAt: toDbDate(data.occurredAt),
+        savingsGoalId: data.savingsGoalId,
       },
     });
 
@@ -182,7 +200,66 @@ export async function deleteFinanceTransaction(id: string) {
     const user = await requireUser();
     const transactionId = z.string().min(1).parse(id);
 
+    const tx = await db.financeTransaction.findFirst({ where: { id: transactionId, userId: user.id } });
+    if (!tx) {
+      revalidatePath("/finance");
+      return;
+    }
+
+    if (tx.savingsGoalId && tx.type === "EXPENSE") {
+      const savedVnd = await getSavingsGoalSavedVnd(user.id, tx.savingsGoalId);
+      if (savedVnd - tx.amountVnd < 0) throw new UserError("DELETE_WOULD_MAKE_SAVINGS_NEGATIVE");
+    }
+
     await db.financeTransaction.deleteMany({ where: { id: transactionId, userId: user.id } });
+
+    revalidatePath("/finance");
+  });
+}
+
+export async function createFinanceSavingsGoal(input: z.input<typeof savingsGoalSchema>) {
+  return run(async () => {
+    const user = await requireUser();
+    const data = savingsGoalSchema.parse(input);
+
+    await db.financeSavingsGoal.create({
+      data: {
+        userId: user.id,
+        name: data.name,
+        targetVnd: data.targetVnd,
+        targetDate: data.targetDate ? toDbDate(data.targetDate) : undefined,
+      },
+    });
+
+    revalidatePath("/finance");
+  });
+}
+
+export async function updateFinanceSavingsGoal(id: string, input: z.input<typeof savingsGoalSchema>) {
+  return run(async () => {
+    const user = await requireUser();
+    const goalId = z.string().min(1).parse(id);
+    const data = savingsGoalSchema.parse(input);
+
+    await db.financeSavingsGoal.updateMany({
+      where: { id: goalId, userId: user.id },
+      data: {
+        name: data.name,
+        targetVnd: data.targetVnd,
+        targetDate: data.targetDate ? toDbDate(data.targetDate) : null,
+      },
+    });
+
+    revalidatePath("/finance");
+  });
+}
+
+export async function deleteFinanceSavingsGoal(id: string) {
+  return run(async () => {
+    const user = await requireUser();
+    const goalId = z.string().min(1).parse(id);
+
+    await db.financeSavingsGoal.deleteMany({ where: { id: goalId, userId: user.id } });
 
     revalidatePath("/finance");
   });
