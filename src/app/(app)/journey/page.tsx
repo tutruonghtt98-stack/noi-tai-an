@@ -127,6 +127,7 @@ export default async function JourneyPage() {
         action={<span className="badge inline-flex items-center gap-2"><Flame className="size-3.5" aria-hidden /> {t.journey.level} {String(journey.level.number).padStart(2, "0")}</span>}
       />
 
+      <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
       <section className="card hero-glow flex flex-col gap-6 lg:flex-row lg:items-center" aria-label="Tiến độ hành trình">
         <div className="flex items-center gap-5">
           <ProgressRing value={progress / 100} size={84} stroke={9} label="Tiến trình 180 ngày">
@@ -167,6 +168,7 @@ export default async function JourneyPage() {
           <p className="mt-3 text-sm text-muted">thói quen, Workspace</p>
         </div>
       </section>
+      </StaggerReveal>
 
       <div className="mt-[var(--gap)] grid gap-[var(--gap)] xl:grid-cols-[minmax(0,1fr)_20rem]">
         <StaggerReveal asChild={false} slide={{ direction: "up", offset: 16 }} holdDelay={60}>

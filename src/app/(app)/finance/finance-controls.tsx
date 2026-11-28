@@ -40,6 +40,7 @@ import { useToast } from "@/components/ui/toast";
 import { vnd } from "@/lib/billing";
 import { ProgressBar } from "@/components/ui/progress-ring";
 import { formatDate, type ISODate } from "@/lib/dates";
+import { StaggerReveal } from "@/components/ui/stagger-reveal";
 
 const DEFAULT_CATEGORIES = [
   "Ăn uống",
@@ -146,6 +147,7 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
 
   return (
     <div className="grid gap-[var(--gap)]">
+      <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Tổng quan tài chính tháng này">
         <div className="card">
           <p className="text-xs font-semibold uppercase text-muted">{t.finance.incomeThisMonth}</p>
@@ -162,6 +164,7 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
       </section>
 
       <BudgetsSection budgets={dashboard.budgets} />
+      </StaggerReveal>
 
       <section className="grid gap-[var(--gap)] sm:grid-cols-2">
         <div className="card"><TransactionQuickAddForm type="INCOME" today={today} /></div>
