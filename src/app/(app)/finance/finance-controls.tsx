@@ -389,8 +389,8 @@ export function FinanceControls({
 
       <section className="grid gap-[var(--gap)] sm:grid-cols-2">
         <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
-          <div className="card"><TransactionQuickAddForm type="INCOME" today={today} /></div>
-          <div className="card"><TransactionQuickAddForm type="EXPENSE" today={today} /></div>
+          <div className="card relative focus-within:z-20"><TransactionQuickAddForm type="INCOME" today={today} /></div>
+          <div className="card relative focus-within:z-20"><TransactionQuickAddForm type="EXPENSE" today={today} /></div>
         </StaggerReveal>
       </section>
 
@@ -890,14 +890,17 @@ function SavingsSection({
         </ul>
       )}
 
-      <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-[1fr_10rem_10rem_auto]">
-        <input
-          className="input"
-          value={newName}
-          onChange={(event) => setNewName(event.target.value)}
-          placeholder={t.finance.savingsGoalNamePlaceholder}
-          maxLength={60}
-        />
+      <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-2">
+        <label className="field">
+          <span className="label">{t.finance.savingsGoalNamePlaceholder}</span>
+          <input
+            className="input"
+            value={newName}
+            onChange={(event) => setNewName(event.target.value)}
+            placeholder={t.finance.savingsGoalNamePlaceholder}
+            maxLength={60}
+          />
+        </label>
         <label className="field">
           <span className="label">{t.finance.savingsGoalTargetLabel}</span>
           <AmountInput value={newTarget} onChange={setNewTarget} />
@@ -908,7 +911,7 @@ function SavingsSection({
         </label>
         <button
           type="button"
-          className="btn btn-soft"
+          className="btn btn-soft self-end"
           disabled={pending || !newName.trim() || newTarget.trim() === ""}
           onClick={addGoal}
         >
