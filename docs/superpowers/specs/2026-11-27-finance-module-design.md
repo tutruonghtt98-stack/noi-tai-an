@@ -125,7 +125,8 @@ Chưa có `FinanceBudget` cho category đó → không tính cảnh báo (coi nh
 `createFinanceTransaction({ type: "INCOME", amountVnd, category?,
 accountName?, note?, occurredAt })` — validate `amountVnd` 1..1_000_000_000
 (số nguyên), `occurredAt` hợp lệ; `INSERT FinanceTransaction`; không có
-bước kiểm tra ngân sách. Trả `{ warning: null }` luôn cho INCOME.
+bước kiểm tra ngân sách. Trả `{ warning: "NONE" }` luôn cho INCOME (khớp
+đúng kiểu `BudgetWarningLevel`, không phải `null`).
 
 ## Luồng 02 — Thu nhập định kỳ
 
