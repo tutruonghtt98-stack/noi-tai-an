@@ -1,8 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pause, Pencil, Play, Plus, Trash2 } from "lucide-react";
+import {
+  Car,
+  Check,
+  ChevronDown,
+  Film,
+  GraduationCap,
+  HeartPulse,
+  Home,
+  MoreHorizontal,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  ShoppingBag,
+  Tag,
+  Trash2,
+  User,
+  Users,
+  Utensils,
+  type LucideIcon,
+} from "lucide-react";
 import {
   createFinanceRecurringRule,
   createFinanceTransaction,
@@ -34,10 +54,90 @@ const DEFAULT_CATEGORIES = [
   "Khác",
 ];
 
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "Ăn uống": Utensils,
+  "Nhà ở": Home,
+  "Di chuyển": Car,
+  "Mua sắm": ShoppingBag,
+  "Sức khỏe": HeartPulse,
+  "Giải trí": Film,
+  "Giáo dục": GraduationCap,
+  "Gia đình": Users,
+  "Cá nhân": User,
+  Khác: MoreHorizontal,
+};
+
 function budgetColorFor(level: BudgetWarningLevel) {
   if (level === "OVER_100") return "var(--danger)";
   if (level === "WARN_90" || level === "WARN_80") return "var(--ochre)";
   return "var(--jade)";
+}
+
+/** Ô nhập danh mục tự do, kèm sổ xuống gợi ý có icon theo đúng kiểu PrioritySelect. */
+function CategoryCombobox({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const query = value.trim().toLowerCase();
+  const options = query ? DEFAULT_CATEGORIES.filter((c) => c.toLowerCase().includes(query)) : DEFAULT_CATEGORIES;
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        className="input pr-9"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onFocus={() => setOpen(true)}
+        placeholder={placeholder}
+        maxLength={60}
+        autoComplete="off"
+      />
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden />
+      {open && options.length > 0 && (
+        <ul role="listbox" className="rise absolute z-20 mt-1.5 w-full overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-pop">
+          {options.map((category) => {
+            const OptIcon = CATEGORY_ICONS[category] ?? Tag;
+            const selected = category.toLowerCase() === query;
+            return (
+              <li key={category}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left hover:bg-surface-2"
+                  onClick={() => {
+                    onChange(category);
+                    setOpen(false);
+                  }}
+                >
+                  <OptIcon className="size-4 shrink-0 text-muted" aria-hidden />
+                  <span className="flex-1 truncate font-medium">{category}</span>
+                  {selected && <Check className="size-3.5 shrink-0" aria-hidden />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashboard; today: ISODate }) {
@@ -46,11 +146,6 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
 
   return (
     <div className="grid gap-[var(--gap)]">
-      <datalist id="finance-categories">
-        {DEFAULT_CATEGORIES.map((category) => (
-          <option key={category} value={category} />
-        ))}
-      </datalist>
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Tổng quan tài chính tháng này">
         <div className="card">
           <p className="text-xs font-semibold uppercase text-muted">{t.finance.incomeThisMonth}</p>
@@ -161,7 +256,7 @@ function BudgetsSection({ budgets }: { budgets: FinanceDashboard["budgets"] }) {
       )}
 
       <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-[1fr_10rem_auto]">
-        <input className="input" value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder={t.finance.categoryLabel} maxLength={60} list="finance-categories" />
+        <CategoryCombobox value={newCategory} onChange={setNewCategory} placeholder={t.finance.categoryLabel} />
         <input
           className="input"
           type="number"
@@ -254,7 +349,7 @@ function TransactionQuickAddForm({ type, today }: { type: "INCOME" | "EXPENSE"; 
         </label>
         <label className="field">
           <span className="label">{t.finance.categoryLabel}{isExpense && " *"}</span>
-          <input className="input" value={category} onChange={(event) => setCategory(event.target.value)} placeholder={t.finance.categoryPlaceholder} maxLength={60} list="finance-categories" />
+          <CategoryCombobox value={category} onChange={setCategory} placeholder={t.finance.categoryPlaceholder} />
         </label>
         <label className="field">
           <span className="label">{t.finance.accountLabel}</span>
@@ -397,7 +492,7 @@ function RecurringSection({ rules, today }: { rules: FinanceDashboard["recurring
         </label>
         <label className="field">
           <span className="label">{t.finance.categoryLabel}{isExpense && " *"}</span>
-          <input className="input" value={category} onChange={(event) => setCategory(event.target.value)} placeholder={t.finance.categoryPlaceholder} maxLength={60} list="finance-categories" />
+          <CategoryCombobox value={category} onChange={setCategory} placeholder={t.finance.categoryPlaceholder} />
         </label>
         <label className="field">
           <span className="label">{t.finance.accountLabel}</span>
