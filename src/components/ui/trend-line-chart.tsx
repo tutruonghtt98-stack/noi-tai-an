@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 const SVG_WIDTH = 100; // viewBox units; svg scales responsively via width=100%
 const SVG_HEIGHT = 56;
@@ -24,6 +24,7 @@ export function TrendLineChart({
   color: string;
 }) {
   const [hovered, setHovered] = useState<number | null>(null);
+  const gradientId = useId();
 
   const n = data.length;
   const values = data.map((d) => d.value);
@@ -31,13 +32,20 @@ export function TrendLineChart({
   // negative, all positive, or straddle zero — never assume positive-only data.
   const domainMin = Math.min(0, ...values);
   const domainMax = Math.max(0, ...values);
+  const isFlat = domainMax === domainMin; // e.g. every value is 0 — nothing to scale, so don't pin it to one edge
   const range = domainMax - domainMin || 1; // guard against a degenerate all-zero series
 
   const plotTop = VERTICAL_PAD;
   const plotBottom = SVG_HEIGHT - VERTICAL_PAD;
   const plotHeight = plotBottom - plotTop;
+  // Slightly below the geometric midpoint: the point labels sit below the line, so a line
+  // drawn at the exact center still reads as "too high" against the card's bottom edge.
+  const plotCenter = plotTop + plotHeight * 0.62;
 
-  const yFor = (value: number) => plotBottom - ((value - domainMin) / range) * plotHeight;
+  // A flat series (all values equal, usually all 0) has no real variation to scale —
+  // draw it centered in the plot instead of pinned to plotBottom, which otherwise looks
+  // like the line is hugging the card's bottom edge rather than sitting in the chart.
+  const yFor = (value: number) => (isFlat ? plotCenter : plotBottom - ((value - domainMin) / range) * plotHeight);
   const xFor = (i: number) => (n > 1 ? (i / (n - 1)) * SVG_WIDTH : SVG_WIDTH / 2);
 
   const baselineY = yFor(0);
@@ -45,13 +53,19 @@ export function TrendLineChart({
   const linePath = data
     .map((d, i) => `${i === 0 ? "M" : "L"}${xFor(i).toFixed(2)},${yFor(d.value).toFixed(2)}`)
     .join(" ");
+  // Filled only between the line and the zero baseline — not the chart's bottom edge —
+  // so a flat-at-zero series shows no fill, and only the portion above the baseline fills.
+  const areaPath = n > 1 ? `${linePath} L${xFor(n - 1).toFixed(2)},${baselineY.toFixed(2)} L${xFor(0).toFixed(2)},${baselineY.toFixed(2)} Z` : "";
 
   // Y axis: top (max) and zero-baseline reference ticks, deduplicated when the series never goes above 0.
   const yTicks = domainMax > 0 ? [domainMax, 0] : [0];
 
   return (
     <div className="flex gap-2">
-      <div className="flex shrink-0 flex-col justify-between py-1.5 text-right text-[10px] tabular-nums text-muted" style={{ height: SVG_RENDER_HEIGHT }}>
+      <div
+        className={`flex shrink-0 flex-col py-1.5 text-right text-[10px] tabular-nums text-muted ${yTicks.length > 1 ? "justify-between" : "justify-center"}`}
+        style={{ height: SVG_RENDER_HEIGHT }}
+      >
         {yTicks.map((v) => (
           <span key={v}>{formatTick(v)}</span>
         ))}
@@ -66,6 +80,13 @@ export function TrendLineChart({
           role="img"
           aria-label="Trend line chart"
         >
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          {n > 1 && <path d={areaPath} fill={`url(#${gradientId})`} />}
           {yTicks.map((v) => (
             <line
               key={v}
@@ -77,21 +98,6 @@ export function TrendLineChart({
               className="text-line"
               strokeWidth={1}
               strokeDasharray="4 3"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-          {data.map((d, i) => (
-            <line
-              key={i}
-              x1={xFor(i)}
-              y1={yFor(d.value)}
-              x2={xFor(i)}
-              y2={SVG_HEIGHT}
-              stroke="currentColor"
-              className="text-line"
-              strokeWidth={1}
-              strokeDasharray="2 2"
-              strokeOpacity={hovered === null || hovered === i ? 0.7 : 0.3}
               vectorEffect="non-scaling-stroke"
             />
           ))}
@@ -109,18 +115,20 @@ export function TrendLineChart({
         {data.map((d, i) => {
           const leftPct = n > 1 ? (i / (n - 1)) * 100 : 50;
           const topPct = (yFor(d.value) / SVG_HEIGHT) * 100;
-          const isLast = i === n - 1;
+          // Centered under its dot, except the first/last point: those shift the label
+          // inward (growing right/left respectively) so it doesn't overflow the card edge.
+          const labelTranslateX = i === 0 ? "0" : i === n - 1 ? "-100%" : "-50%";
           return (
             <div key={i}>
               <div
-                className="absolute rounded-full border-2 border-surface"
+                className="absolute rounded-full border-2 bg-surface"
                 style={{
                   left: `${leftPct}%`,
                   top: `${topPct}%`,
                   width: MARKER_SIZE,
                   height: MARKER_SIZE,
                   transform: "translate(-50%, -50%)",
-                  backgroundColor: color,
+                  borderColor: color,
                   opacity: hovered === null || hovered === i ? 1 : 0.55,
                   cursor: "pointer",
                 }}
@@ -129,11 +137,11 @@ export function TrendLineChart({
               />
               <div
                 className="pointer-events-none absolute whitespace-nowrap text-[10px] text-muted"
-                style={
-                  isLast
-                    ? { left: `calc(${leftPct}% - ${LABEL_GAP}px)`, top: `${topPct}%`, transform: "translate(-100%, -50%)" }
-                    : { left: `calc(${leftPct}% + ${LABEL_GAP}px)`, top: `${topPct}%`, transform: "translate(0, -50%)" }
-                }
+                style={{
+                  left: `${leftPct}%`,
+                  top: `calc(${topPct}% + ${LABEL_GAP}px)`,
+                  transform: `translate(${labelTranslateX}, 0)`,
+                }}
               >
                 {d.label}
               </div>
