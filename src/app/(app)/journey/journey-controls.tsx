@@ -219,7 +219,7 @@ export function JourneyControls({
               <input
                 className="input"
                 type="number"
-                min={0}
+                min={1}
                 step={1000}
                 inputMode="numeric"
                 value={expenseAmount}

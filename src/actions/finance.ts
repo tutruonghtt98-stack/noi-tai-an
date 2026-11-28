@@ -5,8 +5,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { run, UserError } from "@/lib/action";
-import { toDbDate, isValidISO, monthBounds } from "@/lib/dates";
-import { budgetWarningLevel, type BudgetWarningLevel } from "@/lib/finance";
+import { toDbDate, isValidISO, monthBounds, isoInZone, fromDbDate } from "@/lib/dates";
+import { budgetWarningLevel, nextRunDateFor, type BudgetWarningLevel } from "@/lib/finance";
 
 const transactionSchema = z.object({
   type: z.enum(["INCOME", "EXPENSE"]),
@@ -39,12 +39,14 @@ export async function createFinanceTransaction(input: z.input<typeof transaction
 
     if (data.type === "EXPENSE" && !data.category) throw new UserError("CATEGORY_REQUIRED");
 
+    const normalizedCategory = data.category ? data.category.replace(/\s+/g, " ") : undefined;
+
     await db.financeTransaction.create({
       data: {
         userId: user.id,
         type: data.type,
         amountVnd: data.amountVnd,
-        category: data.category,
+        category: normalizedCategory,
         accountName: data.accountName,
         note: data.note,
         occurredAt: toDbDate(data.occurredAt),
@@ -65,13 +67,13 @@ export async function createFinanceTransaction(input: z.input<typeof transaction
         where: {
           userId: user.id,
           type: "EXPENSE",
-          category: data.category,
+          category: { equals: normalizedCategory, mode: "insensitive" },
           occurredAt: { gte: toDbDate(from), lte: toDbDate(to) },
         },
         _sum: { amountVnd: true },
       }),
-      db.financeBudget.findUnique({
-        where: { userId_category: { userId: user.id, category: data.category! } },
+      db.financeBudget.findFirst({
+        where: { userId: user.id, category: { equals: normalizedCategory, mode: "insensitive" } },
       }),
     ]);
 
@@ -86,12 +88,18 @@ export async function upsertFinanceBudget(input: z.input<typeof budgetSchema>) {
   return run(async () => {
     const user = await requireUser();
     const data = budgetSchema.parse(input);
+    const normalizedCategory = data.category.replace(/\s+/g, " ");
 
-    await db.financeBudget.upsert({
-      where: { userId_category: { userId: user.id, category: data.category } },
-      create: { userId: user.id, category: data.category, monthlyLimitVnd: data.monthlyLimitVnd },
-      update: { monthlyLimitVnd: data.monthlyLimitVnd },
+    const existing = await db.financeBudget.findFirst({
+      where: { userId: user.id, category: { equals: normalizedCategory, mode: "insensitive" } },
     });
+    if (existing) {
+      await db.financeBudget.update({ where: { id: existing.id }, data: { monthlyLimitVnd: data.monthlyLimitVnd } });
+    } else {
+      await db.financeBudget.create({
+        data: { userId: user.id, category: normalizedCategory, monthlyLimitVnd: data.monthlyLimitVnd },
+      });
+    }
 
     revalidatePath("/finance");
   });
@@ -104,12 +112,14 @@ export async function createFinanceRecurringRule(input: z.input<typeof recurring
 
     if (data.type === "EXPENSE" && !data.category) throw new UserError("CATEGORY_REQUIRED");
 
+    const normalizedCategory = data.category ? data.category.replace(/\s+/g, " ") : undefined;
+
     await db.financeRecurringRule.create({
       data: {
         userId: user.id,
         type: data.type,
         amountVnd: data.amountVnd,
-        category: data.category,
+        category: normalizedCategory,
         accountName: data.accountName,
         note: data.note,
         cycle: data.cycle,
@@ -129,16 +139,27 @@ export async function toggleFinanceRecurringRule(id: string) {
 
     const rule = await db.financeRecurringRule.findFirst({
       where: { id: ruleId, userId: user.id },
-      select: { active: true },
     });
     if (!rule) {
       revalidatePath("/finance");
       return;
     }
 
+    const nowActive = !rule.active;
+    let nextRunDate = rule.nextRunDate;
+
+    if (nowActive) {
+      const today = isoInZone(new Date(), user.timezone);
+      let nextRunIso = fromDbDate(rule.nextRunDate);
+      while (nextRunIso <= today) {
+        nextRunIso = nextRunDateFor(rule.cycle, nextRunIso);
+      }
+      nextRunDate = toDbDate(nextRunIso);
+    }
+
     await db.financeRecurringRule.updateMany({
       where: { id: ruleId, userId: user.id },
-      data: { active: !rule.active },
+      data: { active: nowActive, nextRunDate },
     });
 
     revalidatePath("/finance");

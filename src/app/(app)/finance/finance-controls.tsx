@@ -21,17 +21,13 @@ import { vnd } from "@/lib/billing";
 import { ProgressBar } from "@/components/ui/progress-ring";
 import { formatDate, type ISODate } from "@/lib/dates";
 
-function todayISODate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function budgetColorFor(level: BudgetWarningLevel) {
   if (level === "OVER_100") return "var(--danger)";
   if (level === "WARN_90" || level === "WARN_80") return "var(--ochre)";
   return "var(--jade)";
 }
 
-export function FinanceControls({ dashboard }: { dashboard: FinanceDashboard }) {
+export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashboard; today: ISODate }) {
   const { t } = useI18n();
   const balance = dashboard.incomeThisMonth - dashboard.expenseThisMonth;
 
@@ -55,11 +51,11 @@ export function FinanceControls({ dashboard }: { dashboard: FinanceDashboard }) 
       <BudgetsSection budgets={dashboard.budgets} />
 
       <section className="grid gap-[var(--gap)] sm:grid-cols-2">
-        <div className="card"><TransactionQuickAddForm type="INCOME" /></div>
-        <div className="card"><TransactionQuickAddForm type="EXPENSE" /></div>
+        <div className="card"><TransactionQuickAddForm type="INCOME" today={today} /></div>
+        <div className="card"><TransactionQuickAddForm type="EXPENSE" today={today} /></div>
       </section>
 
-      <RecurringSection rules={dashboard.recurringRules} />
+      <RecurringSection rules={dashboard.recurringRules} today={today} />
 
       <TransactionsSection transactions={dashboard.recentTransactions} />
     </div>
@@ -180,7 +176,7 @@ function BudgetsSection({ budgets }: { budgets: FinanceDashboard["budgets"] }) {
   );
 }
 
-function TransactionQuickAddForm({ type }: { type: "INCOME" | "EXPENSE" }) {
+function TransactionQuickAddForm({ type, today }: { type: "INCOME" | "EXPENSE"; today: ISODate }) {
   const { t } = useI18n();
   const { exec, pending } = useAction();
   const toast = useToast();
@@ -190,7 +186,7 @@ function TransactionQuickAddForm({ type }: { type: "INCOME" | "EXPENSE" }) {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [accountName, setAccountName] = useState("");
-  const [occurredAt, setOccurredAt] = useState(todayISODate());
+  const [occurredAt, setOccurredAt] = useState(today);
   const [note, setNote] = useState("");
 
   const isExpense = type === "EXPENSE";
@@ -262,7 +258,7 @@ function TransactionQuickAddForm({ type }: { type: "INCOME" | "EXPENSE" }) {
   );
 }
 
-function RecurringSection({ rules }: { rules: FinanceDashboard["recurringRules"] }) {
+function RecurringSection({ rules, today }: { rules: FinanceDashboard["recurringRules"]; today: ISODate }) {
   const { t, locale } = useI18n();
   const { exec, pending } = useAction();
   const router = useRouter();
@@ -274,7 +270,7 @@ function RecurringSection({ rules }: { rules: FinanceDashboard["recurringRules"]
   const [category, setCategory] = useState("");
   const [accountName, setAccountName] = useState("");
   const [cycle, setCycle] = useState<"WEEKLY" | "MONTHLY">("MONTHLY");
-  const [startDate, setStartDate] = useState(todayISODate());
+  const [startDate, setStartDate] = useState(today);
 
   const isExpense = type === "EXPENSE";
   const disabled = pending || amount.trim() === "" || (isExpense && !category.trim());
@@ -308,7 +304,7 @@ function RecurringSection({ rules }: { rules: FinanceDashboard["recurringRules"]
       {rules.length > 0 && (
         <ul className="mt-4 divide-y divide-line">
           {rules.map((rule) => {
-            const label = rule.category ?? (rule.type === "INCOME" ? "Thu nhập" : "Chi phí");
+            const label = rule.category ?? (rule.type === "INCOME" ? t.finance.incomeNoun : t.finance.expenseNoun);
             return (
               <li key={rule.id} className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0">
                 <div>
@@ -371,7 +367,7 @@ function RecurringSection({ rules }: { rules: FinanceDashboard["recurringRules"]
 
       <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-3">
         <label className="field">
-          <span className="label">Loại</span>
+          <span className="label">{t.finance.typeLabel}</span>
           <select className="input" value={type} onChange={(event) => setType(event.target.value as "INCOME" | "EXPENSE")}>
             <option value="EXPENSE">{t.finance.addExpense}</option>
             <option value="INCOME">{t.finance.addIncome}</option>

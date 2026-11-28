@@ -35,6 +35,8 @@ export type FinanceDashboard = {
   }[];
 };
 
+const MAX_OCCURRENCES_PER_CATCHUP = 500;
+
 /** Lazy catch-up cho các quy tắc định kỳ đã quá hạn, chạy lúc đọc dashboard (không có cron riêng). */
 export async function runDueRecurringRules(userId: string, timezone: string, throughAt = new Date()): Promise<number> {
   const today = isoInZone(throughAt, timezone);
@@ -51,7 +53,7 @@ export async function runDueRecurringRules(userId: string, timezone: string, thr
     const occurrences: ISODate[] = [];
     let nextRunIso: ISODate = fromDbDate(rule.nextRunDate);
 
-    while (nextRunIso <= today) {
+    while (nextRunIso <= today && occurrences.length < MAX_OCCURRENCES_PER_CATCHUP) {
       occurrences.push(nextRunIso);
       nextRunIso = nextRunDateFor(rule.cycle, nextRunIso);
     }
@@ -60,67 +62,75 @@ export async function runDueRecurringRules(userId: string, timezone: string, thr
     // Step 2: nothing to do, be defensive.
     if (occurrences.length === 0) continue;
 
-    // Step 3: atomically claim the rule via compare-and-swap on the exact Date value we read.
-    const claim = await db.financeRecurringRule.updateMany({
-      where: { id: rule.id, nextRunDate: rule.nextRunDate },
-      data: { nextRunDate: toDbDate(finalNextRunIso) },
-    });
-
-    // Step 4: a concurrent call already claimed (or advanced) this rule; do nothing further.
-    if (claim.count === 0) continue;
-
-    // Step 5: we won the claim — now actually create the transactions/notifications.
-    for (const occurrenceIso of occurrences) {
-      await db.financeTransaction.create({
-        data: {
-          userId,
-          type: rule.type,
-          amountVnd: rule.amountVnd,
-          category: rule.category,
-          accountName: rule.accountName,
-          note: rule.note,
-          occurredAt: toDbDate(occurrenceIso),
-          recurringRuleId: rule.id,
-        },
+    // Step 3+4+5: claim + create, all inside one transaction per rule so a failure partway
+    // through rolls back the claim too (naturally retried next time) instead of losing occurrences.
+    const created = await db.$transaction(async (tx) => {
+      // Step 3: atomically claim the rule via compare-and-swap on the exact Date value we read.
+      const claim = await tx.financeRecurringRule.updateMany({
+        where: { id: rule.id, nextRunDate: rule.nextRunDate },
+        data: { nextRunDate: toDbDate(finalNextRunIso) },
       });
-      totalCreated += 1;
 
-      if (rule.type === "EXPENSE" && rule.category) {
-        const budget = await db.financeBudget.findUnique({
-          where: { userId_category: { userId, category: rule.category } },
+      // Step 4: a concurrent call already claimed (or advanced) this rule; do nothing further.
+      if (claim.count === 0) return 0;
+
+      // Step 5: we won the claim — now actually create the transactions/notifications.
+      let createdCount = 0;
+      for (const occurrenceIso of occurrences) {
+        await tx.financeTransaction.create({
+          data: {
+            userId,
+            type: rule.type,
+            amountVnd: rule.amountVnd,
+            category: rule.category,
+            accountName: rule.accountName,
+            note: rule.note,
+            occurredAt: toDbDate(occurrenceIso),
+            recurringRuleId: rule.id,
+          },
         });
-        if (budget) {
-          const [year, month] = occurrenceIso.split("-").map(Number) as [number, number];
-          const { from, to } = monthBounds(year, month);
-          const spent = await db.financeTransaction.aggregate({
-            where: {
-              userId,
-              type: "EXPENSE",
-              category: rule.category,
-              occurredAt: { gte: toDbDate(from), lte: toDbDate(to) },
-            },
-            _sum: { amountVnd: true },
+        createdCount += 1;
+
+        if (rule.type === "EXPENSE" && rule.category) {
+          const budget = await tx.financeBudget.findFirst({
+            where: { userId, category: { equals: rule.category, mode: "insensitive" } },
           });
-          const spentVnd = spent._sum.amountVnd ?? 0;
-          const level = budgetWarningLevel(spentVnd, budget.monthlyLimitVnd);
-          if (level !== "NONE") {
-            await db.notification.create({
-              data: {
+          if (budget) {
+            const [year, month] = occurrenceIso.split("-").map(Number) as [number, number];
+            const { from, to } = monthBounds(year, month);
+            const spent = await tx.financeTransaction.aggregate({
+              where: {
                 userId,
-                actorId: null,
-                type: "FINANCE_BUDGET_WARNING",
-                title: `Chi phí cố định vừa cập nhật ngân sách "${rule.category}"`,
-                body:
-                  level === "OVER_100"
-                    ? `Đã vượt quá hạn mức tháng này.`
-                    : `Đã dùng ${level === "WARN_90" ? "90" : "80"}% hạn mức tháng này.`,
-                href: "/finance",
+                type: "EXPENSE",
+                category: { equals: rule.category, mode: "insensitive" },
+                occurredAt: { gte: toDbDate(from), lte: toDbDate(to) },
               },
+              _sum: { amountVnd: true },
             });
+            const spentVnd = spent._sum.amountVnd ?? 0;
+            const level = budgetWarningLevel(spentVnd, budget.monthlyLimitVnd);
+            if (level !== "NONE") {
+              await tx.notification.create({
+                data: {
+                  userId,
+                  actorId: null,
+                  type: "FINANCE_BUDGET_WARNING",
+                  title: `Chi phí cố định vừa cập nhật ngân sách "${rule.category}"`,
+                  body:
+                    level === "OVER_100"
+                      ? `Đã vượt quá hạn mức tháng này.`
+                      : `Đã dùng ${level === "WARN_90" ? "90" : "80"}% hạn mức tháng này.`,
+                  href: "/finance",
+                },
+              });
+            }
           }
         }
       }
-    }
+      return createdCount;
+    });
+
+    totalCreated += created;
   }
 
   return totalCreated;
@@ -146,7 +156,7 @@ export async function getFinanceDashboard(userId: string, timezone: string): Pro
         where: {
           userId,
           type: "EXPENSE",
-          category: b.category,
+          category: { equals: b.category, mode: "insensitive" },
           occurredAt: { gte: toDbDate(from), lte: toDbDate(to) },
         },
         _sum: { amountVnd: true },
@@ -163,7 +173,7 @@ export async function getFinanceDashboard(userId: string, timezone: string): Pro
 
   const recentTransactions = await db.financeTransaction.findMany({
     where: { userId },
-    orderBy: { occurredAt: "desc" },
+    orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
     take: 20,
   });
 
