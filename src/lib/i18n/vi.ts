@@ -1060,6 +1060,8 @@ const vi = {
     trendUnitMonth: "Tháng",
     trendDeltaUp: "+{pct}% so với kỳ trước",
     trendDeltaDown: "{pct}% so với kỳ trước",
+    savingsTrendDeltaUp: "+{pct} điểm % so với 6 tháng trước",
+    savingsTrendDeltaDown: "{pct} điểm % so với 6 tháng trước",
     calendarTitle: "Lịch thu chi",
     calendarDayDetailsTitle: "Giao dịch ngày {date}",
     calendarNoTransactions: "Không có giao dịch nào.",
@@ -1076,6 +1078,7 @@ const vi = {
     savingsNoGoalsYet: "Chưa có mục tiêu tiết kiệm nào.",
     savingsTrendTitle: "Tỷ lệ tiết kiệm",
     withdrawalExceedsSavedError: "Không thể rút nhiều hơn số đã tiết kiệm.",
+    deleteWouldMakeSavingsNegativeError: "Không thể xoá: sẽ làm số đã tiết kiệm âm.",
   },
 };
 

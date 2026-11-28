@@ -200,6 +200,17 @@ export async function deleteFinanceTransaction(id: string) {
     const user = await requireUser();
     const transactionId = z.string().min(1).parse(id);
 
+    const tx = await db.financeTransaction.findFirst({ where: { id: transactionId, userId: user.id } });
+    if (!tx) {
+      revalidatePath("/finance");
+      return;
+    }
+
+    if (tx.savingsGoalId && tx.type === "EXPENSE") {
+      const savedVnd = await getSavingsGoalSavedVnd(user.id, tx.savingsGoalId);
+      if (savedVnd - tx.amountVnd < 0) throw new UserError("DELETE_WOULD_MAKE_SAVINGS_NEGATIVE");
+    }
+
     await db.financeTransaction.deleteMany({ where: { id: transactionId, userId: user.id } });
 
     revalidatePath("/finance");

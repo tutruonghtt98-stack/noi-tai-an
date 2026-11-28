@@ -1062,6 +1062,8 @@ const en: Dict = {
     trendUnitMonth: "Month",
     trendDeltaUp: "+{pct}% vs. the previous period",
     trendDeltaDown: "{pct}% vs. the previous period",
+    savingsTrendDeltaUp: "+{pct} pts vs. 6 months ago",
+    savingsTrendDeltaDown: "{pct} pts vs. 6 months ago",
     calendarTitle: "Income/expense calendar",
     calendarDayDetailsTitle: "Transactions on {date}",
     calendarNoTransactions: "No transactions.",
@@ -1078,6 +1080,7 @@ const en: Dict = {
     savingsNoGoalsYet: "No savings goals yet.",
     savingsTrendTitle: "Savings rate",
     withdrawalExceedsSavedError: "You can't withdraw more than you've saved.",
+    deleteWouldMakeSavingsNegativeError: "Can't delete: this would make the saved amount negative.",
   },
 };
 

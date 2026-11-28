@@ -370,7 +370,7 @@ export function FinanceControls({
             </div>
           </section>
 
-          <TrendSection transactions={transactionsWindow} timezone={timezone} weekStartsOn={weekStartsOn} />
+          <TrendSection transactions={transactionsWindow} timezone={timezone} weekStartsOn={weekStartsOn} today={today} />
 
           <CalendarSection transactions={transactionsWindow} timezone={timezone} today={today} weekStartsOn={weekStartsOn} />
 
@@ -383,7 +383,7 @@ export function FinanceControls({
             today={today}
           />
 
-          <SavingsTrendCard transactions={transactionsWindow} timezone={timezone} />
+          <SavingsTrendCard transactions={transactionsWindow} timezone={timezone} today={today} />
         </div>
       </StaggerReveal>
 
@@ -440,15 +440,17 @@ function TrendSection({
   transactions,
   timezone,
   weekStartsOn,
+  today,
 }: {
   transactions: SerializedFinanceTransaction[];
   timezone: string;
   weekStartsOn: number;
+  today: ISODate;
 }) {
   const { t, locale } = useI18n();
   const [unit, setUnit] = useState<"day" | "week" | "month">("day");
 
-  const buckets = computeIncomeExpenseTrend(transactions, timezone, unit, weekStartsOn);
+  const buckets = computeIncomeExpenseTrend(transactions, timezone, unit, weekStartsOn, today);
   const incomeData = buckets.map((b) => ({ label: formatBucketLabel(b.label, unit, locale), value: b.incomeVnd }));
   const expenseData = buckets.map((b) => ({ label: formatBucketLabel(b.label, unit, locale), value: b.expenseVnd }));
   const incomeDelta = deltaPercentFor(buckets.map((b) => b.incomeVnd));
@@ -456,7 +458,7 @@ function TrendSection({
 
   return (
     <div className="grid gap-[var(--gap)]">
-      <div className="flex justify-end gap-1 rounded-full border border-line bg-surface p-1 text-xs font-medium">
+      <div className="inline-flex justify-self-end gap-1 rounded-full border border-line bg-surface p-1 text-xs font-medium">
         {(["day", "week", "month"] as const).map((u) => (
           <button
             key={u}
@@ -920,18 +922,24 @@ function SavingsSection({
 function SavingsTrendCard({
   transactions,
   timezone,
+  today,
 }: {
   transactions: SerializedFinanceTransaction[];
   timezone: string;
+  today: ISODate;
 }) {
   const { t, locale } = useI18n();
 
-  const trend = computeSavingsRateTrend(transactions, timezone);
+  const trend = computeSavingsRateTrend(transactions, timezone, today);
   const data = trend.map((b) => ({ label: formatBucketLabel(b.label, "month", locale), value: b.ratePercent }));
   const currentRate = trend.length > 0 ? trend[trend.length - 1].ratePercent : 0;
   const delta = trend.length >= 2 ? Math.round(trend[trend.length - 1].ratePercent - trend[0].ratePercent) : null;
   const deltaText =
-    delta === null ? null : delta >= 0 ? fmt(t.finance.trendDeltaUp, { pct: delta }) : fmt(t.finance.trendDeltaDown, { pct: delta });
+    delta === null
+      ? null
+      : delta >= 0
+        ? fmt(t.finance.savingsTrendDeltaUp, { pct: delta })
+        : fmt(t.finance.savingsTrendDeltaDown, { pct: delta });
 
   return (
     <section className="card" aria-labelledby="finance-savings-trend">
