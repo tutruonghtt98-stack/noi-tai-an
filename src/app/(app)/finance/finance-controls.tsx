@@ -323,30 +323,33 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
       </StaggerReveal>
 
       <section className="grid gap-[var(--gap)] sm:grid-cols-2">
-        <div className="card"><TransactionQuickAddForm type="INCOME" today={today} /></div>
-        <div className="card"><TransactionQuickAddForm type="EXPENSE" today={today} /></div>
+        <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
+          <div className="card"><TransactionQuickAddForm type="INCOME" today={today} /></div>
+          <div className="card"><TransactionQuickAddForm type="EXPENSE" today={today} /></div>
+        </StaggerReveal>
       </section>
 
-      <RecurringSection
-        type="INCOME"
-        title={t.finance.recurringIncomeTitle}
-        rules={dashboard.recurringRules}
-        today={today}
-        categories={INCOME_CATEGORIES}
-        categoryIcons={INCOME_CATEGORY_ICONS}
-        storageKey="finance.customCategories.income"
-      />
-      <RecurringSection
-        type="EXPENSE"
-        title={t.finance.recurringExpenseTitle}
-        rules={dashboard.recurringRules}
-        today={today}
-        categories={EXPENSE_CATEGORIES}
-        categoryIcons={EXPENSE_CATEGORY_ICONS}
-        storageKey="finance.customCategories.expense"
-      />
-
-      <TransactionsSection transactions={dashboard.recentTransactions} />
+      <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
+        <RecurringSection
+          type="INCOME"
+          title={t.finance.recurringIncomeTitle}
+          rules={dashboard.recurringRules}
+          today={today}
+          categories={INCOME_CATEGORIES}
+          categoryIcons={INCOME_CATEGORY_ICONS}
+          storageKey="finance.customCategories.income"
+        />
+        <RecurringSection
+          type="EXPENSE"
+          title={t.finance.recurringExpenseTitle}
+          rules={dashboard.recurringRules}
+          today={today}
+          categories={EXPENSE_CATEGORIES}
+          categoryIcons={EXPENSE_CATEGORY_ICONS}
+          storageKey="finance.customCategories.expense"
+        />
+        <TransactionsSection transactions={dashboard.recentTransactions} />
+      </StaggerReveal>
     </div>
   );
 }
@@ -598,7 +601,6 @@ function RecurringSection({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
-  const [accountName, setAccountName] = useState("");
   const [cycle, setCycle] = useState<"WEEKLY" | "MONTHLY">("MONTHLY");
   const [startDate, setStartDate] = useState(today);
 
@@ -613,7 +615,6 @@ function RecurringSection({
           type,
           amountVnd: Number(amount),
           category: category.trim() || undefined,
-          accountName: accountName.trim() || undefined,
           cycle,
           startDate,
         }),
@@ -622,7 +623,6 @@ function RecurringSection({
         onSuccess: () => {
           setAmount("");
           setCategory("");
-          setAccountName("");
           refresh();
         },
       },
@@ -713,10 +713,6 @@ function RecurringSection({
             defaultIcons={categoryIcons}
             storageKey={storageKey}
           />
-        </label>
-        <label className="field">
-          <span className="label">{t.finance.accountLabel}</span>
-          <input className="input" value={accountName} onChange={(event) => setAccountName(event.target.value)} maxLength={60} />
         </label>
         <label className="field">
           <span className="label">{t.finance.cycleLabel}</span>

@@ -1,8 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, Check, ListChecks, MoonStar, Pencil, Plus, Send, Sparkles, Trash2, Wallet } from "lucide-react";
+import {
+  AlarmClock,
+  Annoyed,
+  Check,
+  ChevronDown,
+  Frown,
+  Laugh,
+  ListChecks,
+  Meh,
+  MoonStar,
+  Pencil,
+  Plus,
+  Send,
+  Smile,
+  Sparkles,
+  Trash2,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { Empty } from "@/components/ui/empty";
 import { Modal } from "@/components/ui/modal";
 import { JourneyCommitmentForm } from "@/components/journey-commitment-form";
@@ -504,6 +522,74 @@ export function StartJourneyButton() {
   );
 }
 
+const MOOD_OPTIONS: { value: number; label: string; icon: LucideIcon; className: string }[] = [
+  { value: 1, label: "Rất khó khăn", icon: Frown, className: "text-danger" },
+  { value: 2, label: "Hơi nặng nề", icon: Annoyed, className: "text-ochre-ink" },
+  { value: 3, label: "Bình thường", icon: Meh, className: "text-ink-2" },
+  { value: 4, label: "Tốt", icon: Smile, className: "text-jade-ink" },
+  { value: 5, label: "Rất tốt", icon: Laugh, className: "text-jade-ink" },
+];
+
+/** Sổ xuống chọn tâm trạng, theo đúng kiểu PrioritySelect/CategoryCombobox — icon theo từng mức + dấu check. */
+function MoodSelect({ value, onChange, disabled }: { value: number; onChange: (v: number) => void; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const current = MOOD_OPTIONS.find((o) => o.value === value) ?? MOOD_OPTIONS[2];
+  const CurrentIcon = current.icon;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        className="input flex w-full items-center justify-between gap-2 text-left"
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className={`flex min-w-0 flex-1 items-center gap-1.5 font-medium ${current.className}`}>
+          <CurrentIcon className="size-4 shrink-0" aria-hidden /> <span className="truncate">{value} · {current.label}</span>
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-muted" aria-hidden />
+      </button>
+      {open && (
+        <ul role="listbox" className="rise absolute z-20 mt-1.5 w-full overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-pop">
+          {MOOD_OPTIONS.map((option) => {
+            const selected = option.value === value;
+            const OptIcon = option.icon;
+            return (
+              <li key={option.value}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left hover:bg-surface-2 ${option.className}`}
+                  onClick={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                >
+                  <OptIcon className="size-4 shrink-0" aria-hidden />
+                  <span className="flex-1 truncate font-medium">{option.value} · {option.label}</span>
+                  {selected && <Check className="size-3.5 shrink-0" aria-hidden />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function JourneyReflectionCard({
   dayScore,
   reflection,
@@ -536,13 +622,7 @@ export function JourneyReflectionCard({
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="field">
           <span className="label">Tâm trạng hôm nay</span>
-          <select className="input" value={mood} onChange={(event) => setMood(Number(event.target.value))} disabled={closed}>
-            <option value={1}>1 · Rất khó khăn</option>
-            <option value={2}>2 · Hơi nặng nề</option>
-            <option value={3}>3 · Bình thường</option>
-            <option value={4}>4 · Tốt</option>
-            <option value={5}>5 · Rất tốt</option>
-          </select>
+          <MoodSelect value={mood} onChange={setMood} disabled={closed} />
         </label>
         <label className="field"><span className="label">Một điều làm tốt</span><input className="input" value={wins} onChange={(event) => setWins(event.target.value)} maxLength={1000} disabled={closed} /></label>
         <label className="field"><span className="label">Điều đã học</span><input className="input" value={lesson} onChange={(event) => setLesson(event.target.value)} maxLength={1000} disabled={closed} /></label>
