@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/session";
-import { getFinanceDashboard, runDueRecurringRules } from "@/lib/finance-queries";
+import {
+  getFinanceDashboard,
+  getFinanceSavingsGoals,
+  getFinanceTransactionsWindow,
+  runDueRecurringRules,
+} from "@/lib/finance-queries";
 import { PageHeader } from "@/components/page-header";
 import { FinanceControls } from "./finance-controls";
 import { getI18n } from "@/lib/i18n";
@@ -19,12 +24,23 @@ export default async function FinancePage() {
   const today = isoInZone(new Date(), user.timezone);
 
   await runDueRecurringRules(user.id, user.timezone);
-  const dashboard = await getFinanceDashboard(user.id, user.timezone);
+  const [dashboard, transactionsWindow, savingsGoals] = await Promise.all([
+    getFinanceDashboard(user.id, user.timezone),
+    getFinanceTransactionsWindow(user.id, user.timezone),
+    getFinanceSavingsGoals(user.id),
+  ]);
 
   return (
     <>
       <PageHeader title={t.nav.finance} subtitle={t.finance.subtitle} />
-      <FinanceControls dashboard={dashboard} today={today} />
+      <FinanceControls
+        dashboard={dashboard}
+        today={today}
+        transactionsWindow={transactionsWindow}
+        savingsGoals={savingsGoals}
+        timezone={user.timezone}
+        weekStartsOn={user.weekStartsOn}
+      />
     </>
   );
 }
