@@ -44,8 +44,10 @@ import {
 } from "lucide-react";
 import {
   createFinanceRecurringRule,
+  createFinanceSavingsGoal,
   createFinanceTransaction,
   deleteFinanceRecurringRule,
+  deleteFinanceSavingsGoal,
   deleteFinanceTransaction,
   toggleFinanceRecurringRule,
   upsertFinanceBudget,
@@ -346,7 +348,6 @@ export function FinanceControls({
   weekStartsOn: number;
 }) {
   const { t } = useI18n();
-  void savingsGoals;
   const balance = dashboard.incomeThisMonth - dashboard.expenseThisMonth;
 
   return (
@@ -373,6 +374,13 @@ export function FinanceControls({
           <CalendarSection transactions={transactionsWindow} timezone={timezone} today={today} weekStartsOn={weekStartsOn} />
 
           <BudgetsSection budgets={dashboard.budgets} />
+
+          <SavingsSection
+            goals={savingsGoals}
+            incomeThisMonth={dashboard.incomeThisMonth}
+            expenseThisMonth={dashboard.expenseThisMonth}
+            today={today}
+          />
         </div>
       </StaggerReveal>
 
@@ -712,6 +720,194 @@ function BudgetsSection({ budgets }: { budgets: FinanceDashboard["budgets"] }) {
           }
         >
           <Plus className="size-4" aria-hidden /> {t.finance.addOrEditBudget}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function SavingsSection({
+  goals,
+  incomeThisMonth,
+  expenseThisMonth,
+  today,
+}: {
+  goals: { id: string; name: string; targetVnd: number; targetDate: ISODate | null; savedVnd: number }[];
+  incomeThisMonth: number;
+  expenseThisMonth: number;
+  today: ISODate;
+}) {
+  const { t, locale } = useI18n();
+  const { exec, pending } = useAction();
+  const router = useRouter();
+  const refresh = () => router.refresh();
+
+  const [actionKey, setActionKey] = useState<string | null>(null);
+  const [actionAmount, setActionAmount] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const [newName, setNewName] = useState("");
+  const [newTarget, setNewTarget] = useState("");
+  const [newTargetDate, setNewTargetDate] = useState("");
+
+  const closeAction = () => {
+    setActionKey(null);
+    setActionAmount("");
+  };
+
+  const confirmAction = (goal: (typeof goals)[number], kind: "deposit" | "withdraw") =>
+    exec(
+      () =>
+        createFinanceTransaction({
+          type: kind === "deposit" ? "EXPENSE" : "INCOME",
+          category: "Tiết kiệm",
+          amountVnd: Number(actionAmount),
+          occurredAt: today,
+          savingsGoalId: goal.id,
+        }),
+      {
+        success: t.finance.transactionSaved,
+        onSuccess: () => {
+          closeAction();
+          refresh();
+        },
+      },
+    );
+
+  const addGoal = () =>
+    exec(
+      () =>
+        createFinanceSavingsGoal({
+          name: newName.trim(),
+          targetVnd: Number(newTarget),
+          targetDate: newTargetDate || undefined,
+        }),
+      {
+        success: t.finance.savingsGoalSaved,
+        onSuccess: () => {
+          setNewName("");
+          setNewTarget("");
+          setNewTargetDate("");
+          refresh();
+        },
+      },
+    );
+
+  return (
+    <section className="card" aria-labelledby="finance-savings">
+      <h2 id="finance-savings" className="card-title flex items-center gap-2 text-lg">
+        <PiggyBank className="size-5 text-muted" aria-hidden /> {t.finance.savingsTitle}
+      </h2>
+      <p className="mt-2 text-sm text-muted">
+        {fmt(t.finance.savingsSuggestLine, { amount: vnd(Math.max(0, incomeThisMonth - expenseThisMonth)) })}
+      </p>
+
+      {goals.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">{t.finance.savingsNoGoalsYet}</p>
+      ) : (
+        <ul className="mt-4 grid gap-4">
+          {goals.map((goal) => {
+            const depositKey = `${goal.id}:deposit`;
+            const withdrawKey = `${goal.id}:withdraw`;
+            const withdrawExceeds = actionKey === withdrawKey && Number(actionAmount) > goal.savedVnd;
+            return (
+              <li key={goal.id}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium">{goal.name}</span>
+                  <div className="flex items-center gap-2">
+                    <button type="button" className="btn btn-soft btn-sm" onClick={() => { setActionKey(depositKey); setActionAmount(""); }}>
+                      {t.finance.savingsDeposit}
+                    </button>
+                    <button type="button" className="btn btn-soft btn-sm" onClick={() => { setActionKey(withdrawKey); setActionAmount(""); }}>
+                      {t.finance.savingsWithdraw}
+                    </button>
+                    {deleteId === goal.id ? (
+                      <span className="flex items-center gap-1 text-xs">
+                        <span>Xoá?</span>
+                        <button
+                          type="button"
+                          className="btn btn-soft btn-sm"
+                          disabled={pending}
+                          onClick={() =>
+                            exec(() => deleteFinanceSavingsGoal(goal.id), {
+                              onSuccess: () => {
+                                setDeleteId(null);
+                                refresh();
+                              },
+                            })
+                          }
+                        >
+                          Có
+                        </button>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDeleteId(null)}>Không</button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="icon-btn icon-btn-plain text-danger"
+                        aria-label={`${t.finance.delete}: ${goal.name}`}
+                        title={t.finance.delete}
+                        onClick={() => setDeleteId(goal.id)}
+                      >
+                        <Trash2 className="size-4" aria-hidden />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <ProgressBar value={goal.targetVnd > 0 ? goal.savedVnd / goal.targetVnd : 0} color="var(--accent)" label={goal.name} />
+                </div>
+                <p className="tabular mt-1 text-xs text-muted">
+                  {fmt(t.finance.savingsSavedOfTarget, { saved: vnd(goal.savedVnd), target: vnd(goal.targetVnd) })}
+                  {goal.targetDate && ` · ${formatDate(goal.targetDate, locale, { day: "2-digit", month: "2-digit", year: "numeric" })}`}
+                </p>
+                {(actionKey === depositKey || actionKey === withdrawKey) && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <AmountInput
+                      value={actionAmount}
+                      onChange={setActionAmount}
+                      ariaLabel={actionKey === depositKey ? t.finance.savingsDeposit : t.finance.savingsWithdraw}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-soft btn-sm"
+                      disabled={pending || actionAmount.trim() === "" || withdrawExceeds}
+                      onClick={() => confirmAction(goal, actionKey === depositKey ? "deposit" : "withdraw")}
+                    >
+                      {t.finance.save}
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={closeAction}>Huỷ</button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-[1fr_10rem_10rem_auto]">
+        <input
+          className="input"
+          value={newName}
+          onChange={(event) => setNewName(event.target.value)}
+          placeholder={t.finance.savingsGoalNamePlaceholder}
+          maxLength={60}
+        />
+        <label className="field">
+          <span className="label">{t.finance.savingsGoalTargetLabel}</span>
+          <AmountInput value={newTarget} onChange={setNewTarget} />
+        </label>
+        <label className="field">
+          <span className="label">{t.finance.savingsGoalTargetDateLabel}</span>
+          <input className="input" type="date" value={newTargetDate} onChange={(event) => setNewTargetDate(event.target.value)} />
+        </label>
+        <button
+          type="button"
+          className="btn btn-soft"
+          disabled={pending || !newName.trim() || newTarget.trim() === ""}
+          onClick={addGoal}
+        >
+          <Plus className="size-4" aria-hidden /> {t.finance.savingsAddGoal}
         </button>
       </div>
     </section>
