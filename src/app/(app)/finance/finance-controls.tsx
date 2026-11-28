@@ -372,6 +372,8 @@ export function FinanceControls({
 
           <TrendSection transactions={transactionsWindow} timezone={timezone} weekStartsOn={weekStartsOn} today={today} />
 
+          <SavingsTrendCard transactions={transactionsWindow} timezone={timezone} today={today} />
+
           <CalendarSection transactions={transactionsWindow} timezone={timezone} today={today} weekStartsOn={weekStartsOn} />
 
           <BudgetsSection budgets={dashboard.budgets} />
@@ -382,8 +384,6 @@ export function FinanceControls({
             expenseThisMonth={dashboard.expenseThisMonth}
             today={today}
           />
-
-          <SavingsTrendCard transactions={transactionsWindow} timezone={timezone} today={today} />
         </div>
       </StaggerReveal>
 
