@@ -54,7 +54,7 @@ import {
 } from "@/actions/finance";
 import type { FinanceDashboard, SerializedFinanceTransaction, getFinanceSavingsGoals } from "@/lib/finance-queries";
 import type { BudgetWarningLevel } from "@/lib/finance";
-import { computeIncomeExpenseTrend, getMonthCalendarSummary, getTransactionsForDate } from "@/lib/finance";
+import { computeIncomeExpenseTrend, computeSavingsRateTrend, getMonthCalendarSummary, getTransactionsForDate } from "@/lib/finance";
 import { useAction } from "@/lib/use-action";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
@@ -65,6 +65,7 @@ import { ProgressBar } from "@/components/ui/progress-ring";
 import { formatDate, type ISODate } from "@/lib/dates";
 import { StaggerReveal } from "@/components/ui/stagger-reveal";
 import { TrendBarChart } from "@/components/ui/trend-bar-chart";
+import { TrendLineChart } from "@/components/ui/trend-line-chart";
 import { buildMonthCells } from "@/lib/work-view";
 
 type FinanceSavingsGoals = Awaited<ReturnType<typeof getFinanceSavingsGoals>>;
@@ -381,6 +382,8 @@ export function FinanceControls({
             expenseThisMonth={dashboard.expenseThisMonth}
             today={today}
           />
+
+          <SavingsTrendCard transactions={transactionsWindow} timezone={timezone} />
         </div>
       </StaggerReveal>
 
@@ -909,6 +912,40 @@ function SavingsSection({
         >
           <Plus className="size-4" aria-hidden /> {t.finance.savingsAddGoal}
         </button>
+      </div>
+    </section>
+  );
+}
+
+function SavingsTrendCard({
+  transactions,
+  timezone,
+}: {
+  transactions: SerializedFinanceTransaction[];
+  timezone: string;
+}) {
+  const { t, locale } = useI18n();
+
+  const trend = computeSavingsRateTrend(transactions, timezone);
+  const data = trend.map((b) => ({ label: formatBucketLabel(b.label, "month", locale), value: b.ratePercent }));
+  const currentRate = trend.length > 0 ? trend[trend.length - 1].ratePercent : 0;
+  const delta = trend.length >= 2 ? Math.round(trend[trend.length - 1].ratePercent - trend[0].ratePercent) : null;
+  const deltaText =
+    delta === null ? null : delta >= 0 ? fmt(t.finance.trendDeltaUp, { pct: delta }) : fmt(t.finance.trendDeltaDown, { pct: delta });
+
+  return (
+    <section className="card" aria-labelledby="finance-savings-trend">
+      <h2 id="finance-savings-trend" className="card-title flex items-center gap-2 text-lg">
+        <TrendingUp className="size-5 text-muted" aria-hidden /> {t.finance.savingsTrendTitle}
+      </h2>
+      <p className="tabular mt-3 text-2xl font-semibold">{currentRate}%</p>
+      {deltaText && (
+        <p className="mt-0.5 text-xs tabular-nums" style={{ color: "var(--accent)" }}>
+          {deltaText}
+        </p>
+      )}
+      <div className="mt-3">
+        <TrendLineChart data={data} color="var(--accent)" />
       </div>
     </section>
   );
