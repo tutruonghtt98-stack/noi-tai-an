@@ -303,23 +303,25 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
 
   return (
     <div className="grid gap-[var(--gap)]">
-      <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Tổng quan tài chính tháng này">
-        <div className="card">
-          <p className="text-xs font-semibold uppercase text-muted">{t.finance.incomeThisMonth}</p>
-          <p className="tabular mt-3 text-2xl font-semibold text-jade-ink">{vnd(dashboard.incomeThisMonth)}</p>
-        </div>
-        <div className="card">
-          <p className="text-xs font-semibold uppercase text-muted">{t.finance.expenseThisMonth}</p>
-          <p className="tabular mt-3 text-2xl font-semibold text-danger">{vnd(dashboard.expenseThisMonth)}</p>
-        </div>
-        <div className="card">
-          <p className="text-xs font-semibold uppercase text-muted">{t.finance.balanceThisMonth}</p>
-          <p className="tabular mt-3 text-2xl font-semibold">{vnd(balance)}</p>
-        </div>
-      </section>
+      <StaggerReveal asChild={false} slide={{ direction: "up", offset: 16 }} holdDelay={60}>
+        <div className="grid gap-[var(--gap)]">
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Tổng quan tài chính tháng này">
+            <div className="card">
+              <p className="text-xs font-semibold uppercase text-muted">{t.finance.incomeThisMonth}</p>
+              <p className="tabular mt-3 text-2xl font-semibold text-jade-ink">{vnd(dashboard.incomeThisMonth)}</p>
+            </div>
+            <div className="card">
+              <p className="text-xs font-semibold uppercase text-muted">{t.finance.expenseThisMonth}</p>
+              <p className="tabular mt-3 text-2xl font-semibold text-danger">{vnd(dashboard.expenseThisMonth)}</p>
+            </div>
+            <div className="card">
+              <p className="text-xs font-semibold uppercase text-muted">{t.finance.balanceThisMonth}</p>
+              <p className="tabular mt-3 text-2xl font-semibold">{vnd(balance)}</p>
+            </div>
+          </section>
 
-      <BudgetsSection budgets={dashboard.budgets} />
+          <BudgetsSection budgets={dashboard.budgets} />
+        </div>
       </StaggerReveal>
 
       <section className="grid gap-[var(--gap)] sm:grid-cols-2">
@@ -329,26 +331,28 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
         </StaggerReveal>
       </section>
 
-      <StaggerReveal slide={{ direction: "up", offset: 16 }} holdDelay={60}>
-        <RecurringSection
-          type="INCOME"
-          title={t.finance.recurringIncomeTitle}
-          rules={dashboard.recurringRules}
-          today={today}
-          categories={INCOME_CATEGORIES}
-          categoryIcons={INCOME_CATEGORY_ICONS}
-          storageKey="finance.customCategories.income"
-        />
-        <RecurringSection
-          type="EXPENSE"
-          title={t.finance.recurringExpenseTitle}
-          rules={dashboard.recurringRules}
-          today={today}
-          categories={EXPENSE_CATEGORIES}
-          categoryIcons={EXPENSE_CATEGORY_ICONS}
-          storageKey="finance.customCategories.expense"
-        />
-        <TransactionsSection transactions={dashboard.recentTransactions} />
+      <StaggerReveal asChild={false} slide={{ direction: "up", offset: 16 }} holdDelay={60}>
+        <div className="grid gap-[var(--gap)]">
+          <RecurringSection
+            type="INCOME"
+            title={t.finance.recurringIncomeTitle}
+            rules={dashboard.recurringRules}
+            today={today}
+            categories={INCOME_CATEGORIES}
+            categoryIcons={INCOME_CATEGORY_ICONS}
+            storageKey="finance.customCategories.income"
+          />
+          <RecurringSection
+            type="EXPENSE"
+            title={t.finance.recurringExpenseTitle}
+            rules={dashboard.recurringRules}
+            today={today}
+            categories={EXPENSE_CATEGORIES}
+            categoryIcons={EXPENSE_CATEGORY_ICONS}
+            storageKey="finance.customCategories.expense"
+          />
+          <TransactionsSection transactions={dashboard.recentTransactions} />
+        </div>
       </StaggerReveal>
     </div>
   );
@@ -698,7 +702,7 @@ function RecurringSection({
         </ul>
       )}
 
-      <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-3">
+      <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-2">
         <label className="field">
           <span className="label">{t.finance.amountLabel}</span>
           <input className="input" type="number" min={1} step={1000} inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value)} />
