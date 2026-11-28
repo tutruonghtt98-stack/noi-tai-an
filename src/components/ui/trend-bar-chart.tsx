@@ -7,7 +7,7 @@ import { fmt } from "@/lib/i18n/format";
 const SVG_WIDTH = 100; // viewBox units; svg scales responsively via width=100%
 const SVG_HEIGHT = 56;
 const BAR_GAP_RATIO = 0.3; // fraction of each slot's width used as gap
-const BAR_RADIUS = 1.6; // ~4px at typical rendered widths
+const BAR_RADIUS_MAX = 1.6; // ~4px at typical rendered widths, capped so narrow bars (30-pt series) don't turn into pills
 const LABEL_EVERY = 5;
 
 /** 3-point simple moving average, centered (edges use available neighbors). */
@@ -42,6 +42,10 @@ export function TrendBarChart({
   const slotWidth = n > 0 ? SVG_WIDTH / n : 0;
   const barWidth = slotWidth * (1 - BAR_GAP_RATIO);
   const barOffset = (slotWidth - barWidth) / 2;
+  // Scale the corner radius down for narrow bars so it never exceeds half the bar's
+  // width (which the SVG spec would clamp to a full pill) — keeps a subtle round top
+  // instead of a capsule shape for ~30-point series.
+  const barRadius = Math.min(BAR_RADIUS_MAX, barWidth * 0.3);
 
   const barHeight = (value: number) => (maxValue > 0 ? (value / maxValue) * (SVG_HEIGHT - 4) : 0);
   const barY = (value: number) => SVG_HEIGHT - barHeight(value);
@@ -98,8 +102,8 @@ export function TrendBarChart({
                 y={y}
                 width={barWidth}
                 height={h}
-                rx={BAR_RADIUS}
-                ry={BAR_RADIUS}
+                rx={barRadius}
+                ry={barRadius}
                 fill={color}
                 opacity={hovered === null || hovered === i ? 1 : 0.55}
                 onMouseEnter={() => setHovered(i)}
