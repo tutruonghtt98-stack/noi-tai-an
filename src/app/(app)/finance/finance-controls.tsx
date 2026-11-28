@@ -21,6 +21,19 @@ import { vnd } from "@/lib/billing";
 import { ProgressBar } from "@/components/ui/progress-ring";
 import { formatDate, type ISODate } from "@/lib/dates";
 
+const DEFAULT_CATEGORIES = [
+  "Ăn uống",
+  "Nhà ở",
+  "Di chuyển",
+  "Mua sắm",
+  "Sức khỏe",
+  "Giải trí",
+  "Giáo dục",
+  "Gia đình",
+  "Cá nhân",
+  "Khác",
+];
+
 function budgetColorFor(level: BudgetWarningLevel) {
   if (level === "OVER_100") return "var(--danger)";
   if (level === "WARN_90" || level === "WARN_80") return "var(--ochre)";
@@ -33,6 +46,11 @@ export function FinanceControls({ dashboard, today }: { dashboard: FinanceDashbo
 
   return (
     <div className="grid gap-[var(--gap)]">
+      <datalist id="finance-categories">
+        {DEFAULT_CATEGORIES.map((category) => (
+          <option key={category} value={category} />
+        ))}
+      </datalist>
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Tổng quan tài chính tháng này">
         <div className="card">
           <p className="text-xs font-semibold uppercase text-muted">{t.finance.incomeThisMonth}</p>
@@ -143,7 +161,7 @@ function BudgetsSection({ budgets }: { budgets: FinanceDashboard["budgets"] }) {
       )}
 
       <div className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-[1fr_10rem_auto]">
-        <input className="input" value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder={t.finance.categoryLabel} maxLength={60} />
+        <input className="input" value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder={t.finance.categoryLabel} maxLength={60} list="finance-categories" />
         <input
           className="input"
           type="number"
@@ -236,7 +254,7 @@ function TransactionQuickAddForm({ type, today }: { type: "INCOME" | "EXPENSE"; 
         </label>
         <label className="field">
           <span className="label">{t.finance.categoryLabel}{isExpense && " *"}</span>
-          <input className="input" value={category} onChange={(event) => setCategory(event.target.value)} placeholder={t.finance.categoryPlaceholder} maxLength={60} />
+          <input className="input" value={category} onChange={(event) => setCategory(event.target.value)} placeholder={t.finance.categoryPlaceholder} maxLength={60} list="finance-categories" />
         </label>
         <label className="field">
           <span className="label">{t.finance.accountLabel}</span>
@@ -379,7 +397,7 @@ function RecurringSection({ rules, today }: { rules: FinanceDashboard["recurring
         </label>
         <label className="field">
           <span className="label">{t.finance.categoryLabel}{isExpense && " *"}</span>
-          <input className="input" value={category} onChange={(event) => setCategory(event.target.value)} placeholder={t.finance.categoryPlaceholder} maxLength={60} />
+          <input className="input" value={category} onChange={(event) => setCategory(event.target.value)} placeholder={t.finance.categoryPlaceholder} maxLength={60} list="finance-categories" />
         </label>
         <label className="field">
           <span className="label">{t.finance.accountLabel}</span>
